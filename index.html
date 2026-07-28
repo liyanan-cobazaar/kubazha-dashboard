@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<title>库巴扎 2026年上半年数据看板</title>
+<style>
+:root {
+    --primary: #2563eb;
+    --primary-light: #dbeafe;
+    --success: #16a34a;
+    --success-light: #dcfce7;
+    --danger: #dc2626;
+    --danger-light: #fee2e2;
+    --warning: #f59e0b;
+    --warning-light: #fef3c7;
+    --bg: #f0f2f5;
+    --card-bg: #ffffff;
+    --text: #1e293b;
+    --text-secondary: #64748b;
+    --border: #e2e8f0;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+    --radius: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+.container { max-width: 1400px; margin: 0 auto; padding: 16px; }
+
+/* Header */
+.header {
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 50%, #2563eb 100%);
+    color: white;
+    padding: 24px 20px;
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+}
+.header::after {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 200px; height: 100%;
+    background: radial-gradient(circle at right, rgba(255,255,255,0.1) 0%, transparent 70%);
+}
+.header h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; position: relative; z-index: 1; }
+.header .subtitle { font-size: 13px; opacity: 0.85; position: relative; z-index: 1; }
+.header .update-info {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 12px;
+    background: rgba(255,255,255,0.15);
+    padding: 4px 12px;
+    border-radius: 20px;
+    backdrop-filter: blur(10px);
+    position: relative;
+    z-index: 1;
+}
+
+/* KPI Cards */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+}
+.kpi-card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 14px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+}
+.kpi-card .accent-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+}
+.kpi-card .label { font-size: 11px; color: var(--text-secondary); margin-bottom: 6px; }
+.kpi-card .value { font-size: 20px; font-weight: 700; line-height: 1.2; }
+.kpi-card .unit { font-size: 12px; font-weight: 400; color: var(--text-secondary); margin-left: 2px; }
+.kpi-card .change { font-size: 11px; margin-top: 4px; }
+.kpi-card .change.up { color: var(--danger); }
+.kpi-card .change.down { color: var(--success); }
+.kpi-card .change.neutral { color: var(--text-secondary); }
+.kpi-card.blue .accent-bar { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+.kpi-card.blue .value { color: #1e40af; }
+.kpi-card.green .accent-bar { background: linear-gradient(90deg, #dc2626, #f87171); }
+.kpi-card.green .value { color: #dc2626; }
+.kpi-card.orange .accent-bar { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.kpi-card.orange .value { color: #b45309; }
+.kpi-card.purple .accent-bar { background: linear-gradient(90deg, #8b5cf6, #a78bfa); }
+.kpi-card.purple .value { color: #6d28d9; }
+.kpi-card.teal .accent-bar { background: linear-gradient(90deg, #14b8a6, #2dd4bf); }
+.kpi-card.teal .value { color: #0f766e; }
+
+/* Section */
+.section {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+}
+.section-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.section-title .icon { width: 4px; height: 18px; border-radius: 2px; background: var(--primary); flex-shrink: 0; }
+.section-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 14px; }
+
+/* Charts */
+.chart-container { width: 100%; -webkit-overflow-scrolling: touch; }
+.chart-container.tall { height: 360px; }
+.chart-container.medium { height: 300px; }
+.chart-container.short { height: 240px; }
+
+/* Two column layout */
+.two-col { display: grid; grid-template-columns: 1fr; gap: 16px; }
+
+/* Table */
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+.data-table thead th {
+    background: #f1f5f9;
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text);
+    border-bottom: 2px solid var(--border);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+}
+.data-table tbody td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+}
+.data-table tbody tr:hover { background: #f8fafc; }
+.data-table tbody tr:nth-child(even) { background: #fafbfc; }
+.data-table .num { text-align: right; font-variant-numeric: tabular-nums; font-family: "SF Mono", "Cascadia Code", monospace; font-size: 11px; }
+.data-table .rank { font-weight: 600; text-align: center; }
+
+.editable-h2 tbody td input {
+    width: 100%;
+    min-height: 28px;
+    border: 1px solid transparent;
+    padding: 4px 6px;
+    font-size: 12px;
+    font-family: inherit;
+    background: transparent;
+    border-radius: 4px;
+}
+.editable-h2 tbody td input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+.editable-h2 tbody td input[name="h2name"] { text-align: left; }
+.editable-h2 tbody td input[name="h2value"] { text-align: right; font-variant-numeric: tabular-nums; }
+.editable-h2 .btn-del {
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    cursor: pointer;
+}
+.editable-h2 .btn-del:hover { background: #fecaca; }
+.btn-add {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px dashed #93c5fd;
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.btn-add:hover { background: #dbeafe; }
+
+/* Editable table */
+.editable-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+}
+.editable-table thead th {
+    background: #1e293b;
+    color: white;
+    padding: 8px 6px;
+    text-align: center;
+    font-weight: 600;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    font-size: 11px;
+}
+.editable-table tbody td {
+    padding: 3px 4px;
+    border-bottom: 1px solid var(--border);
+    text-align: right;
+}
+.editable-table tbody td:first-child { text-align: center; font-weight: 500; color: var(--text-secondary); }
+.editable-table tbody td:nth-child(2) { text-align: left; white-space: nowrap; }
+.editable-table tbody td input {
+    width: 90px;
+    min-height: 32px;
+    border: 1px solid transparent;
+    text-align: right;
+    padding: 4px 6px;
+    font-size: 11px;
+    font-family: inherit;
+    background: transparent;
+    border-radius: 4px;
+    font-variant-numeric: tabular-nums;
+    -webkit-appearance: none;
+    appearance: none;
+}
+.editable-table tbody td input:focus {
+    outline: none;
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+.editable-table tbody td.computed {
+    background: #f0fdf4;
+    font-weight: 600;
+    color: #166534;
+    font-variant-numeric: tabular-nums;
+    font-size: 11px;
+    text-align: right;
+    padding: 4px 6px;
+}
+.editable-table tbody td.computed.neg {
+    color: #dc2626;
+    background: #fef2f2;
+}
+.editable-table tbody tr:hover { background: #f8fafc; }
+.editable-table tfoot td {
+    padding: 6px;
+    text-align: right;
+    font-weight: 700;
+    background: #eff6ff;
+    border-top: 2px solid var(--border);
+    font-variant-numeric: tabular-nums;
+    font-size: 12px;
+}
+
+.table-scroll {
+    max-height: 500px;
+    overflow-y: auto;
+    overflow-x: auto;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    -webkit-overflow-scrolling: touch;
+}
+.table-scroll::-webkit-scrollbar { width: 6px; height: 6px; }
+.table-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+.table-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+
+/* Collapsible section */
+.collapse-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #f8fafc;
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 12px;
+    -webkit-tap-highlight-color: transparent;
+}
+.collapse-toggle:active { background: #e2e8f0; }
+.collapse-toggle .arrow { transition: transform 0.2s; display: inline-block; }
+.collapse-toggle.expanded .arrow { transform: rotate(90deg); }
+.collapse-content { display: none; }
+.collapse-content.show { display: block; }
+
+/* Estimate cards */
+.estimate-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px; }
+.estimate-card {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+}
+.estimate-card .label { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+.estimate-card .value { font-size: 17px; font-weight: 700; color: var(--primary); }
+.estimate-card .formula { font-size: 10px; color: var(--text-secondary); margin-top: 2px; }
+
+/* Search */
+.search-box {
+    width: 100%;
+    max-width: 300px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+    margin-bottom: 12px;
+    -webkit-appearance: none;
+}
+.search-box:focus { outline: none; border-color: var(--primary); }
+
+/* Back to top */
+.back-top {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+    z-index: 100;
+    font-size: 20px;
+    -webkit-tap-highlight-color: transparent;
+}
+.back-top.show { display: flex; }
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: 16px;
+    color: var(--text-secondary);
+    font-size: 11px;
+}
+.footer .note { margin-top: 4px; opacity: 0.7; }
+
+/* ===== Responsive Breakpoints ===== */
+
+/* Tablet (768px+) */
+@media (min-width: 768px) {
+    .container { padding: 24px; }
+    .header { padding: 32px 24px; }
+    .header h1 { font-size: 26px; }
+    .header .subtitle { font-size: 14px; }
+    .header .update-info { position: absolute; top: 24px; right: 24px; margin-top: 0; }
+    .kpi-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .kpi-card { padding: 20px; }
+    .kpi-card .label { font-size: 13px; }
+    .kpi-card .value { font-size: 24px; }
+    .kpi-card .unit { font-size: 13px; }
+    .kpi-card .change { font-size: 13px; }
+    .section { padding: 24px; }
+    .section-title { font-size: 18px; }
+    .section-desc { font-size: 13px; }
+    .chart-container.tall { height: 420px; }
+    .chart-container.medium { height: 350px; }
+    .estimate-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .estimate-card .value { font-size: 20px; }
+    .data-table { font-size: 13px; }
+    .data-table .num { font-size: 12px; }
+    .editable-table { font-size: 12px; }
+    .editable-table tbody td input { width: 100px; font-size: 12px; }
+    .footer { font-size: 12px; }
+}
+
+/* Desktop (1024px+) */
+@media (min-width: 1024px) {
+    .kpi-grid { grid-template-columns: repeat(5, 1fr); }
+    .two-col { grid-template-columns: 1fr 1fr; gap: 24px; }
+    .estimate-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Large Desktop (1400px+) */
+@media (min-width: 1400px) {
+    .container { padding: 32px; }
+}
+
+/* Small mobile (<=375px) */
+@media (max-width: 375px) {
+    .kpi-grid { grid-template-columns: 1fr; }
+    .kpi-card .value { font-size: 18px; }
+    .section-title { font-size: 15px; }
+    .estimate-grid { grid-template-columns: 1fr; }
+    .header h1 { font-size: 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Header -->
+    <div class="header">
+        <h1>库巴扎 2026年上半年数据看板</h1>
+        <div class="subtitle">全平台线上数据统计 | 2025年1-6月 vs 2026年1-6月 同比分析</div>
+        <div class="update-info">数据截止：2026年6月30日</div>
+    </div>
+
+    <!-- KPI Cards -->
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <!-- Monthly Comparison Chart -->
+    <div class="section">
+        <div class="section-title"><span class="icon"></span>月度趋势对比（2025 vs 2026）</div>
+        <div class="section-desc">2025年与2026年1-6月线上金额逐月对比，单位：万元</div>
+        <div class="chart-container tall" id="chartMonthly"></div>
+    </div>
+
+    <!-- Two Column: Total Comparison + Increment Structure -->
+    <div class="two-col">
+        <div class="section">
+            <div class="section-title"><span class="icon"></span>上半年总量对比</div>
+            <div class="section-desc">2025年1-6月 vs 2026年1-6月线上总额，单位：亿元</div>
+            <div class="chart-container medium" id="chartTotal"></div>
+        </div>
+        <div class="section">
+            <div class="section-title"><span class="icon"></span>增量构成分析</div>
+            <div class="section-desc">2026上半年对比2025上半年净增量的来源构成，单位：亿元</div>
+            <div class="chart-container medium" id="chartGrowthRate"></div>
+        </div>
+    </div>
+
+    <!-- Top20 Projects -->
+    <div class="section">
+        <div class="section-title"><span class="icon"></span>Top 20 头部项目</div>
+        <div class="section-desc">按2026年1-6月线上金额排序，单位：万元</div>
+        <div class="chart-container tall" id="chartTop20"></div>
+    </div>
+
+    <!-- Growth TOP10 & Decline TOP10 -->
+    <div class="two-col">
+        <div class="section">
+            <div class="section-title"><span class="icon"></span>原有项目增长 TOP 10</div>
+            <div class="section-desc">按同比增量排序，单位：万元</div>
+            <div class="chart-container medium" id="chartGrowthTop10"></div>
+        </div>
+        <div class="section">
+            <div class="section-title"><span class="icon"></span>原有项目减少 TOP 10</div>
+            <div class="section-desc">按减少幅度排序，单位：万元</div>
+            <div class="chart-container medium" id="chartDeclineTop10"></div>
+        </div>
+    </div>
+
+    <!-- New Projects -->
+    <div class="two-col">
+        <div class="section">
+            <div class="section-title"><span class="icon"></span>2026年上半年新增项目</div>
+            <div class="section-desc">2026年上半年新增11个新系统，单位：万元</div>
+            <div class="chart-container medium" id="chartNewProjects"></div>
+        </div>
+        <div class="section">
+            <div class="section-title"><span class="icon"></span>2026上半年新增项目明细</div>
+            <div class="section-desc">新增系统1-6月线上金额及占比</div>
+            <div class="table-scroll" style="max-height:350px">
+                <table class="data-table" id="newProjectsTable">
+                    <thead><tr><th>序号</th><th>项目</th><th class="num">2026年1-6月(万元)</th><th class="num">占比</th></tr></thead>
+                    <tbody></tbody>
+                    <tfoot><tr><td colspan="2">合计</td><td class="num" id="newProjTotal"></td><td class="num">100%</td></tr></tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Full Year Estimate -->
+    <div class="section">
+        <div class="section-title"><span class="icon"></span>2026全年预估</div>
+        <div class="section-desc">基于2025年上半年占全年比例（占比法）预估 + 下半年新增项目预估</div>
+        <div class="estimate-grid">
+            <div class="estimate-card">
+                <div class="label">2025全年线上实际</div>
+                <div class="value" id="est2025Full">-</div>
+                <div class="formula">实际完成</div>
+            </div>
+            <div class="estimate-card">
+                <div class="label">2025上半年线上</div>
+                <div class="value" id="est2025H1">-</div>
+                <div class="formula" id="estH1Ratio">占全年 -</div>
+            </div>
+            <div class="estimate-card">
+                <div class="label">2026上半年线上</div>
+                <div class="value" id="est2026H1">-</div>
+                <div class="formula" id="estGrowth">同比增长 -</div>
+            </div>
+            <div class="estimate-card">
+                <div class="label">现有项目全年预估</div>
+                <div class="value" id="estExisting">-</div>
+                <div class="formula">2026H1 / 占比</div>
+            </div>
+            <div class="estimate-card">
+                <div class="label">下半年新增项目预估</div>
+                <div class="value" id="estNewH2">-</div>
+                <div class="formula">新项目</div>
+            </div>
+            <div class="estimate-card" style="background:linear-gradient(135deg,#dbeafe,#bfdbfe);border-color:#3b82f6;">
+                <div class="label" style="color:#1e40af;">2026全年预估总额</div>
+                <div class="value" id="estFullYear" style="color:#1e40af;">-</div>
+                <div class="formula" style="color:#1e40af;">现有预估 + 新增预估</div>
+            </div>
+        </div>
+        <div style="margin-top:16px;">
+            <button class="collapse-toggle" onclick="toggleCollapse('h2Detail', this)">
+                <span class="arrow">▶</span> 下半年新增项目预估明细
+            </button>
+            <div class="collapse-content" id="h2Detail">
+                <div class="table-scroll" style="max-height:300px">
+                    <table class="data-table editable-h2" id="h2NewTable">
+                        <thead><tr><th>项目</th><th class="num">下半年预估(万元)</th><th class="num" style="width:50px;">操作</th></tr></thead>
+                        <tbody></tbody>
+                        <tfoot><tr><td>合计</td><td class="num" id="h2NewTotal"></td><td></td></tr></tfoot>
+                    </table>
+                </div>
+                <div style="margin-top:10px;">
+                    <button class="btn-add" onclick="addH2Project()">+ 新增项目</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Editable Raw Data Table -->
+    <div class="section">
+        <div class="section-title"><span class="icon"></span>原始数据明细（可编辑）</div>
+        <div class="section-desc">修改任意月度数据后，上方所有图表和指标将自动重新计算。金额单位：元</div>
+        <input type="text" class="search-box" id="searchInput" placeholder="搜索项目名称..." oninput="filterTable()">
+        <button class="collapse-toggle expanded" onclick="toggleCollapse('rawTableWrap', this)">
+            <span class="arrow">▶</span> 展开/收起数据表
+        </button>
+        <div class="collapse-content show" id="rawTableWrap">
+            <div class="table-scroll" style="max-height:600px">
+                <table class="editable-table" id="rawTable">
+                    <thead>
+                        <tr>
+                            <th style="width:36px">序号</th>
+                            <th style="min-width:120px">项目名称</th>
+                            <th>25年1月</th><th>25年2月</th><th>25年3月</th><th>25年4月</th><th>25年5月</th><th>25年6月</th>
+                            <th>26年1月</th><th>26年2月</th><th>26年3月</th><th>26年4月</th><th>26年5月</th><th>26年6月</th>
+                            <th style="background:#16a34a">25上半年</th>
+                            <th style="background:#16a34a">26上半年</th>
+                            <th style="background:#dc2626">同比增量</th>
+                            <th style="background:#f59e0b">25全年</th>
+                        </tr>
+                    </thead>
+                    <tbody id="rawTableBody"></tbody>
+                    <tfoot id="rawTableFoot"></tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>库巴扎全平台数据统计看板</div>
+        <div class="note">数据来源：「2026年1-6月份数据分汇总.xlsx」| 修改原始数据后，上方图表和KPI指标自动同步更新</div>
+    </div>
+</div>
+
+<!-- Back to top button -->
+<button class="back-top" id="backTop" onclick="scrollToTop()">↑</button>
+
+<!-- ECharts from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+
+<script>
+// ===== Embedded Data =====
+const RAW_DATA = {"projects": [{"name": "浙江大学", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [0.0, 4270017.91, 19245964.66, 19923993.6, 19723023.71, 22163768.97], "h1_2025": 0.0, "h1_2026": 85326768.85, "full_2025": 0.0, "increment": 85326768.85}, {"name": "北京大学", "m2025": [7636794.44, 10716964.67, 16175369.22, 18899597.07, 14983312.23, 14246029.82], "m2026": [15101213.54, 4978693.52, 14438571.36, 14801785.32, 14378859.39, 18973809.65], "h1_2025": 82658067.45, "h1_2026": 82672932.78, "full_2025": 168884214.89, "increment": 14865.329999998212}, {"name": "北京大学医学部", "m2025": [4628983.58, 7943640.12, 10801697.04, 13301007.15, 12667994.3, 9914139.81], "m2026": [7815693.45, 2859595.89, 10480596.1, 15641255.06, 18031685.42, 11475158.48], "h1_2025": 59257462.0, "h1_2026": 66303984.400000006, "full_2025": 135845437.67, "increment": 7046522.400000006}, {"name": "南开大学", "m2025": [9945.59, 369642.24, 4798159.38, 7552934.77, 7439982.87, 8356538.06], "m2026": [7540999.17, 2245727.08, 9055509.62, 9153517.92, 8387039.82, 9654405.21], "h1_2025": 28527202.91, "h1_2026": 46037198.82, "full_2025": 76563655.87, "increment": 17509995.91}, {"name": "苏州大学", "m2025": [3039937.49, 4715213.09, 6168274.9, 6829837.92, 6118857.14, 8692158.31], "m2026": [5466580.01, 2233987.18, 7612129.66, 7833023.63, 6855380.2, 8061417.0], "h1_2025": 35564278.85, "h1_2026": 38062517.68, "full_2025": 97790915.71, "increment": 2498238.829999998}, {"name": "清华大学", "m2025": [5263901.94, 7141834.48, 9386040.86, 10650432.82, 5800621.71, 8805803.18], "m2026": [6118315.26, 2358145.69, 7354474.23, 7078289.34, 7014084.01, 8127018.57], "h1_2025": 47048634.99, "h1_2026": 38050327.1, "full_2025": 96047478.56, "increment": -8998307.89}, {"name": "福建医科大学（老系统）", "m2025": [1282303.28, 1803243.13, 4100789.56, 3574566.16, 4242349.12, 5484225.93], "m2026": [3332290.98, 1193022.43, 4967028.4, 5037408.27, 6468354.79, 7153624.28], "h1_2025": 20487477.18, "h1_2026": 28151729.15, "full_2025": 47970750.1, "increment": 7664251.969999999}, {"name": "南京农业大学", "m2025": [2023979.76, 3511954.64, 4784265.21, 5507793.07, 5662516.06, 6020326.13], "m2026": [4102300.23, 1310383.6, 6362911.81, 6214280.85, 6249026.58, 6847955.86], "h1_2025": 27510834.87, "h1_2026": 31086858.93, "full_2025": 62811596.54, "increment": 3576024.0599999987}, {"name": "中国医科大学附属第一医院", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [2969206.92, 1873419.7, 3532914.32, 5569176.18, 4864188.72, 5730253.42], "h1_2025": 0.0, "h1_2026": 24539159.259999998, "full_2025": 5639834.34, "increment": 24539159.259999998}, {"name": "中国医科大学（库巴扎老系统）", "m2025": [220643.0, 1407672.84, 3701805.92, 4502809.23, 3715557.58, 4532397.86], "m2026": [2663695.43, 1095600.55, 5835766.72, 5773884.01, 4521063.57, 6586752.61], "h1_2025": 18080886.43, "h1_2026": 26476762.89, "full_2025": 53662481.66, "increment": 8395876.46}, {"name": "中国医科大学(新)", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [0.0, 0.0, 0.0, 0.0, 54302.53, 1568245.25], "h1_2025": 0.0, "h1_2026": 1622547.78, "full_2025": 0.0, "increment": 1622547.78}, {"name": "天津医科大学", "m2025": [2369291.68, 2990123.82, 4531834.51, 4553664.06, 2793862.72, 4187600.29], "m2026": [4505132.81, 470426.71, 4751544.0, 3913267.45, 3836257.92, 3674220.03], "h1_2025": 21426377.08, "h1_2026": 21150848.919999998, "full_2025": 61165511.04, "increment": -275528.16000000015}, {"name": "北京中医药大学", "m2025": [1086776.65, 2381692.81, 4330693.69, 4644747.14, 5032922.82, 8638964.98], "m2026": [2050718.64, 681949.6, 4368538.65, 5613636.6, 4427880.3, 7622600.67], "h1_2025": 26115798.09, "h1_2026": 24765324.46, "full_2025": 63092877.8, "increment": -1350473.629999999}, {"name": "中国医学科学院药物所", "m2025": [1558309.55, 2641306.64, 3236281.24, 3757780.38, 3078920.77, 5406927.83], "m2026": [2908559.95, 895710.25, 3765319.69, 3775640.11, 3464123.57, 4406652.29], "h1_2025": 19679526.41, "h1_2026": 19216005.86, "full_2025": 55176134.1, "increment": -463520.55000000075}, {"name": "西安交通大学", "m2025": [1865788.08, 1850215.37, 3976212.05, 3830476.07, 3681959.18, 4017635.03], "m2026": [3905229.38, 594104.28, 3284554.01, 4034495.55, 4107417.72, 5399643.59], "h1_2025": 19222285.78, "h1_2026": 21325444.53, "full_2025": 46348543.48, "increment": 2103158.75}, {"name": "海南大学", "m2025": [443882.66, 1623397.72, 3847191.7, 3653498.29, 4733766.64, 4416039.59], "m2026": [1910206.25, 367035.58, 3840253.75, 4130673.35, 4169889.75, 5277721.29], "h1_2025": 18717776.6, "h1_2026": 19695779.97, "full_2025": 39519780.19, "increment": 978003.3699999973}, {"name": "南京工业大学", "m2025": [547215.05, 1081193.76, 1723688.32, 1977084.68, 1956491.19, 2364683.54], "m2026": [1695634.31, 344580.38, 2827582.12, 3081023.94, 3348698.02, 2900427.84], "h1_2025": 9650356.54, "h1_2026": 14197946.61, "full_2025": 25912909.25, "increment": 4547590.07}, {"name": "福建中医药大学（老系统）", "m2025": [1303554.93, 772353.16, 2273195.59, 3087906.2, 3330777.06, 3468902.31], "m2026": [1975278.49, 307490.0, 2794695.13, 1854193.24, 2651784.18, 2897148.97], "h1_2025": 14236689.25, "h1_2026": 12480590.01, "full_2025": 32477623.7, "increment": -1756099.2400000002}, {"name": "徐州医科大学(新)", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [729338.09, 93977.35, 2434250.92, 3435241.12, 3192465.09, 3925299.76], "h1_2025": 0.0, "h1_2026": 13810572.33, "full_2025": 71188.51, "increment": 13810572.33}, {"name": "上海交通大学医学院", "m2025": [1214154.83, 1827261.91, 3074157.34, 4042258.07, 2906672.88, 3604331.18], "m2026": [2085629.11, 633839.14, 2787555.98, 2477604.39, 2560222.03, 2881373.97], "h1_2025": 16668836.209999999, "h1_2026": 13426224.620000001, "full_2025": 39782137.19, "increment": -3242611.589999998}, {"name": "江南大学", "m2025": [1622515.16, 1595613.24, 1913101.63, 2264060.41, 1889435.01, 2053833.86], "m2026": [2307052.63, 281398.67, 2083091.34, 1949329.76, 1877628.66, 1870866.09], "h1_2025": 11338559.31, "h1_2026": 10369367.15, "full_2025": 20139637.23, "increment": -969192.1600000001}, {"name": "大连理工大学（新）", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [1575828.64, 973930.32, 2485461.73, 2059526.05, 381659.72, 1724043.2], "h1_2025": 0.0, "h1_2026": 9200449.66, "full_2025": 5603639.58, "increment": 9200449.66}, {"name": "大连理工大学（旧）", "m2025": [807480.4, 698428.29, 2032675.855, 2524644.95, 2192593.81, 2697376.46], "m2026": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "h1_2025": 10953199.765, "h1_2026": 0.0, "full_2025": 18159205.335, "increment": -10953199.765}, {"name": "福建省妇幼保健院试剂采购平台", "m2025": [0.0, 184924.63, 519777.4, 1433506.5, 1645111.8, 1912075.8], "m2026": [1206481.2, 446739.22, 1693331.34, 2132627.86, 2212366.9, 1896338.84], "h1_2025": 5695396.13, "h1_2026": 9587885.36, "full_2025": 17021507.23, "increment": 3892489.2299999995}, {"name": "广州大学", "m2025": [217265.17, 380596.76, 1600532.49, 1520040.17, 1995970.29, 2332522.17], "m2026": [1009993.95, 335241.05, 1688831.77, 2181542.67, 1896884.98, 2485816.83], "h1_2025": 8046927.05, "h1_2026": 9598311.25, "full_2025": 18134763.1, "increment": 1551384.2000000002}, {"name": "南京中医药大学（实验材料）", "m2025": [0.0, 0.0, 0.0, 669787.03, 1603777.26, 2415750.88], "m2026": [452019.55, 147275.5, 1614002.46, 2321944.03, 2145752.09, 2226848.4], "h1_2025": 4689315.17, "h1_2026": 8907842.03, "full_2025": 21353214.94, "increment": 4218526.859999999}, {"name": "南京中医药大学(办公耗材)", "m2025": [0.0, 334.68, 1086.1, 66973.31, 157108.64, 265294.79], "m2026": [1598.61, 504.0, 86192.7, 245069.02, 81828.01, 225094.85], "h1_2025": 490797.52, "h1_2026": 640287.19, "full_2025": 2394558.719, "increment": 149489.66999999993}, {"name": "南京中医药大学(管制品气体)", "m2025": [57.0, 844.0, 4899.0, 2738.5, 8669.5, 8313.9], "m2026": [10383.62, 1822.0, 6748.96, 30946.7, 1341.0, 13655.0], "h1_2025": 25521.9, "h1_2026": 64897.28, "full_2025": 135153.9, "increment": 39375.38}, {"name": "北京化工大学", "m2025": [729601.16, 829395.58, 1405762.64, 2085262.17, 1681992.14, 1217275.21], "m2026": [1377371.3, 222096.96, 1531264.83, 1676946.84, 1472502.68, 2186131.06], "h1_2025": 7949288.899999999, "h1_2026": 8466313.67, "full_2025": 16212761.61, "increment": 517024.7700000005}, {"name": "华中科技大学", "m2025": [26233.54, 55197.0, 131737.8, 131737.8, 533799.08, 669023.25], "m2026": [887564.67, 243602.03, 1733230.19, 1955361.38, 1492370.34, 1694915.4], "h1_2025": 1547728.47, "h1_2026": 8007044.01, "full_2025": 6296994.13, "increment": 6459315.54}, {"name": "天津大学（化学品）新", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [0.0, 0.0, 0.0, 0.0, 3667900.0, 1034496.16], "h1_2025": 0.0, "h1_2026": 4702396.16, "full_2025": 0.0, "increment": 4702396.16}, {"name": "华东师范大学", "m2025": [340689.19, 431627.2, 497459.32, 809350.44, 787206.09, 909798.27], "m2026": [1032637.54, 377720.69, 1191133.64, 1041944.88, 1004600.08, 1009498.99], "h1_2025": 3776130.51, "h1_2026": 5657535.82, "full_2025": 9763473.01, "increment": 1881405.3100000005}, {"name": "北京理工大学旧（老系统）", "m2025": [23145.37, 57125.7, 99886.94, 141935.53, 90624.07, 134574.16], "m2026": [64105.92, 2153.4, 31567.05, 20412.05, 46035.24, 25162.65], "h1_2025": 547291.77, "h1_2026": 189436.31, "full_2025": 951501.96, "increment": -357855.46}, {"name": "广州中医药大学", "m2025": [360813.57, 405271.07, 726402.96, 689559.51, 755692.99, 1371617.55], "m2026": [885172.23, 110169.22, 682267.23, 1004675.37, 1322045.51, 1660564.59], "h1_2025": 4309357.65, "h1_2026": 5664894.15, "full_2025": 16321377.93, "increment": 1355536.5}, {"name": "东南大学（老系统）", "m2025": [413027.19, 582128.08, 967970.02, 894162.43, 805327.1, 871623.33], "m2026": [1027851.27, 240061.13, 1009896.0, 916612.94, 620302.23, 667153.22], "h1_2025": 4534238.15, "h1_2026": 4481876.79, "full_2025": 8558421.1, "increment": -52361.360000000335}, {"name": "北京工业大学旧（老系统）", "m2025": [491962.14, 773931.84, 915716.91, 989540.28, 1005792.05, 1309785.48], "m2026": [822687.33, 170982.08, 929440.52, 1013605.82, 816596.4, 548258.16], "h1_2025": 5486728.7, "h1_2026": 4301570.31, "full_2025": 11171387.21, "increment": -1185158.3900000006}, {"name": "同济大学", "m2025": [214979.97, 309472.18, 369625.21, 459135.94, 329014.85, 366648.79], "m2026": [551173.05, 100525.69, 574451.78, 775379.05, 1024619.12, 1838411.31], "h1_2025": 2048876.94, "h1_2026": 4864560.0, "full_2025": 5205756.34, "increment": 2815683.06}, {"name": "北京科技大学", "m2025": [506632.38, 636522.89, 1322413.94, 1202210.68, 800327.79, 886367.23], "m2026": [986290.8, 151464.83, 889454.71, 870866.22, 781890.37, 770961.67], "h1_2025": 5354474.91, "h1_2026": 4450928.6, "full_2025": 10908249.91, "increment": -903546.3100000005}, {"name": "四川大学", "m2025": [193542.8, 309392.2, 673674.09, 631834.76, 621215.41, 754193.52], "m2026": [742406.56, 230611.63, 766913.54, 868575.26, 771506.66, 1005761.48], "h1_2025": 3183852.7800000003, "h1_2026": 4385775.13, "full_2025": 8411050.03, "increment": 1201922.3499999996}, {"name": "重庆大学", "m2025": [438574.17, 576351.81, 920981.32, 840928.23, 805975.58, 957612.02], "m2026": [803179.43, 206572.31, 860786.32, 589685.91, 637394.55, 758843.34], "h1_2025": 4540423.13, "h1_2026": 3856461.86, "full_2025": 9112963.24, "increment": -683961.27}, {"name": "中国环境科学研究院", "m2025": [171612.88, 287190.2, 748088.0, 684685.78, 673435.97, 679466.29], "m2026": [371483.57, 385757.7, 694148.48, 685857.84, 512162.25, 631513.43], "h1_2025": 3244479.12, "h1_2026": 3280923.27, "full_2025": 9043889.92, "increment": 36444.14999999991}, {"name": "深圳技术大学", "m2025": [17094.64, 71602.05, 106139.34, 57259.11, 56754.0, 140124.19], "m2026": [262332.53, 48758.86, 535827.0, 1260722.14, 338218.16, 301567.71], "h1_2025": 448973.33, "h1_2026": 2747426.4, "full_2025": 1970329.91, "increment": 2298453.07}, {"name": "西北工业大学", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [282326.76, 41244.75, 288655.13, 648254.03, 757388.06, 1300414.02], "h1_2025": 0.0, "h1_2026": 3318282.75, "full_2025": 131338.57, "increment": 3318282.75}, {"name": "西北工业大学旧（老系统）", "m2025": [607958.73, 699151.81, 937084.78, 1266322.12, 971498.75, 652762.88], "m2026": [328758.57, 196675.0, 465831.17, 0, 0, 0.0], "h1_2025": 5134779.07, "h1_2026": 991264.74, "full_2025": 12524901.93, "increment": -4143514.33}, {"name": "华南理工大学", "m2025": [0.0, 0, 0, 0, 0, 0], "m2026": [55570.64, 54962.94, 579330.95, 463866.03, 444566.85, 478397.85], "h1_2025": 0.0, "h1_2026": 2076695.26, "full_2025": 9176.3, "increment": 2076695.26}, {"name": "江苏师范大学（全年数据）", "m2025": [268170.25, 0, 0, 0, 0, 0], "m2026": [1799733.62, 0, 0, 0, 0, 0], "h1_2025": 268170.25, "h1_2026": 1799733.62, "full_2025": 268170.25, "increment": 1531563.37}, {"name": "湖南大学（老系统）", "m2025": [132048.55, 178879.64, 316024.89, 415272.62, 340534.26, 74117.58], "m2026": [152700.9, 384572.59, 29890.6, 293935.43, 386833.13, 467197.29], "h1_2025": 1456877.54, "h1_2026": 1715129.94, "full_2025": 3297653.63, "increment": 258252.3999999999}, {"name": "浙江师范大学（T6）", "m2025": [150413.3, 147103.04, 340969.19, 326383.52, 208537.8, 258388.95], "m2026": [296539.08, 20562.02, 382416.77, 315801.22, 393196.63, 378453.59], "h1_2025": 1431795.8, "h1_2026": 1786969.31, "full_2025": 3644384.62, "increment": 355173.51}, {"name": "河北工业大学", "m2025": [137908.49, 182465.26, 402319.93, 282902.55, 229743.76, 334539.56], "m2026": [200483.2, 21112.56, 452080.74, 344155.75, 262586.96, 322029.44], "h1_2025": 1569879.55, "h1_2026": 1602448.6500000001, "full_2025": 3346869.33, "increment": 32569.100000000093}, {"name": "中国中医科学院眼科医院", "m2025": [50850.1, 4030.0, 88996.0, 288934.59, 272709.4, 220213.2], "m2026": [5670.0, 62642.8, 120372.16, 179391.82, 623898.84, 603529.73], "h1_2025": 925733.29, "h1_2026": 1595505.3499999999, "full_2025": 3150024.53, "increment": 669772.0599999998}, {"name": "天津工业大学", "m2025": [6539.82, 5252.74, 44362.56, 184142.96, 159102.99, 230649.81], "m2026": [362813.17, 15915.05, 262941.95, 270724.71, 331749.47, 290442.68], "h1_2025": 630050.88, "h1_2026": 1534587.03, "full_2025": 2378187.51, "increment": 904536.15}, {"name": "北京大学成都前沿交叉生物技术研究院", "m2025": [224.0, 46619.86, 202006.48, 87980.61, 121857.41, 199920.45], "m2026": [245124.28, 107285.7, 183981.61, 168834.9, 331845.58, 250783.63], "h1_2025": 658608.81, "h1_2026": 1287855.7, "full_2025": 2331487.0, "increment": 629246.8899999999}, {"name": "北京林业大学", "m2025": [198254.42, 129610.88, 285036.09, 238543.71, 250340.93, 312245.24], "m2026": [204820.53, 36639.91, 204325.87, 237350.7, 249711.65, 369730.72], "h1_2025": 1414031.27, "h1_2026": 1302579.38, "full_2025": 2625830.68, "increment": -111451.89000000013}, {"name": "温州大学", "m2025": [163895.21, 57748.29, 359671.32, 381909.89, 208146.64, 290474.34], "m2026": [124198.87, 7240.62, 178514.99, 153672.89, 254595.09, 196533.24], "h1_2025": 1461845.69, "h1_2026": 914755.7, "full_2025": 3666747.58, "increment": -547089.99}, {"name": "天津市人民医院", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [131458.01, 299599.59, 177998.9, 207039.47, 352757.36, 338173.71], "h1_2025": 0.0, "h1_2026": 1507027.04, "full_2025": 42479.52, "increment": 1507027.04}, {"name": "北京石油化工学院旧（老系统）", "m2025": [51268.35, 68664.85, 81059.06, 101533.26, 100608.44, 157132.89], "m2026": [88840.72, 3300.28, 109441.42, 164440.05, 83351.66, 198958.47], "h1_2025": 560266.85, "h1_2026": 648332.6, "full_2025": 1206844.34, "increment": 88065.75}, {"name": "南方医科大学", "m2025": [2729.0, 8324.59, 14854.83, 110879.03, 15474.64, 20273.62], "m2026": [27076.6, 5911.39, 22352.21, 0, 0, 0], "h1_2025": 172535.71, "h1_2026": 55340.2, "full_2025": 347205.96, "increment": -117195.51}, {"name": "南方医科大学（新）", "m2025": [0.0, 0, 0, 0, 0, 0], "m2026": [0, 0, 0, 59146.36, 65202.83, 39737.28], "h1_2025": 0.0, "h1_2026": 164086.47, "full_2025": 0.0, "increment": 164086.47}, {"name": "西安电子科技大学", "m2025": [13299.86, 16865.22, 65907.51, 99610.14, 52565.93, 59199.73], "m2026": [138594.24, 8756.33, 63638.22, 69326.62, 133010.74, 77016.83], "h1_2025": 307448.39, "h1_2026": 490342.98, "full_2025": 837705.51, "increment": 182894.58999999997}, {"name": "天津中医药大学（新）", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [0.0, 0.0, 0.0, 644141.73, 1959020.47, 2696191.87], "h1_2025": 0.0, "h1_2026": 5299354.07, "full_2025": 0.0, "increment": 5299354.07}, {"name": "东北大学材料", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [0.0, 0.0, 26714.08, 52677.02, 241469.03, 364929.31], "h1_2025": 0.0, "h1_2026": 685789.44, "full_2025": 0.0, "increment": 685789.44}, {"name": "东北大学旧（化学品老系统）", "m2025": [0.0, 449.57, 314.32, 381.4, 195.0, 86.4], "m2026": [192.0, 0.0, 740.39, 360.6, 177.44, 0.0], "h1_2025": 1426.69, "h1_2026": 1470.43, "full_2025": 12111.81, "increment": 43.74000000000001}, {"name": "哈尔滨工业大学", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [10773.99, 0.0, 14843.54, 15922.84, 12448.99, 24670.83], "h1_2025": 0.0, "h1_2026": 78660.19, "full_2025": 308.5, "increment": 78660.19}, {"name": "哈尔滨师范大学", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [0.0, 0.0, 153282.86, 203671.86, 322466.81, 678814.93], "h1_2025": 0.0, "h1_2026": 1358236.46, "full_2025": 0.0, "increment": 1358236.46}, {"name": "中国农业大学", "m2025": [0.0, 5518.02, 125290.56, 6910.75, 10902.19, 10039.7], "m2026": [271774.63, 81105.44, 241544.55, 303126.22, 207587.81, 250461.4], "h1_2025": 158661.22, "h1_2026": 1355600.05, "full_2025": 2846159.89, "increment": 1196938.83}, {"name": "北京工商大学（新）", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [0.0, 0.0, 0.0, 0.0, 192397.46, 709509.65], "h1_2025": 0.0, "h1_2026": 901907.11, "full_2025": 0.0, "increment": 901907.11}, {"name": "北京师范大学", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [0.0, 0.0, 6659.67, 10071.89, 2834.28, 25052.57], "h1_2025": 0.0, "h1_2026": 44618.409999999996, "full_2025": 0.0, "increment": 44618.409999999996}, {"name": "重庆医科大学", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [0.0, 0.0, 0.0, 0.0, 5656.0, 622.5], "h1_2025": 0.0, "h1_2026": 6278.5, "full_2025": 0.0, "increment": 6278.5}, {"name": "中国人民大学", "m2025": [24695.55, 31666.55, 197241.07, 49739.72, 40499.67, 50637.21], "m2026": [98394.35, 7732.82, 141000.29, 82595.9, 46260.07, 38724.0], "h1_2025": 394479.77, "h1_2026": 414707.43, "full_2025": 702739.97, "increment": 20227.659999999974}, {"name": "中国人民大学（新）", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [0.0, 0.0, 187.84, 304.38, 26976.83, 64955.48], "h1_2025": 0.0, "h1_2026": 92424.53, "full_2025": 6817.15, "increment": 92424.53}, {"name": "中国矿业大学（北京）", "m2025": [35754.34, 44121.53, 84020.88, 95702.91, 71904.97, 67553.43], "m2026": [83381.94, 10214.42, 102543.41, 104715.34, 78971.43, 61854.15], "h1_2025": 399058.06, "h1_2026": 441680.69, "full_2025": 857835.51, "increment": 42622.630000000005}, {"name": "燕山大学（老系统）", "m2025": [10193.69, 29256.79, 41409.33, 36554.32, 50409.39, 43162.22], "m2026": [13886.71, 696.69, 47028.63, 43790.2, 44375.67, 43751.74], "h1_2025": 210985.74, "h1_2026": 193529.63999999998, "full_2025": 414402.89, "increment": -17456.100000000006}, {"name": "天津理工大学", "m2025": [10623.43, 16300.36, 30981.93, 31037.35, 32601.81, 55476.82], "m2026": [36684.95, 3249.36, 76255.31, 55835.93, 97710.22, 59824.91], "h1_2025": 177021.7, "h1_2026": 329560.68, "full_2025": 439012.14, "increment": 152538.97999999998}, {"name": "之江实验室（全年数据）", "m2025": [155135.0, 0, 0, 0, 0, 0], "m2026": [38489.0, 0, 0, 0, 0, 0], "h1_2025": 155135.0, "h1_2026": 38489.0, "full_2025": 155135.0, "increment": -116646.0}, {"name": "天津市第三中心医院（26.5上线）", "m2025": [0, 0, 0, 0, 0, 0], "m2026": [0, 0, 0, 0, 150504.14, 0], "h1_2025": 0, "h1_2026": 150504.14, "full_2025": 0.0, "increment": 150504.14}, {"name": "西安建筑科技大学（老系统）", "m2025": [60056.86, 90434.64, 76141.69, 171877.54, 54132.79, 126756.4], "m2026": [87055.46, 15510.05, 275144.34, 200349.06, 133520.23, 18426.22], "h1_2025": 579399.92, "h1_2026": 730005.36, "full_2025": 1364588.4, "increment": 150605.43999999994}, {"name": "陕西科技大学", "m2025": [11022.49, 11295.17, 32014.72, 26937.88, 22257.9, 20502.8], "m2026": [15509.72, 327.8, 31892.45, 42609.73, 27959.85, 17206.83], "h1_2025": 124030.96, "h1_2026": 135506.38, "full_2025": 224752.03, "increment": 11475.419999999998}, {"name": "福建师范大学（老系统）", "m2025": [374.97, 1075.7, 5551.23, 2850.35, 7241.62, 1899.29], "m2026": [92619.37, 0.0, 270.3, 0.0, 136.0, 54976.48], "h1_2025": 18993.16, "h1_2026": 148002.15, "full_2025": 27990.92, "increment": 129008.98999999999}, {"name": "昆明理工大学", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [0.0, 0.0, 39083.1, 32857.6, 20468.25, 0], "h1_2025": 0.0, "h1_2026": 92408.95, "full_2025": 11555.0, "increment": 92408.95}, {"name": "西南交通大学", "m2025": [601.0, 0.0, 8890.85, 11400.5, 2871.8, 17643.5], "m2026": [1316.0, 1232.02, 17428.08, 44307.77, 5621.0, 0], "h1_2025": 41407.65, "h1_2026": 69904.87, "full_2025": 80835.04, "increment": 28497.219999999994}, {"name": "成都理工大学（老系统）", "m2025": [1271.8, 0.0, 12325.32, 17104.3, 992.75, 27755.59], "m2026": [267.67, 0.0, 20019.1, 1648.48, 7123.0, 21041.72], "h1_2025": 59449.76, "h1_2026": 50099.97, "full_2025": 137378.09, "increment": -9349.79}, {"name": "北京交通大学", "m2025": [2110.36, 4288.19, 2782.52, 13434.11, 9558.18, 18862.93], "m2026": [12489.44, 0.0, 15590.72, 5980.26, 7064.55, 4922.06], "h1_2025": 51036.29, "h1_2026": 46047.03, "full_2025": 107450.28, "increment": -4989.260000000002}, {"name": "深圳北理莫斯科大学", "m2025": [0.0, 0.0, 600.0, 450.0, 0.0, 0.0], "m2026": [0.0, 0.0, 26859.71, 3657.09, 3770.0, 2800.0], "h1_2025": 1050.0, "h1_2026": 37086.8, "full_2025": 12658.0, "increment": 36036.8}, {"name": "青海民族大学", "m2025": [0.0, 426.7, 17260.37, 13197.16, 30434.14, 2366.5], "m2026": [2300.0, 0.0, 5718.49, 5647.71, 16390.72, 5039.45], "h1_2025": 63684.869999999995, "h1_2026": 35096.37, "full_2025": 157374.75, "increment": -28588.499999999993}, {"name": "西南民族大学", "m2025": [0.0, 0.0, 27133.08, 0.0, 0.0, 0.0], "m2026": [0.0, 0.0, 33309.5, 0.0, 0.0, 0], "h1_2025": 27133.08, "h1_2026": 33309.5, "full_2025": 60239.48, "increment": 6176.419999999998}, {"name": "南京航空航天大学", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [1363.04, 0.0, 4575.0, 6822.42, 28923.68, 0], "h1_2025": 0.0, "h1_2026": 41684.14, "full_2025": 11834.9, "increment": 41684.14}, {"name": "柳州市人民医院", "m2025": [0, 0, 0, 0, 0, 0], "m2026": [425702.79, 167443.0, 435847.33, 659167.94, 348870.25, 190443.33], "h1_2025": 0, "h1_2026": 2227474.64, "full_2025": 3018504.45, "increment": 2227474.64}, {"name": "浙江大学国际健康医学研究院", "m2025": [0.0, 1813.0, 0.0, 391.7, 0.0, 0.0], "m2026": [0.0, 0.0, 0.0, 1524.97, 0.0, 0.0], "h1_2025": 2204.7, "h1_2026": 1524.97, "full_2025": 2204.7, "increment": -679.7299999999998}, {"name": "宁夏大学", "m2025": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [0.0, 779.8, 1481.98, 2066.68, 886.05, 886.05], "h1_2025": 0.0, "h1_2026": 6100.5599999999995, "full_2025": 1607.1, "increment": 6100.5599999999995}, {"name": "北京邮电大学", "m2025": [305.6, 0.0, 0.0, 0.0, 0.0, 0.0], "m2026": [0.0, 0.0, 262.4, 0.0, 0.0, 0.0], "h1_2025": 305.6, "h1_2026": 262.4, "full_2025": 392.0, "increment": -43.200000000000045}], "full_year_data": {"total_2025": "13.7614亿", "h1_2025": "5.7152亿", "h1_ratio_2025": 0.4153, "h1_2026": "7.7966亿", "existing_estimate": "18.7734亿", "new_h2_estimate": "1.74亿", "full_year_estimate": "20.5134亿"}, "new_h2_projects": [{"name": "天津大学（化学品）+材料", "estimate": 2400}, {"name": "同济大学", "estimate": 3000}, {"name": "重庆大学（新）", "estimate": 1000}, {"name": "天津中医药大学", "estimate": 1000}, {"name": "东北大学材料", "estimate": 2000}, {"name": "哈尔滨工业大学", "estimate": 4000}, {"name": "哈尔滨师范大学", "estimate": 500}, {"name": "中国农业大学", "estimate": 2000}, {"name": "北京工商大学", "estimate": 1000}, {"name": "北京师范大学", "estimate": 500}]};
+
+// ===== Utility Functions =====
+function toWan(yuan) { return yuan / 10000; }
+function fmtNum(n, decimals) {
+    decimals = decimals || 2;
+    return Number(n).toLocaleString('zh-CN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+}
+function fmtWan(n, decimals) { return fmtNum(toWan(n), decimals || 2); }
+
+// ===== Computation Engine =====
+
+// 合并指定项目（仅用于增长/减少 TOP10 排序，不影响其他图表与原始数据表）
+function buildMergedForTop10(projects) {
+    const merged = projects.map(p => ({...p}));
+    const mergeGroups = [
+        { newName: '大连理工大学', names: ['大连理工大学（新）', '大连理工大学（旧）'] },
+        { newName: '中国医科大学', names: ['中国医科大学（库巴扎老系统）', '中国医科大学(新)'] },
+        { newName: '西北工业大学', names: ['西北工业大学', '西北工业大学旧（老系统）'] }
+    ];
+    mergeGroups.forEach(g => {
+        const parts = merged.filter(p => g.names.includes(p.name));
+        if (parts.length === 0) return;
+        const combined = { name: g.newName, m2025: [0,0,0,0,0,0], m2026: [0,0,0,0,0,0], full_2025: 0, h1_2025: 0, h1_2026: 0, increment: 0, growthRate: 0 };
+        parts.forEach(p => {
+            for (let i = 0; i < 6; i++) { combined.m2025[i] += p.m2025[i]; combined.m2026[i] += p.m2026[i]; }
+            combined.full_2025 += p.full_2025 || 0;
+            combined.h1_2025 += p.h1_2025;
+            combined.h1_2026 += p.h1_2026;
+            combined.increment += p.increment;
+        });
+        combined.growthRate = combined.h1_2025 > 0 ? combined.increment / combined.h1_2025 : (combined.h1_2026 > 0 ? 1 : 0);
+        const nameSet = new Set(g.names);
+        for (let i = merged.length - 1; i >= 0; i--) { if (nameSet.has(merged[i].name)) merged.splice(i, 1); }
+        merged.push(combined);
+    });
+    return merged;
+}
+
+function computeAllData() {
+    const projects = RAW_DATA.projects.map(p => ({...p}));
+    const monthly2025 = [0,0,0,0,0,0];
+    const monthly2026 = [0,0,0,0,0,0];
+    projects.forEach(p => {
+        for (let i = 0; i < 6; i++) { monthly2025[i] += p.m2025[i]; monthly2026[i] += p.m2026[i]; }
+    });
+    const total2025H1 = monthly2025.reduce((a,b) => a+b, 0);
+    const total2026H1 = monthly2026.reduce((a,b) => a+b, 0);
+    const increment = total2026H1 - total2025H1;
+    const growthRate = total2025H1 > 0 ? increment / total2025H1 : 0;
+
+    const monthlyGrowth = [];
+    for (let i = 0; i < 6; i++) {
+        const inc = monthly2026[i] - monthly2025[i];
+        const rate = monthly2025[i] > 0 ? inc / monthly2025[i] : 0;
+        monthlyGrowth.push({ month: (i+1)+'月', val2025: monthly2025[i], val2026: monthly2026[i], increment: inc, rate: rate });
+    }
+
+    projects.forEach(p => {
+        p.h1_2025 = p.m2025.reduce((a,b) => a+b, 0);
+        p.h1_2026 = p.m2026.reduce((a,b) => a+b, 0);
+        p.increment = p.h1_2026 - p.h1_2025;
+        p.growthRate = p.h1_2025 > 0 ? p.increment / p.h1_2025 : (p.h1_2026 > 0 ? 1 : 0);
+    });
+
+    const top20 = [...projects].sort((a,b) => b.h1_2026 - a.h1_2026).slice(0, 20);
+    const mergedForTop10 = buildMergedForTop10(projects);
+    const growthTop10 = mergedForTop10.filter(p => p.h1_2025 > 0 && p.increment > 0).sort((a,b) => b.increment - a.increment).slice(0, 10);
+    const declineTop10 = mergedForTop10.filter(p => p.h1_2025 > 0 && p.increment < 0).sort((a,b) => a.increment - b.increment).slice(0, 10);
+    const newProjects = projects.filter(p => p.h1_2025 === 0 && p.h1_2026 > 0).sort((a,b) => b.h1_2026 - a.h1_2026);
+
+    // 增量构成分析：原有项目增长 + 新项目贡献 - 原有项目减少 = 净增量
+    const incExistingGrowth = projects.filter(p => p.h1_2025 > 0 && p.increment > 0).reduce((s,p) => s + p.increment, 0);
+    const incNewProjects = projects.filter(p => p.h1_2025 === 0 && p.h1_2026 > 0).reduce((s,p) => s + p.increment, 0);
+    const incExistingDecline = projects.filter(p => p.h1_2025 > 0 && p.increment < 0).reduce((s,p) => s + p.increment, 0);
+
+    const total2025Full = projects.reduce((sum,p) => sum + p.full_2025, 0);
+    const h1Ratio2025 = total2025Full > 0 ? total2025H1 / total2025Full : 0.4153;
+    const existingEstimate = h1Ratio2025 > 0 ? total2026H1 / h1Ratio2025 : total2026H1 * 2.41;
+    const newH2Total = RAW_DATA.new_h2_projects.reduce((sum,p) => sum + p.estimate * 10000, 0);
+    const fullYearEstimate = existingEstimate + newH2Total;
+
+    return {
+        projects, monthly2025, monthly2026, total2025H1, total2026H1, increment, growthRate,
+        monthlyGrowth, top20, growthTop10, declineTop10, newProjects,
+        incExistingGrowth, incNewProjects, incExistingDecline,
+        total2025Full, h1Ratio2025, existingEstimate, newH2Total, fullYearEstimate
+    };
+}
+
+// ===== Detect Mobile =====
+function isMobile() { return window.innerWidth < 768; }
+
+// ===== Render KPI Cards =====
+function renderKPIs(d) {
+    const cards = [
+        { class: 'blue', label: '2026年1-6月线上', value: (toWan(d.total2026H1) / 10000).toFixed(2), unit: '亿元', change: '', changeClass: 'neutral' },
+        { class: 'green', label: '2025年1-6月线上', value: (toWan(d.total2025H1) / 10000).toFixed(2), unit: '亿元', change: '同期基数', changeClass: 'neutral' },
+        { class: 'orange', label: '同比净增量', value: (d.increment >= 0 ? '+' : '') + (toWan(d.increment) / 10000).toFixed(2), unit: '亿元', change: d.increment >= 0 ? '↑ 增长' : '↓ 减少', changeClass: d.increment >= 0 ? 'up' : 'down' },
+        { class: 'purple', label: '同比增长率', value: (d.growthRate >= 0 ? '+' : '') + (d.growthRate * 100).toFixed(2), unit: '%', change: d.growthRate >= 0 ? '↑ 增长' : '↓ 下降', changeClass: d.growthRate >= 0 ? 'up' : 'down' },
+        { class: 'teal', label: '2026全年预估', value: (toWan(d.fullYearEstimate) / 10000).toFixed(2), unit: '亿元', change: '含已上线新项目', changeClass: 'neutral' },
+    ];
+    document.getElementById('kpiGrid').innerHTML = cards.map(c => `
+        <div class="kpi-card ${c.class}">
+            <div class="accent-bar"></div>
+            <div class="label">${c.label}</div>
+            <div class="value">${c.value}<span class="unit">${c.unit}</span></div>
+            <div class="change ${c.changeClass}">${c.change}</div>
+        </div>
+    `).join('');
+}
+
+// ===== Chart Instances =====
+let charts = {};
+function initChart(id) {
+    const el = document.getElementById(id);
+    if (charts[id]) { charts[id].dispose(); }
+    charts[id] = echarts.init(el, null, { renderer: 'canvas' });
+    return charts[id];
+}
+
+// ===== Monthly Comparison Chart =====
+function renderMonthlyChart(d) {
+    const chart = initChart('chartMonthly');
+    const months = ['1月','2月','3月','4月','5月','6月'];
+    const mobile = isMobile();
+    chart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: function(params) {
+            let html = params[0].name + '<br/>';
+            params.forEach(p => { html += p.marker + ' ' + p.seriesName + ': <b>' + fmtWan(p.value) + '</b> 万元<br/>'; });
+            const inc = params[1].value - params[0].value;
+            const rate = params[0].value > 0 ? (inc / params[0].value * 100).toFixed(2) : '0';
+            html += '<br/>同比: <b>' + fmtWan(inc) + '</b>万 (' + rate + '%)';
+            return html;
+        }},
+        legend: { data: ['2025年', '2026年'], top: 0, textStyle: { fontSize: mobile ? 11 : 13 }, itemWidth: mobile ? 12 : 20, itemHeight: mobile ? 8 : 14 },
+        grid: { left: mobile ? 50 : 70, right: mobile ? 20 : 40, bottom: 30, top: mobile ? 35 : 45 },
+        xAxis: { type: 'category', data: months, axisLabel: { fontSize: mobile ? 11 : 13 } },
+        yAxis: { type: 'value', axisLabel: { fontSize: mobile ? 10 : 12, formatter: v => (v/10000).toFixed(0) + '万' } },
+        series: [
+            { name: '2025年', type: 'bar', data: d.monthly2025, itemStyle: { color: '#94a3b8', borderRadius: [3,3,0,0] }, barWidth: mobile ? '28%' : '30%' },
+            { name: '2026年', type: 'bar', data: d.monthly2026, itemStyle: { color: '#3b82f6', borderRadius: [3,3,0,0] }, barWidth: mobile ? '28%' : '30%',
+              label: { show: !mobile, position: 'top', formatter: function(p) {
+                  const v25 = d.monthly2025[p.dataIndex];
+                  const inc = p.value - v25;
+                  const rate = v25 > 0 ? (inc / v25 * 100).toFixed(1) : '—';
+                  const sign = rate >= 0 ? '+' : '';
+                  return fmtWan(p.value, 0) + '万\n(' + sign + rate + '%)';
+              }, fontSize: 11, color: '#1e40af', lineHeight: 16 }
+            }
+        ]
+    });
+}
+
+// ===== Total Comparison Chart =====
+function renderTotalChart(d) {
+    const chart = initChart('chartTotal');
+    const mobile = isMobile();
+    const v25 = d.total2025H1 / 100000000;
+    const v26 = d.total2026H1 / 100000000;
+    const rate = v25 > 0 ? ((v26 - v25) / v25 * 100).toFixed(2) : '0';
+    chart.setOption({
+        tooltip: { trigger: 'item', confine: true, formatter: function(p) { return p.name.replace('\n','') + ': <b>' + p.value.toFixed(2) + '</b> 亿元'; }},
+        grid: { left: mobile ? 45 : 60, right: mobile ? 20 : 30, bottom: mobile ? 40 : 45, top: 45 },
+        xAxis: { type: 'category', data: ['2025年\n1-6月', '2026年\n1-6月'], axisLabel: { fontSize: mobile ? 11 : 13, lineHeight: 18, interval: 0 } },
+        yAxis: { type: 'value', axisLabel: { fontSize: mobile ? 10 : 12, formatter: '{value}亿' }, max: Math.ceil(v26 * 1.25) },
+        series: [{
+            type: 'bar', barWidth: mobile ? '35%' : '38%',
+            data: [
+                { value: v25, itemStyle: { color: '#94a3b8', borderRadius: [4,4,0,0] } },
+                { value: v26, itemStyle: { color: '#3b82f6', borderRadius: [4,4,0,0] } }
+            ],
+            label: { show: true, position: 'top', formatter: function(p) { return p.value.toFixed(2) + '亿'; }, fontSize: mobile ? 12 : 14, fontWeight: 'bold', color: '#334155' }
+        }],
+        graphic: [{
+            type: 'text', left: 'center', top: 8,
+            style: { text: '同比 +' + rate + '%', fontSize: mobile ? 13 : 15, fontWeight: 'bold', fill: '#ef4444' }
+        }]
+    });
+}
+
+// ===== Increment Structure (Waterfall) Chart =====
+function renderGrowthRateChart(d) {
+    const chart = initChart('chartGrowthRate');
+    const mobile = isMobile();
+    const v25 = d.total2025H1 / 100000000;
+    const v26 = d.total2026H1 / 100000000;
+    const growth = d.incExistingGrowth / 100000000;
+    const newProj = d.incNewProjects / 100000000;
+    const decline = Math.abs(d.incExistingDecline / 100000000);
+
+    const cats = ['2025\n上半年', '原有项目\n增长', '新项目\n贡献', '原有项目\n减少', '2026\n上半年'];
+    const tooltipNames = ['2025上半年总量', '原有项目增长贡献', '新项目贡献', '原有项目减少抵消', '2026上半年总量'];
+    // 瀑布图：透明占位 + 实际值堆叠
+    const placeholder = [0, v25, v25 + growth, v25 + growth + newProj - decline, 0];
+    const actual = [v25, growth, newProj, decline, v26];
+    const colors = ['#94a3b8', '#ef4444', '#f97316', '#22c55e', '#3b82f6'];
+    // label显示值：减少项为负
+    const labelVals = [v25, growth, newProj, -decline, v26];
+
+    chart.setOption({
+        tooltip: {
+            trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true,
+            formatter: function(params) {
+                const idx = params[0].dataIndex;
+                const val = labelVals[idx];
+                const sign = idx === 1 || idx === 2 ? '+' : (idx === 3 ? '-' : '');
+                return tooltipNames[idx] + '<br/>金额: <b>' + sign + Math.abs(val).toFixed(4) + '</b> 亿元';
+            }
+        },
+        grid: { left: mobile ? 45 : 55, right: mobile ? 15 : 25, bottom: 35, top: 25 },
+        xAxis: { type: 'category', data: cats, axisLabel: { fontSize: mobile ? 9 : 11, lineHeight: 13, interval: 0 } },
+        yAxis: { type: 'value', axisLabel: { fontSize: mobile ? 10 : 12, formatter: '{value}亿' }, max: Math.ceil((v25 + growth + newProj) * 1.15) },
+        series: [
+            {
+                name: '占位', type: 'bar', stack: 'wf', silent: true,
+                itemStyle: { color: 'transparent' }, data: placeholder
+            },
+            {
+                name: '金额', type: 'bar', stack: 'wf', barWidth: mobile ? '45%' : '50%',
+                data: actual.map((v, i) => ({
+                    value: v,
+                    itemStyle: { color: colors[i], borderRadius: (i === 0 || i === 4) ? [4,4,0,0] : [2,2,2,2] }
+                })),
+                label: {
+                    show: true, position: 'top',
+                    formatter: function(p) {
+                        const idx = p.dataIndex;
+                        const val = labelVals[idx];
+                        if (idx === 0 || idx === 4) return val.toFixed(2) + '亿';
+                        const sign = idx === 3 ? '-' : '+';
+                        return sign + Math.abs(val).toFixed(2) + '亿';
+                    },
+                    fontSize: mobile ? 10 : 12, fontWeight: 'bold', color: '#334155'
+                }
+            }
+        ]
+    });
+}
+
+// ===== Top20 Chart =====
+function renderTop20Chart(d) {
+    const chart = initChart('chartTop20');
+    const names = d.top20.map(p => p.name);
+    const mobile = isMobile();
+    chart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: function(params) {
+            const p = d.top20[params[0].dataIndex];
+            return '<b>' + p.name + '</b><br/>2025: <b>' + fmtWan(p.h1_2025) + '</b>万<br/>2026: <b>' + fmtWan(p.h1_2026) + '</b>万<br/>增量: <b>' + fmtWan(p.increment) + '</b>万<br/>增长率: <b>' + (p.growthRate * 100).toFixed(2) + '%</b>';
+        }},
+        legend: { data: ['2025年', '2026年'], top: 0, textStyle: { fontSize: mobile ? 11 : 13 } },
+        grid: { left: mobile ? 90 : 130, right: mobile ? 50 : 70, bottom: 10, top: mobile ? 35 : 45 },
+        xAxis: { type: 'value', axisLabel: { fontSize: mobile ? 10 : 12, formatter: v => (v/10000).toFixed(0) + '万' } },
+        yAxis: { type: 'category', data: names, inverse: true, axisLabel: { fontSize: mobile ? 10 : 12, width: mobile ? 85 : 125, overflow: 'truncate' } },
+        series: [
+            { name: '2025年', type: 'bar', data: d.top20.map(p => p.h1_2025), itemStyle: { color: '#cbd5e1', borderRadius: [0,3,3,0] } },
+            { name: '2026年', type: 'bar', data: d.top20.map(p => p.h1_2026), itemStyle: { color: '#3b82f6', borderRadius: [0,3,3,0] },
+              label: { show: !mobile, position: 'right', formatter: p => fmtWan(p.value, 0)+'万', fontSize: 10, color: '#1e40af' }
+            }
+        ]
+    });
+}
+
+// ===== Growth TOP10 Chart =====
+function renderGrowthTop10(d) {
+    const chart = initChart('chartGrowthTop10');
+    const mobile = isMobile();
+    const list = d.growthTop10.slice().reverse();
+    const seriesData = list.map(p => ({
+        value: p.increment,
+        name: p.name,
+        increment: p.increment,
+        growthRate: p.growthRate
+    }));
+    chart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: function(params) {
+            const p = params[0].data;
+            return '<b>' + p.name + '</b><br/>增量: <b>' + fmtWan(p.increment) + '</b>万<br/>增长率: <b>' + (p.growthRate*100).toFixed(2) + '%</b>';
+        }},
+        grid: { left: mobile ? 85 : 120, right: mobile ? 45 : 60, bottom: 10, top: 15 },
+        xAxis: { type: 'value', axisLabel: { fontSize: mobile ? 10 : 12, formatter: v => (v/10000).toFixed(0)+'万' } },
+        yAxis: { type: 'category', data: list.map(p => p.name), axisLabel: { fontSize: mobile ? 10 : 12, width: mobile ? 80 : 115, overflow: 'truncate' } },
+        series: [{
+            type: 'bar',
+            data: seriesData,
+            itemStyle: { color: '#ef4444', borderRadius: [0,4,4,0] },
+            label: { show: true, position: 'right', formatter: p => '+' + fmtWan(p.value, 0)+'万', fontSize: mobile ? 9 : 11, color: '#991b1b' }
+        }]
+    });
+}
+
+// ===== Decline TOP10 Chart =====
+function renderDeclineTop10(d) {
+    const chart = initChart('chartDeclineTop10');
+    const mobile = isMobile();
+    const list = d.declineTop10.slice().reverse();
+    const seriesData = list.map(p => ({
+        value: p.increment,
+        name: p.name,
+        increment: p.increment,
+        growthRate: p.growthRate
+    }));
+    chart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: function(params) {
+            const p = params[0].data;
+            return '<b>' + p.name + '</b><br/>减少: <b>' + fmtWan(p.increment) + '</b>万<br/>增长率: <b>' + (p.growthRate*100).toFixed(2) + '%</b>';
+        }},
+        grid: { left: mobile ? 85 : 120, right: mobile ? 50 : 70, bottom: 10, top: 15 },
+        xAxis: { type: 'value', axisLabel: { fontSize: mobile ? 10 : 12, formatter: v => (v/10000).toFixed(0)+'万' } },
+        yAxis: { type: 'category', data: list.map(p => p.name), axisLabel: { fontSize: mobile ? 10 : 12, width: mobile ? 80 : 115, overflow: 'truncate' } },
+        series: [{
+            type: 'bar',
+            data: seriesData,
+            itemStyle: { color: '#22c55e', borderRadius: [0,4,4,0] },
+            label: { show: true, position: 'right', formatter: p => fmtWan(p.value, 0)+'万', fontSize: mobile ? 9 : 11, color: '#166534' }
+        }]
+    });
+}
+
+// ===== 2026年上半年新增项目（按截图固定 11 个新系统） =====
+const NEW_PROJECTS_2026_H1 = [
+    { name: '浙江大学', value: 85326800, ratio: 61.5 },
+    { name: '中国医科大学附属第一医院', value: 24539200, ratio: 17.69 },
+    { name: '徐州医科大学(新)', value: 13810600, ratio: 9.95 },
+    { name: '天津大学（化学品）新', value: 4702400, ratio: 3.39 },
+    { name: '天津中医药大学（新）', value: 5299400, ratio: 3.82 },
+    { name: '华南理工大学', value: 2076700, ratio: 1.5 },
+    { name: '哈尔滨师范大学', value: 1358200, ratio: 0.98 },
+    { name: '北京工商大学（新）', value: 901900, ratio: 0.65 },
+    { name: '东北大学材料', value: 685800, ratio: 0.49 },
+    { name: '北京师范大学', value: 44600, ratio: 0.03 },
+    { name: '重庆医科大学', value: 6200, ratio: 0 }
+];
+
+function renderNewProjects(d) {
+    const chart = initChart('chartNewProjects');
+    const mobile = isMobile();
+    const names = NEW_PROJECTS_2026_H1.map(p => p.name);
+    chart.setOption({
+        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: function(params) {
+            const p = NEW_PROJECTS_2026_H1[params[0].dataIndex];
+            return '<b>' + p.name + '</b><br/>金额: <b>' + fmtWan(p.value) + '</b> 万元<br/>占比: <b>' + p.ratio + '%</b>';
+        }},
+        grid: { left: mobile ? 105 : 170, right: mobile ? 55 : 80, bottom: 10, top: 15 },
+        xAxis: { type: 'value', axisLabel: { fontSize: mobile ? 10 : 12, formatter: v => (v/10000).toFixed(0)+'万' } },
+        yAxis: { type: 'category', data: names, inverse: true, axisLabel: { fontSize: mobile ? 10 : 12, width: mobile ? 100 : 165, overflow: 'truncate' } },
+        series: [{
+            type: 'bar',
+            data: NEW_PROJECTS_2026_H1.map(p => p.value),
+            itemStyle: { color: '#3b82f6', borderRadius: [0,4,4,0] },
+            label: { show: true, position: 'right', formatter: p => fmtWan(p.value, 0)+'万', fontSize: mobile ? 9 : 11, color: '#1e40af' }
+        }]
+    });
+
+    const total = 138751775.85;
+    document.querySelector('#newProjectsTable tbody').innerHTML = NEW_PROJECTS_2026_H1.map((p, i) => `
+        <tr><td class="rank">${i+1}</td><td>${p.name}</td><td class="num">${fmtWan(p.value)}</td><td class="num">${p.ratio}%</td></tr>
+    `).join('');
+    document.getElementById('newProjTotal').textContent = fmtWan(total) + ' 万元';
+}
+
+// ===== Full Year Estimate =====
+function renderEstimate(d) {
+    document.getElementById('est2025Full').textContent = (toWan(d.total2025Full)/10000).toFixed(2) + '亿';
+    document.getElementById('est2025H1').textContent = (toWan(d.total2025H1)/10000).toFixed(2) + '亿';
+    document.getElementById('estH1Ratio').textContent = '占全年 ' + (d.h1Ratio2025 * 100).toFixed(2) + '%';
+    document.getElementById('est2026H1').textContent = (toWan(d.total2026H1)/10000).toFixed(2) + '亿';
+    document.getElementById('estGrowth').textContent = '同比增长 ' + (d.growthRate * 100).toFixed(2) + '%';
+    document.getElementById('estExisting').textContent = (toWan(d.existingEstimate)/10000).toFixed(2) + '亿';
+    document.getElementById('estNewH2').textContent = (toWan(d.newH2Total)/10000).toFixed(2) + '亿';
+    document.getElementById('estFullYear').textContent = (toWan(d.fullYearEstimate)/10000).toFixed(2) + '亿';
+
+    document.querySelector('#h2NewTable tbody').innerHTML = RAW_DATA.new_h2_projects.map((p, idx) => `
+        <tr>
+            <td><input type="text" name="h2name" value="${p.name}" data-idx="${idx}" onchange="onH2NameEdit(this)"></td>
+            <td class="num"><input type="number" name="h2value" value="${p.estimate}" data-idx="${idx}" onchange="onH2ValueEdit(this)"></td>
+            <td class="num"><button class="btn-del" onclick="deleteH2Project(${idx})">删除</button></td>
+        </tr>
+    `).join('');
+    const h2Total = RAW_DATA.new_h2_projects.reduce((s,p) => s + p.estimate, 0);
+    document.getElementById('h2NewTotal').textContent = fmtNum(h2Total, 0) + ' 万元';
+}
+
+function refreshAllCharts() {
+    const d = computeAllData();
+    renderKPIs(d);
+    renderMonthlyChart(d);
+    renderTotalChart(d);
+    renderGrowthRateChart(d);
+    renderTop20Chart(d);
+    renderGrowthTop10(d);
+    renderDeclineTop10(d);
+    renderNewProjects(d);
+    renderEstimate(d);
+    renderRawTable(d);
+}
+
+function onH2NameEdit(input) {
+    const idx = parseInt(input.dataset.idx);
+    RAW_DATA.new_h2_projects[idx].name = input.value.trim() || '未命名项目';
+    refreshAllCharts();
+}
+
+function onH2ValueEdit(input) {
+    const idx = parseInt(input.dataset.idx);
+    RAW_DATA.new_h2_projects[idx].estimate = parseFloat(input.value) || 0;
+    refreshAllCharts();
+}
+
+function addH2Project() {
+    RAW_DATA.new_h2_projects.push({ name: '新项目', estimate: 0 });
+    refreshAllCharts();
+}
+
+function deleteH2Project(idx) {
+    RAW_DATA.new_h2_projects.splice(idx, 1);
+    refreshAllCharts();
+}
+
+// ===== Editable Raw Data Table =====
+function renderRawTable(d) {
+    document.getElementById('rawTableBody').innerHTML = d.projects.map((p, idx) => {
+        let cells = '';
+        for (let i = 0; i < 6; i++) cells += `<td><input type="number" data-proj="${idx}" data-month="m2025_${i}" value="${p.m2025[i] || 0}" oninput="onCellEdit(this)"></td>`;
+        for (let i = 0; i < 6; i++) cells += `<td><input type="number" data-proj="${idx}" data-month="m2026_${i}" value="${p.m2026[i] || 0}" oninput="onCellEdit(this)"></td>`;
+        const incClass = p.increment >= 0 ? 'computed' : 'computed neg';
+        cells += `<td class="computed" id="cell_h1_2025_${idx}">${fmtNum(p.h1_2025, 2)}</td>`;
+        cells += `<td class="computed" id="cell_h1_2026_${idx}">${fmtNum(p.h1_2026, 2)}</td>`;
+        cells += `<td class="${incClass}" id="cell_increment_${idx}">${fmtNum(p.increment, 2)}</td>`;
+        cells += `<td><input type="number" data-proj="${idx}" data-month="full_2025" value="${p.full_2025 || 0}" oninput="onCellEdit(this)"></td>`;
+        return `<tr data-name="${p.name}"><td>${idx+1}</td><td title="${p.name}">${p.name}</td>${cells}</tr>`;
+    }).join('');
+    renderTableFoot(d);
+}
+
+function renderTableFoot(d) {
+    const m2025T = [0,0,0,0,0,0], m2026T = [0,0,0,0,0,0];
+    d.projects.forEach(p => { for (let i = 0; i < 6; i++) { m2025T[i] += p.m2025[i]; m2026T[i] += p.m2026[i]; } });
+    let cells = '<td colspan="2">合计</td>';
+    for (let i = 0; i < 6; i++) cells += `<td>${fmtNum(m2025T[i], 2)}</td>`;
+    for (let i = 0; i < 6; i++) cells += `<td>${fmtNum(m2026T[i], 2)}</td>`;
+    cells += `<td>${fmtNum(d.total2025H1, 2)}</td><td>${fmtNum(d.total2026H1, 2)}</td><td>${fmtNum(d.increment, 2)}</td><td>${fmtNum(d.total2025Full, 2)}</td>`;
+    document.getElementById('rawTableFoot').innerHTML = `<tr>${cells}</tr>`;
+}
+
+function onCellEdit(input) {
+    const projIdx = parseInt(input.dataset.proj);
+    const monthKey = input.dataset.month;
+    const val = parseFloat(input.value) || 0;
+
+    if (monthKey.startsWith('m2025_')) {
+        RAW_DATA.projects[projIdx].m2025[parseInt(monthKey.split('_')[1])] = val;
+    } else if (monthKey.startsWith('m2026_')) {
+        RAW_DATA.projects[projIdx].m2026[parseInt(monthKey.split('_')[1])] = val;
+    } else if (monthKey === 'full_2025') {
+        RAW_DATA.projects[projIdx].full_2025 = val;
+    }
+
+    const p = RAW_DATA.projects[projIdx];
+    p.h1_2025 = p.m2025.reduce((a,b) => a+b, 0);
+    p.h1_2026 = p.m2026.reduce((a,b) => a+b, 0);
+    p.increment = p.h1_2026 - p.h1_2025;
+    p.growthRate = p.h1_2025 > 0 ? p.increment / p.h1_2025 : (p.h1_2026 > 0 ? 1 : 0);
+
+    const incClass = p.increment >= 0 ? 'computed' : 'computed neg';
+    document.getElementById('cell_h1_2025_' + projIdx).textContent = fmtNum(p.h1_2025, 2);
+    document.getElementById('cell_h1_2026_' + projIdx).textContent = fmtNum(p.h1_2026, 2);
+    const incCell = document.getElementById('cell_increment_' + projIdx);
+    incCell.textContent = fmtNum(p.increment, 2);
+    incCell.className = incClass;
+
+    const d = computeAllData();
+    renderTableFoot(d);
+    renderKPIs(d);
+    renderMonthlyChart(d);
+    renderTotalChart(d);
+    renderGrowthRateChart(d);
+    renderTop20Chart(d);
+    renderGrowthTop10(d);
+    renderDeclineTop10(d);
+    renderNewProjects(d);
+    renderEstimate(d);
+}
+
+function filterTable() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('#rawTableBody tr').forEach(row => {
+        row.style.display = row.getAttribute('data-name').toLowerCase().includes(query) ? '' : 'none';
+    });
+}
+
+// ===== Collapse Toggle =====
+function toggleCollapse(id, btn) {
+    const el = document.getElementById(id);
+    if (el.classList.contains('show')) {
+        el.classList.remove('show');
+        btn.classList.remove('expanded');
+    } else {
+        el.classList.add('show');
+        btn.classList.add('expanded');
+    }
+}
+
+// ===== Back to Top =====
+function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+// ===== Master Render =====
+function renderAll() {
+    const d = computeAllData();
+    renderKPIs(d);
+    renderMonthlyChart(d);
+    renderTotalChart(d);
+    renderGrowthRateChart(d);
+    renderTop20Chart(d);
+    renderGrowthTop10(d);
+    renderDeclineTop10(d);
+    renderNewProjects(d);
+    renderEstimate(d);
+    renderRawTable(d);
+}
+
+// ===== Init =====
+window.addEventListener('load', function() {
+    renderAll();
+    // Back to top button
+    window.addEventListener('scroll', function() {
+        const btn = document.getElementById('backTop');
+        if (window.scrollY > 600) btn.classList.add('show');
+        else btn.classList.remove('show');
+    });
+    // Resize charts
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            Object.values(charts).forEach(c => c && c.resize());
+        }, 200);
+    });
+    // Re-render on orientation change (mobile)
+    window.addEventListener('orientationchange', function() {
+        setTimeout(function() { renderAll(); }, 300);
+    });
+});
+</script>
+</body>
+</html>
