@@ -136,6 +136,34 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Mi
 .alert-warn { background:#fff8e1; border-left:4px solid #e65100; }
 .alert-info { background:#e3f2fd; border-left:4px solid #1565c0; }
 .alert-success { background:#e8f5e9; border-left:4px solid #2e7d32; }
+.alert-text { flex:1; line-height:1.6; }
+.alert-edit-btn { flex-shrink:0; white-space:nowrap; padding:2px 10px; border:1px solid #ccc; background:#fff; border-radius:4px; cursor:pointer; font-size:12px; color:#555; }
+.alert-edit-btn:hover { background:#f0f0f0; }
+.alert-edit-area { margin-top:6px; display:flex; flex-direction:column; gap:6px; }
+.alert-edit-area textarea { width:100%; box-sizing:border-box; font-size:13px; line-height:1.5; padding:6px 8px; border:1px solid #1565c0; border-radius:4px; resize:vertical; min-height:50px; }
+.alert-edit-actions { display:flex; gap:6px; }
+
+/* 方案规划与实施 */
+.plan-panel-title { display:flex; justify-content:space-between; align-items:center; }
+.plan-progress { font-size:11px; color:#999; font-weight:400; }
+.plan-card { border:1px solid #e0e0e0; border-radius:8px; overflow:hidden; margin-bottom:10px; }
+.plan-card-header { background:#f5f5f5; padding:6px 12px; font-size:12px; color:#555; display:flex; align-items:center; gap:8px; }
+.plan-card-header .pc-tag { font-size:10px; padding:1px 7px; border-radius:8px; color:#fff; flex-shrink:0; }
+.plan-card-header .pc-alert-ref { color:#888; font-size:11px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.plan-card-body { padding:12px; }
+.plan-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.plan-field-full { grid-column:1/-1; }
+.plan-field label { font-size:11px; color:#888; display:block; margin-bottom:3px; }
+.plan-field .pf-value { font-size:13px; padding:6px 8px; background:#f9f9f9; border-radius:4px; line-height:1.5; min-height:20px; }
+.plan-field .pf-value.empty { color:#bbb; font-style:italic; }
+.plan-field input, .plan-field textarea { width:100%; box-sizing:border-box; font-size:13px; padding:6px 8px; border:1px solid #ddd; border-radius:4px; resize:vertical; }
+.plan-actions { display:flex; gap:6px; margin-top:8px; }
+.plan-actions button { padding:4px 14px; border-radius:4px; font-size:12px; cursor:pointer; border:none; }
+.btn-plan-save { background:#1565c0; color:#fff; }
+.btn-plan-cancel { background:#eee; color:#555; }
+.btn-plan-edit { background:transparent; border:1px solid #ccc; color:#555; }
+.plan-card.filled { border-color:#c8e6c9; }
+.plan-card.filled .plan-card-header { background:#f1f8e9; }
 
 /* 分页 */
 .pagination { display:flex; justify-content:center; gap:4px; margin-top:12px; }
@@ -262,6 +290,13 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Mi
   .modal { padding:14px; }
   .stats-bar { gap:4px 12px; }
   .view-btn { font-size:12px; }
+  .plan-grid { grid-template-columns:1fr; }
+  .plan-card-header .pc-alert-ref { display:none; }
+  .alert-edit-btn { padding:1px 6px; font-size:11px; }
+  .flow-step .fs-arrow { display:none; }
+}
+@media (max-width: 1024px) {
+  .plan-grid { grid-template-columns:1fr 1fr; }
 }
 </style>
 </head>
@@ -313,8 +348,9 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Mi
 </div>
 
 <div class="panel alert-panel" style="margin:0 24px 16px;">
-  <div class="panel-title">自动预警与洞察</div>
+  <div class="panel-title" id="bottomPanelTitle">自动预警与洞察</div>
   <div id="alertArea"></div>
+  <div id="planArea" style="display:none;"></div>
 </div>
 
 <div class="modal-overlay" id="modalOverlay">
@@ -480,9 +516,16 @@ let currentView = 'hq';
 let currentRegion = 'jzh';
 let urgeLog = [];
 let selectedCollab = [];
+let alertEdits = {};      // alertId -> 编辑后的文字
+let alertEditingId = null; // 当前正在编辑的预警ID
+let regionPlans = {};     // rcode -> { planType: {action, amount, owner, deadline, editing} }
+let planEditingKey = null; // 当前正在编辑的方案 "rcode:planType"
 
 // 深拷贝初始数据
 let state = JSON.parse(JSON.stringify(REGIONS));
+
+// 初始化每个区域的方案容器
+REGION_ORDER.forEach(rc => { regionPlans[rc] = {}; });
 
 // ====== 工具函数 ======
 function fmtWan(wan) {
@@ -843,52 +886,192 @@ function renderTaskSummary() {
 }
 
 // ====== 渲染预警 ======
-function renderAlerts() {
+// 生成预警列表（带稳定ID），供总部和区域视角共用
+function buildAlerts() {
   let alerts = [];
-  
+
   // 1. 线上率断崖
   let lowRateProjects = getAllProjects().filter(p => p.rate < 20 && p.h1Online > 50);
   if (lowRateProjects.length > 0) {
-    alerts.push({type:'danger', icon:'⚠️', text:'线上率断崖预警：'+lowRateProjects.length+'个项目线上率低于20%（如'+lowRateProjects.slice(0,3).map(p=>p.name).join('、')+'），需重点攻坚线上化转化'});
+    alerts.push({id:'low_rate', type:'danger', icon:'⚠️', text:'线上率断崖预警：'+lowRateProjects.length+'个项目线上率低于20%（如'+lowRateProjects.slice(0,3).map(p=>p.name).join('、')+'），需重点攻坚线上化转化', planType:'online_attack'});
   }
-  
+
   // 2. 头部项目流失
   let decliningProjects = getAllProjects().filter(p => p.type === 'declining' && p.h1Online > 500);
   if (decliningProjects.length > 0) {
-    alerts.push({type:'danger', icon:'📉', text:'存量头部流失：'+decliningProjects.map(p=>p.name+'(同比降幅>'+(p.h1_25_online>0?((p.h1Online/p.h1_25_online-1)*100).toFixed(0):0)+'%)').join('、')+'，需立即启动挽回计划'});
+    alerts.push({id:'declining', type:'danger', icon:'📉', text:'存量头部流失：'+decliningProjects.map(p=>p.name+'(同比降幅>'+(p.h1_25_online>0?((p.h1Online/p.h1_25_online-1)*100).toFixed(0):0)+'%)').join('、')+'，需立即启动挽回计划', planType:'winback'});
   }
-  
+
   // 3. 战略缺口
   let planSum = 0;
   getAllProjects().forEach(p => { if(p.planAmount>0) planSum += p.planAmount; });
   let remainGap = H2_TARGET - planSum;
-  alerts.push({type:'warn', icon:'🎯', text:'H2战略缺口'+fmtWan(H2_GAP)+'：H2目标'+fmtWan(H2_TARGET)+'减去自然流量'+fmtWan(H2_NATURAL)+'，当前已填报计划覆盖'+fmtWan(planSum)+'，剩余缺口'+fmtWan(remainGap)});
-  
+  alerts.push({id:'gap', type:'warn', icon:'🎯', text:'H2战略缺口'+fmtWan(H2_GAP)+'：H2目标'+fmtWan(H2_TARGET)+'减去自然流量'+fmtWan(H2_NATURAL)+'，当前已填报计划覆盖'+fmtWan(planSum)+'，剩余缺口'+fmtWan(remainGap), planType:'gap_fill'});
+
   // 4. 标杆机会
   let growingProjects = getAllProjects().filter(p => p.type === 'growing' && p.h1_25_online > 0 && p.h1Online/p.h1_25_online > 2);
   if (growingProjects.length > 0) {
-    alerts.push({type:'success', icon:'💡', text:'增长标杆：'+growingProjects.slice(0,3).map(p=>p.name+'(同比+'+((p.h1Online/p.h1_25_online-1)*100).toFixed(0)+'%)').join('、')+'，建议总结打法向同类项目推广'});
+    alerts.push({id:'benchmark', type:'success', icon:'💡', text:'增长标杆：'+growingProjects.slice(0,3).map(p=>p.name+'(同比+'+((p.h1Online/p.h1_25_online-1)*100).toFixed(0)+'%)').join('、')+'，建议总结打法向同类项目推广', planType:'benchmark'});
   }
-  
+
   // 5. 老系统切换
   let oldSysProjects = getAllProjects().filter(p => p.type === 'old_system');
   if (oldSysProjects.length > 0) {
-    alerts.push({type:'warn', icon:'🔄', text:'老系统切换护航：'+oldSysProjects.length+'个老系统项目（如'+oldSysProjects.slice(0,3).map(p=>p.name).join('、')+'），需确保切换期订单不丢失'});
+    alerts.push({id:'old_sys', type:'warn', icon:'🔄', text:'老系统切换护航：'+oldSysProjects.length+'个老系统项目（如'+oldSysProjects.slice(0,3).map(p=>p.name).join('、')+'），需确保切换期订单不丢失', planType:'old_switch'});
   }
-  
+
   // 6. 江浙沪线上率机会
   let jzhRate = state.jzh.h1Online / state.jzh.projects.reduce((s,p)=>s+p.h1Total, 0) * 100;
   if (jzhRate < 30) {
-    alerts.push({type:'info', icon:'📊', text:'江浙沪线上率仅'+fmtPct(jzhRate)+'，但区域总额大，提升线上率10个百分点可带来约'+fmtWan(state.jzh.h2Natural*0.1)+'增量，是H2最大增长杠杆'});
+    alerts.push({id:'jzh_rate', type:'info', icon:'📊', text:'江浙沪线上率仅'+fmtPct(jzhRate)+'，但区域总额大，提升线上率10个百分点可带来约'+fmtWan(state.jzh.h2Natural*0.1)+'增量，是H2最大增长杠杆', planType:'rate_boost'});
   }
-  
+
   // 7. 北京线上率下降
   let bjRate = state.bj.h1Online / state.bj.projects.reduce((s,p)=>s+p.h1Total, 0) * 100;
-  alerts.push({type:'danger', icon:'🔴', text:'北京线上率'+fmtPct(bjRate)+'（去年61.3%→今年44.9%），北京大学线上率40.3%（去年87.7%→40.3%）腰部斩，中国农业大学线上率仅0.9%，需紧急启动线上化攻坚'});
-  
-  document.getElementById('alertArea').innerHTML = alerts.map(a =>
-    '<div class="alert alert-'+a.type+'"><span class="alert-icon">'+a.icon+'</span><span>'+a.text+'</span></div>'
-  ).join('');
+  alerts.push({id:'bj_rate', type:'danger', icon:'🔴', text:'北京线上率'+fmtPct(bjRate)+'（去年61.3%→今年44.9%），北京大学线上率40.3%（去年87.7%→40.3%）腰部斩，中国农业大学线上率仅0.9%，需紧急启动线上化攻坚', planType:'bj_attack'});
+
+  // 应用用户编辑
+  alerts.forEach(a => { if (alertEdits[a.id]) a.text = alertEdits[a.id]; });
+  return alerts;
+}
+
+function renderAlerts() {
+  let alerts = buildAlerts();
+  document.getElementById('alertArea').innerHTML = alerts.map(a => {
+    let h = '<div class="alert alert-'+a.type+'"><span class="alert-icon">'+a.icon+'</span>';
+    if (alertEditingId === a.id) {
+      h += '<div class="alert-edit-area" style="flex:1;">'+
+           '<textarea id="alertEdit_'+a.id+'">'+a.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea>'+
+           '<div class="alert-edit-actions">'+
+           '<button class="btn-plan-save" onclick="saveAlertEdit(\''+a.id+'\')">保存</button>'+
+           '<button class="btn-plan-cancel" onclick="cancelAlertEdit()">取消</button>'+
+           '</div></div>';
+    } else {
+      h += '<span class="alert-text">'+a.text+'</span>';
+      h += '<button class="alert-edit-btn" onclick="startAlertEdit(\''+a.id+'\')">编辑</button>';
+    }
+    h += '</div>';
+    return h;
+  }).join('');
+}
+
+function startAlertEdit(id) {
+  alertEditingId = id;
+  renderAlerts();
+}
+function cancelAlertEdit() {
+  alertEditingId = null;
+  renderAlerts();
+}
+function saveAlertEdit(id) {
+  let ta = document.getElementById('alertEdit_'+id);
+  if (ta) alertEdits[id] = ta.value;
+  alertEditingId = null;
+  renderAlerts();
+  if (currentView === 'region') renderPlans();
+}
+
+// ====== 方案规划与实施（区域视角） ======
+const PLAN_DEFS = [
+  {key:'online_attack', alertId:'low_rate', label:'线上率断崖攻坚方案', color:'#c62828',
+   desc:'针对线上率低于20%的项目，制定线上化推进措施',
+   applies:(rc) => state[rc].projects.some(p => p.rate < 20 && p.h1Online > 50)},
+  {key:'winback', alertId:'declining', label:'存量头部挽回方案', color:'#c62828',
+   desc:'针对同比下滑的头部项目，制定客户挽留与恢复计划',
+   applies:(rc) => state[rc].projects.some(p => p.type === 'declining' && p.h1Online > 500)},
+  {key:'gap_fill', alertId:'gap', label:'战略缺口补充方案', color:'#e65100',
+   desc:'针对H2战略缺口，区域如何补充增量（新项目/新渠道/新客群）',
+   applies:(rc) => true},
+  {key:'benchmark', alertId:'benchmark', label:'增长标杆推广方案', color:'#2e7d32',
+   desc:'将高增长项目的打法总结推广到同类项目',
+   applies:(rc) => state[rc].projects.some(p => p.type === 'growing' && p.h1_25_online > 0 && p.h1Online/p.h1_25_online > 2)},
+  {key:'old_switch', alertId:'old_sys', label:'老系统切换护航方案', color:'#e65100',
+   desc:'老系统项目切换期间，确保订单不丢失的保障措施',
+   applies:(rc) => state[rc].projects.some(p => p.type === 'old_system')},
+  {key:'rate_boost', alertId:'jzh_rate', label:'区域线上率提升方案', color:'#1565c0',
+   desc:'提升区域整体线上率，挖掘存量线上化增量',
+   applies:(rc) => rc === 'jzh'},
+  {key:'bj_attack', alertId:'bj_rate', label:'北京线上化紧急攻坚方案', color:'#c62828',
+   desc:'北京线上率大幅下滑，需紧急启动线上化攻坚',
+   applies:(rc) => rc === 'bj'},
+];
+
+function renderPlans() {
+  let rc = currentRegion;
+  let r = state[rc];
+  let alerts = buildAlerts();
+  let alertMap = {};
+  alerts.forEach(a => { alertMap[a.id] = a; });
+
+  let applicablePlans = PLAN_DEFS.filter(p => p.applies(rc));
+  let filledCount = applicablePlans.filter(p => regionPlans[rc] && regionPlans[rc][p.key] && regionPlans[rc][p.key].action).length;
+
+  let html = '<div style="font-size:13px;color:#666;margin-bottom:10px;">对应总部预警，区域负责人逐项填写应对方案。已填 <b style="color:#2e7d32;">'+filledCount+'</b>/'+applicablePlans.length+'</div>';
+
+  applicablePlans.forEach(p => {
+    let alert = alertMap[p.alertId];
+    let alertText = alert ? alert.text : '';
+    let plan = (regionPlans[rc] && regionPlans[rc][p.key]) || {};
+    let isEditing = planEditingKey === rc+':'+p.key;
+    let isFilled = plan.action && plan.action.length > 0;
+
+    html += '<div class="plan-card '+(isFilled?'filled':'')+'">';
+    html += '<div class="plan-card-header">';
+    html += '<span class="pc-tag" style="background:'+p.color+';">'+p.label+'</span>';
+    html += '<span class="pc-alert-ref">对应预警：'+alertText.substring(0,50)+(alertText.length>50?'…':'')+'</span>';
+    html += '</div>';
+    html += '<div class="plan-card-body">';
+
+    if (isEditing) {
+      html += '<div class="plan-grid">';
+      html += '<div class="plan-field plan-field-full"><label>应对措施</label><textarea id="plan_action_'+p.key+'" rows="2">'+(plan.action||'').replace(/</g,'&lt;')+'</textarea></div>';
+      html += '<div class="plan-field"><label>预期贡献金额（万元）</label><input type="number" id="plan_amount_'+p.key+'" value="'+(plan.amount||'')+'" placeholder="数字"></div>';
+      html += '<div class="plan-field"><label>责任人</label><input type="text" id="plan_owner_'+p.key+'" value="'+(plan.owner||'').replace(/"/g,'&quot;')+'" placeholder="姓名"></div>';
+      html += '<div class="plan-field"><label>完成节点</label><input type="text" id="plan_deadline_'+p.key+'" value="'+(plan.deadline||'').replace(/"/g,'&quot;')+'" placeholder="如 9月底"></div>';
+      html += '<div class="plan-field" style="display:flex;align-items:flex-end;"><div class="plan-actions"><button class="btn-plan-save" onclick="savePlan(\''+rc+'\',\''+p.key+'\')">保存方案</button><button class="btn-plan-cancel" onclick="cancelPlanEdit()">取消</button></div></div>';
+      html += '</div>';
+    } else {
+      html += '<div class="plan-grid">';
+      html += '<div class="plan-field plan-field-full"><label>应对措施</label><div class="pf-value '+(isFilled?'':'empty')+'">'+(isFilled?plan.action:'未填写')+'</div></div>';
+      html += '<div class="plan-field"><label>预期贡献金额（万元）</label><div class="pf-value '+(plan.amount?'':'empty')+'">'+(plan.amount?plan.amount:'未填写')+'</div></div>';
+      html += '<div class="plan-field"><label>责任人</label><div class="pf-value '+(plan.owner?'':'empty')+'">'+(plan.owner?plan.owner:'未填写')+'</div></div>';
+      html += '<div class="plan-field"><label>完成节点</label><div class="pf-value '+(plan.deadline?'':'empty')+'">'+(plan.deadline?plan.deadline:'未填写')+'</div></div>';
+      html += '<div class="plan-field" style="display:flex;align-items:flex-end;"><button class="btn-plan-edit" onclick="startPlanEdit(\''+rc+'\',\''+p.key+'\')">'+(isFilled?'编辑':'填写方案')+'</button></div>';
+      html += '</div>';
+    }
+    html += '</div></div>';
+  });
+
+  // 汇总已填方案的贡献金额
+  let totalPlanAmount = applicablePlans.reduce((s,p) => {
+    let plan = (regionPlans[rc] && regionPlans[rc][p.key]) || {};
+    return s + (parseFloat(plan.amount) || 0);
+  }, 0);
+  if (totalPlanAmount > 0) {
+    html += '<div style="margin-top:8px;padding:10px 12px;background:#e8f5e9;border-radius:6px;font-size:13px;color:#2e7d32;">方案预期贡献合计：<b>'+fmtWan(totalPlanAmount)+'</b>，区域H2目标 <b>'+fmtWan(REGION_TARGETS[rc])+'</b></div>';
+  }
+
+  document.getElementById('planArea').innerHTML = html;
+}
+
+function startPlanEdit(rc, key) {
+  planEditingKey = rc+':'+key;
+  renderPlans();
+}
+function cancelPlanEdit() {
+  planEditingKey = null;
+  renderPlans();
+}
+function savePlan(rc, key) {
+  if (!regionPlans[rc]) regionPlans[rc] = {};
+  regionPlans[rc][key] = {
+    action: document.getElementById('plan_action_'+key).value,
+    amount: document.getElementById('plan_amount_'+key).value,
+    owner: document.getElementById('plan_owner_'+key).value,
+    deadline: document.getElementById('plan_deadline_'+key).value,
+  };
+  planEditingKey = null;
+  renderPlans();
 }
 
 // ====== 视角切换 ======
@@ -897,8 +1080,21 @@ function switchView(view) {
   document.querySelectorAll('.view-btn').forEach((b,i) => {
     b.classList.toggle('active', (i===0 && view==='hq') || (i===1 && view==='region'));
   });
-  if (view === 'hq') renderHQView();
-  else renderRegionView();
+  if (view === 'hq') {
+    renderHQView();
+    // 总部视角：显示预警，隐藏方案
+    document.getElementById('bottomPanelTitle').innerHTML = '自动预警与洞察';
+    document.getElementById('alertArea').style.display = '';
+    document.getElementById('planArea').style.display = 'none';
+  } else {
+    renderRegionView();
+    // 区域视角：显示方案，隐藏预警
+    let rname = state[currentRegion].name;
+    document.getElementById('bottomPanelTitle').innerHTML = '方案规划与实施 — '+rname;
+    document.getElementById('alertArea').style.display = 'none';
+    document.getElementById('planArea').style.display = '';
+    renderPlans();
+  }
   renderRegionList();
 }
 
@@ -911,6 +1107,12 @@ function selectRegion(rc) {
     b.classList.toggle('active', i===1);
   });
   renderRegionView();
+  // 更新底部面板为方案规划
+  let rname = state[rc].name;
+  document.getElementById('bottomPanelTitle').innerHTML = '方案规划与实施 — '+rname;
+  document.getElementById('alertArea').style.display = 'none';
+  document.getElementById('planArea').style.display = '';
+  renderPlans();
   renderRegionList();
 }
 
@@ -1204,8 +1406,19 @@ function refresh() {
   renderRegionList();
   renderTaskSummary();
   renderAlerts();
-  if (currentView === 'hq') renderHQView();
-  else renderRegionView();
+  if (currentView === 'hq') {
+    renderHQView();
+    document.getElementById('bottomPanelTitle').innerHTML = '自动预警与洞察';
+    document.getElementById('alertArea').style.display = '';
+    document.getElementById('planArea').style.display = 'none';
+  } else {
+    renderRegionView();
+    let rname = state[currentRegion].name;
+    document.getElementById('bottomPanelTitle').innerHTML = '方案规划与实施 — '+rname;
+    document.getElementById('alertArea').style.display = 'none';
+    document.getElementById('planArea').style.display = '';
+    renderPlans();
+  }
   
   // 更新催办记录
   let logHtml = '';
