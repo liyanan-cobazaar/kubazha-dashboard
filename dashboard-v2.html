@@ -456,7 +456,7 @@ function renderRegionList() {
     
     const isActive = currentView === 'region' && currentRegion === rc;
     
-    html += '<div class="region-card '+(isActive?'active':'')+'" onclick="selectRegion(''+rc+'')">'+
+    html += '<div class="region-card '+(isActive?'active':'')+'" onclick="selectRegion(\''+rc+'\')">'+
       '<div class="rc-header">'+
         '<span class="rc-name">'+r.name+'</span>'+
         '<span class="rc-status '+h.level+'">'+h.label+'</span>'+
@@ -509,11 +509,11 @@ function renderHQView() {
     
     let btnHtml = '';
     if (regionStatus === 'pending') {
-      btnHtml = '<button class="btn btn-dispatch" onclick="dispatchRegion(''+rc+'')">下发任务</button>';
+      btnHtml = '<button class="btn btn-dispatch" onclick="dispatchRegion(\''+rc+'\')">下发任务</button>';
     } else if (regionStatus === 'filling') {
-      btnHtml = '<button class="btn btn-urge" onclick="urgeRegion(''+rc+'')">🔔 催办</button>';
+      btnHtml = '<button class="btn btn-urge" onclick="urgeRegion(\''+rc+'\')">🔔 催办</button>';
     } else if (regionStatus === 'review') {
-      btnHtml = '<button class="btn btn-audit" onclick="goAudit(''+rc+'')">去审核</button>';
+      btnHtml = '<button class="btn btn-audit" onclick="goAudit(\''+rc+'\')">去审核</button>';
     } else {
       btnHtml = '<span style="color:#2e7d32;">✓ 已闭环</span>';
     }
@@ -590,7 +590,7 @@ function renderRegionView() {
   
   let filterHtml = '<div class="filter-bar">';
   filters.forEach(f => {
-    filterHtml += '<button class="filter-btn '+(currentFilter===f.key?'active':'')+'" onclick="setFilter(''+f.key+'')">'+f.label+' <span class="count">'+f.count+'</span></button>';
+    filterHtml += '<button class="filter-btn '+(currentFilter===f.key?'active':'')+'" onclick="setFilter(\''+f.key+'\')">'+f.label+' <span class="count">'+f.count+'</span></button>';
   });
   filterHtml += '</div>';
   
@@ -645,9 +645,9 @@ function renderRegionView() {
     
     let btnHtml = '';
     if (p.status === 'pending' || p.status === 'dispatched' || p.status === 'rejected') {
-      btnHtml = '<button class="btn btn-fill" onclick="openFillModal(''+currentRegion+'','+p.pidx+')">填报</button>';
+      btnHtml = '<button class="btn btn-fill" onclick="openFillModal(\''+currentRegion+'\','+p.pidx+')">填报</button>';
     } else if (p.status === 'filling' || p.status === 'review') {
-      btnHtml = '<button class="btn btn-small" style="background:#9e9e9e;color:#fff;" onclick="openFillModal(''+currentRegion+'','+p.pidx+')">查看</button>';
+      btnHtml = '<button class="btn btn-small" style="background:#9e9e9e;color:#fff;" onclick="openFillModal(\''+currentRegion+'\','+p.pidx+')">查看</button>';
     } else if (p.status === 'passed') {
       btnHtml = '<span style="color:#2e7d32;">✓</span>';
     }
@@ -686,7 +686,7 @@ function renderRegionView() {
   // 汇总提交按钮
   let canSubmit = r.projects.some(p => p.status === 'filling' || p.status === 'review');
   html += '<div style="margin-top:16px;text-align:right;">'+
-    '<button class="btn btn-fill" style="padding:8px 24px;" onclick="submitRegionPlan(''+currentRegion+'')" '+(canSubmit?'':'disabled style="opacity:0.5;cursor:default;"')+'>汇总提交区域计划</button>'+
+    '<button class="btn btn-fill" style="padding:8px 24px;" onclick="submitRegionPlan(\''+currentRegion+'\')" '+(canSubmit?'':'disabled style="opacity:0.5;cursor:default;"')+'>汇总提交区域计划</button>'+
   '</div>';
   
   html += '</div>';
@@ -827,7 +827,7 @@ function openFillModal(rc, pidx) {
   selectedCollab = p.collaborate ? [...p.collaborate] : [];
   
   let collabHtml = DEPARTMENTS.map(d => 
-    '<span class="collab-chip '+(selectedCollab.includes(d)?'selected':'')+'" onclick="toggleCollab(''+d+'')">'+d+'</span>'
+    '<span class="collab-chip '+(selectedCollab.includes(d)?'selected':'')+'" onclick="toggleCollab(\''+d+'\')">'+d+'</span>'
   ).join('');
   
   document.getElementById('modalContent').innerHTML = 
@@ -853,7 +853,7 @@ function openFillModal(rc, pidx) {
     '</div>'+
     '<div class="btn-row">'+
       '<button class="btn-cancel" onclick="closeModal()">取消</button>'+
-      '<button class="btn-submit" onclick="submitFill(''+rc+'','+pidx+')">提交填报</button>'+
+      '<button class="btn-submit" onclick="submitFill(\''+rc+'\','+pidx+')">提交填报</button>'+
     '</div>';
   
   document.getElementById('modalOverlay').classList.add('show');
@@ -924,9 +924,7 @@ function submitRegionPlan(rc) {
   
   if (coverPct < 100) {
     let gap = target - planSum;
-    if (!confirm('当前计划覆盖金额'+fmtWan(planSum)+'，目标'+fmtWan(target)+'，缺口'+fmtWan(gap)+'（覆盖率'+fmtPct(coverPct)+'）。
-
-覆盖率不足100%，提交后可能被审核打回。是否继续提交？')) {
+    if (!confirm('当前计划覆盖金额'+fmtWan(planSum)+'，目标'+fmtWan(target)+'，缺口'+fmtWan(gap)+'（覆盖率'+fmtPct(coverPct)+'）。\n\n覆盖率不足100%，提交后可能被审核打回。是否继续提交？')) {
       return;
     }
   }
