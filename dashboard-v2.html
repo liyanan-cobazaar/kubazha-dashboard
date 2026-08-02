@@ -1,0 +1,1662 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>库巴扎运营数据工作台 · 2026H2</title>
+<style>
+:root {
+  --bg: #f6f7f9;
+  --panel: #ffffff;
+  --panel-2: #fafbfc;
+  --border: #e6e8eb;
+  --text: #1f2328;
+  --text-2: #4e5969;
+  --text-3: #86909c;
+  --primary: #2b6cff;
+  --primary-soft: #e7eeff;
+  --green: #00b42a;
+  --green-soft: #e8f8ed;
+  --red: #f53f3f;
+  --red-soft: #ffece8;
+  --yellow: #ff7d00;
+  --yellow-soft: #fff3e0;
+  --purple: #722ed1;
+  --purple-soft: #f5e8ff;
+  --gray: #c9cdd4;
+  --gray-soft: #f2f3f5;
+  --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 2px 8px rgba(0,0,0,0.04);
+  --radius: 8px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, select, textarea { font-family: inherit; font-size: 13px; }
+
+/* ========== 顶部 ========== */
+header {
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  padding: 14px 24px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+.hd-top { display: flex; align-items: center; justify-content: space-between; }
+.hd-title { display: flex; align-items: baseline; gap: 12px; }
+.hd-title h1 { font-size: 18px; font-weight: 600; }
+.hd-title .sub { font-size: 12px; color: var(--text-3); }
+.hd-tools { display: flex; gap: 8px; }
+.btn {
+  height: 28px; padding: 0 12px; border-radius: 4px;
+  font-size: 12px; color: var(--text-2); background: var(--panel-2);
+  border: 1px solid var(--border); transition: all 0.15s;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.btn:hover { border-color: var(--primary); color: var(--primary); }
+.btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+.btn-primary:hover { background: #1a5ae6; color: #fff; }
+.btn-danger { background: var(--red); color: #fff; border-color: var(--red); }
+.btn-danger:hover { background: #d93535; color: #fff; }
+.btn-warn { background: var(--yellow); color: #fff; border-color: var(--yellow); }
+.btn-warn:hover { background: #e96d00; color: #fff; }
+
+/* ========== KPI Bar ========== */
+.kpi-bar {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+  padding: 16px 24px;
+  background: var(--bg);
+}
+.kpi {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+.kpi-label { font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
+.kpi-value { font-size: 24px; font-weight: 600; line-height: 1.2; }
+.kpi-value .unit { font-size: 13px; color: var(--text-3); font-weight: 400; margin-left: 2px; }
+.kpi-delta { font-size: 11px; margin-top: 4px; }
+.delta-up { color: var(--green); }
+.delta-down { color: var(--red); }
+.delta-flat { color: var(--text-3); }
+.kpi.kpi-target { background: linear-gradient(135deg, #2b6cff 0%, #5b8bff 100%); color: #fff; border-color: transparent; }
+.kpi.kpi-target .kpi-label { color: rgba(255,255,255,0.75); }
+.kpi.kpi-target .kpi-value { color: #fff; }
+.kpi.kpi-gap { background: linear-gradient(135deg, #f53f3f 0%, #ff7875 100%); color: #fff; border-color: transparent; }
+.kpi.kpi-gap .kpi-label { color: rgba(255,255,255,0.75); }
+.kpi.kpi-gap .kpi-value { color: #fff; }
+
+/* ========== 主体三栏 ========== */
+.main {
+  display: grid;
+  grid-template-columns: 260px 1fr 320px;
+  gap: 12px;
+  padding: 0 24px 16px;
+}
+
+/* 左侧 区域健康度 */
+.left {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  height: fit-content;
+}
+.section-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+  font-size: 13px; font-weight: 600;
+}
+.section-hd .badge {
+  font-size: 11px; font-weight: 400; padding: 1px 6px; border-radius: 10px;
+  background: var(--gray-soft); color: var(--text-2);
+}
+
+.region-list { padding: 8px; }
+.region-card {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--panel);
+}
+.region-card:hover { border-color: var(--primary); }
+.region-card.active { border-color: var(--primary); background: var(--primary-soft); }
+.rc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.rc-name { font-weight: 600; font-size: 13px; }
+.tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11px; padding: 2px 8px; border-radius: 10px;
+  font-weight: 500;
+}
+.tag::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
+.tag-green { background: var(--green-soft); color: var(--green); }
+.tag-green::before { background: var(--green); }
+.tag-red { background: var(--red-soft); color: var(--red); }
+.tag-red::before { background: var(--red); }
+.tag-yellow { background: var(--yellow-soft); color: var(--yellow); }
+.tag-yellow::before { background: var(--yellow); }
+.tag-gray { background: var(--gray-soft); color: var(--text-2); }
+.tag-gray::before { background: var(--gray); }
+.tag-blue { background: var(--primary-soft); color: var(--primary); }
+.tag-blue::before { background: var(--primary); }
+.tag-purple { background: var(--purple-soft); color: var(--purple); }
+.tag-purple::before { background: var(--purple); }
+.rc-rows { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 12px; }
+.rc-row { display: flex; justify-content: space-between; }
+.rc-row .lbl { color: var(--text-3); }
+.rc-row .val { color: var(--text); font-weight: 500; }
+.rc-progress {
+  margin-top: 8px;
+  height: 4px; background: var(--gray-soft); border-radius: 2px; overflow: hidden;
+  position: relative;
+}
+.rc-progress .fill { height: 100%; background: var(--primary); transition: width 0.3s; }
+.rc-progress .gap { position: absolute; right: 0; top: 0; height: 100%; background: var(--red); opacity: 0.5; }
+
+/* 中间 详情 */
+.center { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.region-summary {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  box-shadow: var(--shadow);
+}
+.rs-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.rs-hd h3 { font-size: 15px; font-weight: 600; }
+.rs-hd .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+.rs-cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; }
+.rs-card {
+  background: var(--panel-2);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.rs-card .lbl { font-size: 11px; color: var(--text-3); margin-bottom: 4px; }
+.rs-card .val { font-size: 18px; font-weight: 600; line-height: 1.2; }
+.rs-card .val .unit { font-size: 11px; color: var(--text-3); font-weight: 400; }
+.rs-card .delta { font-size: 11px; margin-top: 2px; }
+
+.insight-bar {
+  background: var(--red-soft);
+  border-left: 3px solid var(--red);
+  border-radius: 0 6px 6px 0;
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-2);
+  display: flex; align-items: flex-start; gap: 8px;
+  margin-top: 12px;
+}
+.insight-bar.warn { background: var(--yellow-soft); border-color: var(--yellow); }
+.insight-bar.info { background: var(--primary-soft); border-color: var(--primary); }
+.insight-bar .icon { flex-shrink: 0; }
+.insight-bar .body { flex: 1; }
+.insight-bar strong { color: var(--text); font-weight: 600; }
+
+/* 项目表格 */
+.proj-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.proj-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border);
+}
+.proj-hd h3 { font-size: 14px; font-weight: 600; }
+.proj-hd .filter-bar { display: flex; gap: 4px; }
+.filter-btn {
+  height: 24px; padding: 0 10px; border-radius: 4px;
+  font-size: 11px; color: var(--text-2);
+  background: var(--panel-2); border: 1px solid var(--border);
+}
+.filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.proj-tools { display: flex; gap: 6px; }
+.proj-tools .btn { height: 26px; font-size: 11px; }
+
+.proj-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.proj-table th {
+  background: var(--panel-2);
+  text-align: left; padding: 8px 10px;
+  font-weight: 500; color: var(--text-3);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  position: sticky; top: 0;
+}
+.proj-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.proj-table tr:hover td { background: var(--panel-2); }
+.proj-table .num { text-align: right; font-variant-numeric: tabular-nums; }
+.proj-table .pname { font-weight: 500; }
+.proj-table .row-target { background: rgba(43,108,255,0.04); font-weight: 600; color: var(--primary); }
+.proj-table .row-gap { color: var(--red); font-weight: 600; }
+.proj-table .row-plan { color: var(--green); font-weight: 600; }
+.proj-table .row-warn { background: var(--red-soft); }
+
+.proj-footer {
+  padding: 10px 16px;
+  background: var(--panel-2);
+  border-top: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px;
+}
+.proj-footer .summary { display: flex; gap: 16px; }
+.proj-footer .summary .item { display: flex; align-items: center; gap: 4px; }
+.proj-footer .summary .lbl { color: var(--text-3); }
+.proj-footer .summary .val { font-weight: 600; }
+.proj-footer .pager { display: flex; gap: 4px; }
+.proj-footer .pager button { height: 24px; min-width: 24px; padding: 0 6px; border-radius: 4px; border: 1px solid var(--border); background: var(--panel); font-size: 11px; }
+.proj-footer .pager button.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+.proj-footer .pager button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* 右侧 任务闭环 */
+.right { display: flex; flex-direction: column; gap: 12px; }
+
+.task-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.tp-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+}
+.tp-tab {
+  flex: 1; padding: 10px 4px; text-align: center;
+  font-size: 12px; color: var(--text-2); cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.tp-tab:hover { background: var(--panel-2); }
+.tp-tab.active { color: var(--primary); border-color: var(--primary); font-weight: 500; }
+.tp-tab .count {
+  display: inline-block; min-width: 18px; height: 16px; line-height: 16px;
+  padding: 0 5px; border-radius: 8px;
+  background: var(--gray-soft); color: var(--text-2);
+  font-size: 11px; margin-left: 2px;
+}
+.tp-tab.active .count { background: var(--primary); color: #fff; }
+.tp-tab .count.has-urgent { background: var(--red); color: #fff; }
+
+.tp-body { max-height: 540px; overflow-y: auto; }
+.tp-item {
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
+  cursor: pointer;
+}
+.tp-item:hover { background: var(--panel-2); }
+.tp-row1 { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.tp-title { font-size: 12px; font-weight: 500; }
+.tp-row2 { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tp-meta { font-size: 11px; color: var(--text-3); }
+.tp-row3 { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+.tp-progress { flex: 1; margin-right: 8px; }
+.tp-bar { height: 4px; background: var(--gray-soft); border-radius: 2px; overflow: hidden; }
+.tp-bar .fill { height: 100%; background: var(--primary); }
+.tp-bar .fill.danger { background: var(--red); }
+.tp-bar .fill.warn { background: var(--yellow); }
+.tp-amount { font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.tp-actions { display: flex; gap: 4px; margin-top: 6px; }
+.tp-actions .btn { height: 22px; padding: 0 8px; font-size: 11px; }
+
+.urge-log {
+  padding: 10px 12px; max-height: 120px; overflow-y: auto;
+  background: var(--panel-2);
+  font-size: 11px; color: var(--text-3);
+}
+.urge-log .log-item { padding: 3px 0; border-bottom: 1px dashed var(--border); }
+.urge-log .log-item:last-child { border: none; }
+.urge-log .log-item .time { color: var(--primary); margin-right: 4px; }
+
+/* ========== 底部预警 ========== */
+.bottom {
+  margin: 0 24px 24px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 20px;
+}
+.bottom-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.bottom-hd h3 { font-size: 13px; font-weight: 600; }
+.bottom-hd .sub { font-size: 11px; color: var(--text-3); }
+.alert-list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.alert {
+  border-radius: 6px; padding: 10px 12px; font-size: 12px;
+  border-left: 3px solid;
+  background: var(--panel-2);
+  display: flex; align-items: flex-start; gap: 8px;
+}
+.alert.red { border-color: var(--red); }
+.alert.yellow { border-color: var(--yellow); }
+.alert.green { border-color: var(--green); }
+.alert .icon { font-size: 14px; }
+.alert .body { flex: 1; }
+.alert .body strong { font-weight: 600; color: var(--text); }
+.alert .body p { color: var(--text-2); margin-top: 2px; }
+
+/* ========== 弹窗 ========== */
+.modal-mask {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+  z-index: 100; display: none; align-items: center; justify-content: center;
+}
+.modal-mask.show { display: flex; }
+.modal {
+  background: var(--panel);
+  border-radius: 8px;
+  width: 560px; max-width: 90vw;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+}
+.modal-hd {
+  padding: 16px 20px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-hd h3 { font-size: 15px; font-weight: 600; }
+.modal-close {
+  width: 24px; height: 24px; line-height: 22px; text-align: center;
+  border-radius: 4px; color: var(--text-3);
+}
+.modal-close:hover { background: var(--gray-soft); color: var(--text); }
+.modal-body { padding: 20px; }
+.modal-ft {
+  padding: 12px 20px; border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 8px;
+  background: var(--panel-2);
+}
+
+.form-row { margin-bottom: 14px; }
+.form-row label { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 4px; font-weight: 500; }
+.form-row label .req { color: var(--red); }
+.form-row input, .form-row select, .form-row textarea {
+  width: 100%; height: 32px; padding: 0 10px;
+  border: 1px solid var(--border); border-radius: 4px;
+  background: var(--panel);
+}
+.form-row textarea { height: 80px; padding: 8px 10px; resize: vertical; }
+.form-row input:focus, .form-row select:focus, .form-row textarea:focus {
+  outline: none; border-color: var(--primary);
+}
+.form-row .hint { font-size: 11px; color: var(--text-3); margin-top: 3px; }
+.form-row .auto { font-size: 11px; color: var(--primary); margin-top: 3px; }
+.form-row.error input, .form-row.error textarea { border-color: var(--red); }
+.form-row.error .hint { color: var(--red); }
+
+.dept-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.dept-list .dept-btn {
+  padding: 6px 12px; border: 1px solid var(--border); border-radius: 16px;
+  font-size: 12px; color: var(--text-2); background: var(--panel);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.dept-list .dept-btn:hover { border-color: var(--purple); color: var(--purple); }
+.dept-list .dept-btn.active { background: var(--purple); color: #fff; border-color: var(--purple); }
+.dept-list .dept-btn .emoji { font-size: 14px; }
+
+.gap-info {
+  background: var(--panel-2); border-radius: 6px;
+  padding: 12px; margin-top: 10px;
+}
+.gap-info .row { display: flex; justify-content: space-between; padding: 3px 0; font-size: 12px; }
+.gap-info .row .lbl { color: var(--text-3); }
+.gap-info .row .val { font-weight: 600; }
+.gap-info .row.danger .val { color: var(--red); }
+.gap-info .row.success .val { color: var(--green); }
+
+/* 角色切换 */
+.role-toggle {
+  display: flex; background: var(--gray-soft); border-radius: 4px; padding: 2px;
+}
+.role-toggle button {
+  padding: 4px 10px; font-size: 11px; color: var(--text-2);
+  border-radius: 3px;
+}
+.role-toggle button.active { background: var(--panel); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+
+</style>
+</head>
+<body>
+
+<!-- 顶部 -->
+<header>
+  <div class="hd-top">
+    <div class="hd-title">
+      <h1>库巴扎运营数据工作台</h1>
+      <span class="sub">2026下半年 · 数据驱动决策 · 区域任务闭环管理</span>
+    </div>
+    <div class="hd-tools">
+      <span class="role-toggle" id="roleToggle">
+        <button class="active" data-role="hq">总部视角</button>
+        <button data-role="region">区域视角</button>
+      </span>
+      <button class="btn" onclick="exportData()">导出数据</button>
+      <button class="btn" onclick="window.print()">打印</button>
+      <button class="btn btn-primary" onclick="showAssignDialog()">+ 下发任务</button>
+    </div>
+  </div>
+</header>
+
+<!-- KPI Bar -->
+<section class="kpi-bar" id="kpiBar"></section>
+
+<!-- 主体 -->
+<main class="main">
+  <!-- 左：区域健康度 -->
+  <aside class="left" id="leftPanel">
+    <div class="section-hd">
+      <span>区域健康度</span>
+      <span class="badge" id="regionCount">6 区域</span>
+    </div>
+    <div class="region-list" id="regionList"></div>
+  </aside>
+
+  <!-- 中：详情 -->
+  <section class="center" id="centerPanel">
+    <div class="region-summary" id="regionSummary"></div>
+    <div class="proj-panel" id="projPanel"></div>
+  </section>
+
+  <!-- 右：任务闭环 -->
+  <aside class="right" id="rightPanel">
+    <div class="task-panel">
+      <div class="section-hd">
+        <span>任务闭环</span>
+        <span class="badge" id="closeRate">闭环率 --</span>
+      </div>
+      <div class="tp-tabs" id="taskTabs"></div>
+      <div class="tp-body" id="taskList"></div>
+    </div>
+    <div class="task-panel">
+      <div class="section-hd">
+        <span>催办记录</span>
+        <span class="badge" id="urgeCount">0 条</span>
+      </div>
+      <div class="urge-log" id="urgeLog"><div class="log-item">暂无催办</div></div>
+    </div>
+  </aside>
+</main>
+
+<!-- 底部预警 -->
+<section class="bottom">
+  <div class="bottom-hd">
+    <h3>自动洞察 & 异常预警</h3>
+    <span class="sub">基于规则引擎实时生成 · 2026-08-02 更新</span>
+  </div>
+  <div class="alert-list" id="alertList"></div>
+</section>
+
+<!-- 弹窗容器 -->
+<div class="modal-mask" id="modalMask">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<script>
+/* ============================================================
+ * 数据层
+ * ============================================================ */
+const H2_TARGET = 25.0;  // 总部H2总目标
+const H1_DONE = 7.80;    // 1-6月已完
+
+// 区域数据（含项目级明细）
+const REGIONS = [
+  {
+    id: 'beijing', name: '北京', health: 'red',
+    h1Online: 2.6, h1Total: 5.79, h1Rate: 44.9, h1Yoy: -0.8,
+    h2OnlineTarget: 3.9, h2TotalTarget: 5.73,
+    issues: ['清华同比-19.1%头部流失', '中农大新系统线上率仅0.9%', '北大线上率从87.7%腰斩至40.3%'],
+    projects: [
+      { name: '清华大学', h1Total: 1.50, h1Online: 0.80, h1Rate: 53.3, change: -19.1, tag: '存量头部', h2Target: 0.80, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '北京大学', h1Total: 1.20, h1Online: 0.48, h1Rate: 40.3, change: -47.4, tag: '存量头部', h2Target: 0.60, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '中国农业大学', h1Total: 1.50, h1Online: 0.014, h1Rate: 0.9, change: 0, tag: '新上线', h2Target: 0.30, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '北京航空航天大学', h1Total: 0.40, h1Online: 0.20, h1Rate: 50.0, change: 5.0, tag: '存量稳健', h2Target: 0.30, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '北京理工大学', h1Total: 0.30, h1Online: 0.15, h1Rate: 50.0, change: 0, tag: '老系统', h2Target: 0.22, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '北京交通大学', h1Total: 0.25, h1Online: 0.10, h1Rate: 40.0, change: -5.0, tag: '存量稳健', h2Target: 0.15, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '北京邮电大学', h1Total: 0.20, h1Online: 0.12, h1Rate: 60.0, change: 8.0, tag: '存量稳健', h2Target: 0.15, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '中国地质大学(北京)', h1Total: 0.15, h1Online: 0.08, h1Rate: 53.3, change: -3.0, tag: '老系统', h2Target: 0.10, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '中国矿业大学(北京)', h1Total: 0.12, h1Online: 0.07, h1Rate: 58.3, change: 2.0, tag: '存量稳健', h2Target: 0.10, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '中国石油大学(北京)', h1Total: 0.10, h1Online: 0.05, h1Rate: 50.0, change: 0, tag: '老系统', h2Target: 0.08, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '北京化工大学', h1Total: 0.10, h1Online: 0.05, h1Rate: 50.0, change: -2.0, tag: '存量稳健', h2Target: 0.08, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '北京工业大学', h1Total: 0.08, h1Online: 0.04, h1Rate: 50.0, change: 0, tag: '老系统', h2Target: 0.05, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '首都经济贸易大学', h1Total: 0.06, h1Online: 0.03, h1Rate: 50.0, change: 0, tag: '存量稳健', h2Target: 0.05, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '首都师范大学', h1Total: 0.05, h1Online: 0.025, h1Rate: 50.0, change: 0, tag: '老系统', h2Target: 0.04, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '中国政法大学', h1Total: 0.06, h1Online: 0.03, h1Rate: 50.0, change: 0, tag: '存量稳健', h2Target: 0.04, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '中央民族大学', h1Total: 0.04, h1Online: 0.02, h1Rate: 50.0, change: 0, tag: '老系统', h2Target: 0.03, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '北京中医药大学', h1Total: 0.04, h1Online: 0.02, h1Rate: 50.0, change: 0, tag: '存量稳健', h2Target: 0.03, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '北京林业大学', h1Total: 0.03, h1Online: 0.015, h1Rate: 50.0, change: 0, tag: '老系统', h2Target: 0.025, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '中国农业大学(烟台)', h1Total: 0.03, h1Online: 0.015, h1Rate: 50.0, change: 0, tag: '老系统', h2Target: 0.025, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '中国科学院大学', h1Total: 0.03, h1Online: 0.015, h1Rate: 50.0, change: 0, tag: '存量稳健', h2Target: 0.025, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '中国社会科学院大学', h1Total: 0.02, h1Online: 0.01, h1Rate: 50.0, change: 0, tag: '老系统', h2Target: 0.02, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '北京电子科技学院', h1Total: 0.02, h1Online: 0.01, h1Rate: 50.0, change: 0, tag: '存量稳健', h2Target: 0.015, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null }
+    ]
+  },
+  {
+    id: 'jiangzhehu', name: '江浙沪', health: 'green',
+    h1Online: 2.35, h1Total: 8.7, h1Rate: 27.0, h1Yoy: 96.9,
+    h2OnlineTarget: 3.53, h2TotalTarget: 6.20,
+    issues: ['H1同比+96.9%增长强劲', '但线上率仅27%，是六大区最低', '浙大/复旦线上率提升空间大'],
+    projects: [
+      { name: '浙江大学', h1Total: 1.00, h1Online: 0.27, h1Rate: 27.0, change: 5.0, tag: '存量头部', h2Target: 0.60, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '上海交通大学', h1Total: 0.90, h1Online: 0.24, h1Rate: 26.7, change: -2.0, tag: '存量头部', h2Target: 0.50, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '复旦大学', h1Total: 0.70, h1Online: 0.19, h1Rate: 27.1, change: 1.0, tag: '存量稳健', h2Target: 0.40, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '同济大学', h1Total: 0.50, h1Online: 0.14, h1Rate: 28.0, change: 0, tag: '存量稳健', h2Target: 0.30, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '华东师范大学', h1Total: 0.40, h1Online: 0.11, h1Rate: 27.5, change: 0, tag: '存量稳健', h2Target: 0.25, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '东南大学', h1Total: 0.40, h1Online: 0.11, h1Rate: 27.5, change: 3.0, tag: '存量稳健', h2Target: 0.25, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '南京大学', h1Total: 0.50, h1Online: 0.14, h1Rate: 28.0, change: 5.0, tag: '存量头部', h2Target: 0.30, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '南京航空航天大学', h1Total: 0.30, h1Online: 0.08, h1Rate: 26.7, change: 0, tag: '存量稳健', h2Target: 0.20, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '南京理工大学', h1Total: 0.25, h1Online: 0.07, h1Rate: 28.0, change: 0, tag: '老系统', h2Target: 0.15, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '河海大学', h1Total: 0.20, h1Online: 0.05, h1Rate: 25.0, change: -3.0, tag: '存量稳健', h2Target: 0.12, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '江南大学', h1Total: 0.20, h1Online: 0.05, h1Rate: 25.0, change: 0, tag: '老系统', h2Target: 0.12, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '中国矿业大学(徐州)', h1Total: 0.18, h1Online: 0.05, h1Rate: 27.8, change: 0, tag: '存量稳健', h2Target: 0.10, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '苏州大学', h1Total: 0.20, h1Online: 0.05, h1Rate: 25.0, change: 4.0, tag: '存量稳健', h2Target: 0.12, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '华东理工大学', h1Total: 0.18, h1Online: 0.05, h1Rate: 27.8, change: 0, tag: '老系统', h2Target: 0.10, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '上海大学', h1Total: 0.15, h1Online: 0.04, h1Rate: 26.7, change: 0, tag: '存量稳健', h2Target: 0.08, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '上海财经大学', h1Total: 0.12, h1Online: 0.03, h1Rate: 25.0, change: 0, tag: '老系统', h2Target: 0.07, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '上海师范大学', h1Total: 0.10, h1Online: 0.03, h1Rate: 30.0, change: 0, tag: '存量稳健', h2Target: 0.06, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '上海海事大学', h1Total: 0.08, h1Online: 0.02, h1Rate: 25.0, change: 0, tag: '老系统', h2Target: 0.05, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '上海理工大学', h1Total: 0.08, h1Online: 0.02, h1Rate: 25.0, change: 0, tag: '存量稳健', h2Target: 0.05, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '东华大学', h1Total: 0.07, h1Online: 0.02, h1Rate: 28.6, change: 0, tag: '老系统', h2Target: 0.04, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '浙江工业大学', h1Total: 0.10, h1Online: 0.03, h1Rate: 30.0, change: 2.0, tag: '存量稳健', h2Target: 0.07, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null }
+    ]
+  },
+  {
+    id: 'dongbeixibei', name: '东北西北', health: 'yellow',
+    h1Online: 0.91, h1Total: 1.30, h1Rate: 70.2, h1Yoy: 12.0,
+    h2OnlineTarget: 1.37, h2TotalTarget: 1.85,
+    issues: ['线上率高达70.2%是六大区最高', '但系统基数小', '西安交大同比+5%是亮点'],
+    projects: [
+      { name: '西安交通大学', h1Total: 0.10, h1Online: 0.07, h1Rate: 70.0, change: 5.0, tag: '存量头部', h2Target: 0.12, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '哈尔滨工业大学', h1Total: 0.20, h1Online: 0.14, h1Rate: 70.0, change: 8.0, tag: '存量稳健', h2Target: 0.20, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '吉林大学', h1Total: 0.18, h1Online: 0.13, h1Rate: 72.2, change: 5.0, tag: '存量稳健', h2Target: 0.18, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '东北大学', h1Total: 0.15, h1Online: 0.11, h1Rate: 73.3, change: 3.0, tag: '存量稳健', h2Target: 0.15, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '大连理工大学', h1Total: 0.15, h1Online: 0.11, h1Rate: 73.3, change: 6.0, tag: '存量稳健', h2Target: 0.15, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '西北工业大学', h1Total: 0.10, h1Online: 0.07, h1Rate: 70.0, change: 2.0, tag: '存量稳健', h2Target: 0.10, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '兰州大学', h1Total: 0.08, h1Online: 0.055, h1Rate: 68.8, change: 0, tag: '存量稳健', h2Target: 0.08, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '大连海事大学', h1Total: 0.08, h1Online: 0.06, h1Rate: 75.0, change: 0, tag: '老系统', h2Target: 0.08, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '东北师范大学', h1Total: 0.07, h1Online: 0.05, h1Rate: 71.4, change: 0, tag: '存量稳健', h2Target: 0.07, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '东北农业大学', h1Total: 0.05, h1Online: 0.035, h1Rate: 70.0, change: 0, tag: '老系统', h2Target: 0.05, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '东北林业大学', h1Total: 0.05, h1Online: 0.035, h1Rate: 70.0, change: 0, tag: '存量稳健', h2Target: 0.05, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '西北农林科技大学', h1Total: 0.06, h1Online: 0.04, h1Rate: 66.7, change: 0, tag: '老系统', h2Target: 0.06, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '西北大学', h1Total: 0.05, h1Online: 0.035, h1Rate: 70.0, change: 0, tag: '存量稳健', h2Target: 0.05, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '陕西师范大学', h1Total: 0.05, h1Online: 0.035, h1Rate: 70.0, change: 0, tag: '老系统', h2Target: 0.05, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '长安大学', h1Total: 0.04, h1Online: 0.028, h1Rate: 70.0, change: 0, tag: '存量稳健', h2Target: 0.04, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '新疆大学', h1Total: 0.04, h1Online: 0.028, h1Rate: 70.0, change: 0, tag: '老系统', h2Target: 0.04, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '宁夏大学', h1Total: 0.03, h1Online: 0.021, h1Rate: 70.0, change: 0, tag: '存量稳健', h2Target: 0.03, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '青海大学', h1Total: 0.03, h1Online: 0.021, h1Rate: 70.0, change: 0, tag: '老系统', h2Target: 0.03, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null }
+    ]
+  },
+  {
+    id: 'tianjin', name: '天津', health: 'green',
+    h1Online: 0.83, h1Total: 1.43, h1Rate: 58.1, h1Yoy: 8.0,
+    h2OnlineTarget: 1.24, h2TotalTarget: 1.95,
+    issues: ['线上率58.1%居中', '南开/天大稳中有升', '无明显风险'],
+    projects: [
+      { name: '天津大学', h1Total: 0.30, h1Online: 0.17, h1Rate: 56.7, change: 5.0, tag: '存量稳健', h2Target: 0.25, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '南开大学', h1Total: 0.25, h1Online: 0.15, h1Rate: 60.0, change: 3.0, tag: '存量稳健', h2Target: 0.22, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '天津医科大学', h1Total: 0.18, h1Online: 0.10, h1Rate: 55.6, change: 0, tag: '存量稳健', h2Target: 0.15, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '天津工业大学', h1Total: 0.12, h1Online: 0.07, h1Rate: 58.3, change: 0, tag: '老系统', h2Target: 0.10, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '天津理工大学', h1Total: 0.10, h1Online: 0.06, h1Rate: 60.0, change: 0, tag: '存量稳健', h2Target: 0.08, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '天津师范大学', h1Total: 0.10, h1Online: 0.06, h1Rate: 60.0, change: 0, tag: '老系统', h2Target: 0.08, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '天津中医药大学', h1Total: 0.10, h1Online: 0.06, h1Rate: 60.0, change: 0, tag: '存量稳健', h2Target: 0.08, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '天津科技大学', h1Total: 0.10, h1Online: 0.05, h1Rate: 50.0, change: -2.0, tag: '存量稳健', h2Target: 0.08, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '天津财经大学', h1Total: 0.08, h1Online: 0.05, h1Rate: 62.5, change: 0, tag: '老系统', h2Target: 0.06, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '天津外国语大学', h1Total: 0.05, h1Online: 0.03, h1Rate: 60.0, change: 0, tag: '存量稳健', h2Target: 0.04, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '中国民航大学', h1Total: 0.05, h1Online: 0.03, h1Rate: 60.0, change: 0, tag: '老系统', h2Target: 0.04, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null }
+    ]
+  },
+  {
+    id: 'guangdongfujian', name: '广东福建', health: 'green',
+    h1Online: 0.65, h1Total: 1.60, h1Rate: 40.6, h1Yoy: 15.0,
+    h2OnlineTarget: 1.05, h2TotalTarget: 2.40,
+    issues: ['H1同比+15%稳健', '中大/厦大是区域龙头', '深圳大学同比+12%是亮点'],
+    projects: [
+      { name: '中山大学', h1Total: 0.30, h1Online: 0.12, h1Rate: 40.0, change: 8.0, tag: '存量稳健', h2Target: 0.25, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '华南理工大学', h1Total: 0.20, h1Online: 0.08, h1Rate: 40.0, change: 5.0, tag: '存量稳健', h2Target: 0.15, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '厦门大学', h1Total: 0.20, h1Online: 0.08, h1Rate: 40.0, change: 3.0, tag: '存量稳健', h2Target: 0.15, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '深圳大学', h1Total: 0.15, h1Online: 0.06, h1Rate: 40.0, change: 12.0, tag: '存量稳健', h2Target: 0.12, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '暨南大学', h1Total: 0.15, h1Online: 0.06, h1Rate: 40.0, change: 0, tag: '老系统', h2Target: 0.10, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '华南师范大学', h1Total: 0.12, h1Online: 0.05, h1Rate: 41.7, change: 0, tag: '存量稳健', h2Target: 0.08, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '福州大学', h1Total: 0.10, h1Online: 0.04, h1Rate: 40.0, change: 0, tag: '老系统', h2Target: 0.07, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '广东工业大学', h1Total: 0.10, h1Online: 0.04, h1Rate: 40.0, change: 0, tag: '存量稳健', h2Target: 0.07, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '华南农业大学', h1Total: 0.10, h1Online: 0.04, h1Rate: 40.0, change: 0, tag: '老系统', h2Target: 0.07, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '广州大学', h1Total: 0.10, h1Online: 0.04, h1Rate: 40.0, change: 0, tag: '老系统', h2Target: 0.07, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '福建师范大学', h1Total: 0.08, h1Online: 0.03, h1Rate: 37.5, change: 0, tag: '存量稳健', h2Target: 0.06, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null }
+    ]
+  },
+  {
+    id: 'xinan', name: '西南', health: 'yellow',
+    h1Online: 0.46, h1Total: 1.20, h1Rate: 38.3, h1Yoy: 5.0,
+    h2OnlineTarget: 0.81, h2TotalTarget: 2.05,
+    issues: ['线上率38.3%偏低', '川大/电子科大是区域龙头', '存量项目空间大'],
+    projects: [
+      { name: '四川大学', h1Total: 0.20, h1Online: 0.08, h1Rate: 40.0, change: 5.0, tag: '存量稳健', h2Target: 0.15, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '重庆大学', h1Total: 0.15, h1Online: 0.06, h1Rate: 40.0, change: 3.0, tag: '存量稳健', h2Target: 0.12, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '电子科技大学', h1Total: 0.15, h1Online: 0.06, h1Rate: 40.0, change: 4.0, tag: '存量稳健', h2Target: 0.12, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '西南大学', h1Total: 0.10, h1Online: 0.04, h1Rate: 40.0, change: 0, tag: '老系统', h2Target: 0.08, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '西南交通大学', h1Total: 0.10, h1Online: 0.04, h1Rate: 40.0, change: 0, tag: '存量稳健', h2Target: 0.07, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '云南大学', h1Total: 0.08, h1Online: 0.032, h1Rate: 40.0, change: 0, tag: '存量稳健', h2Target: 0.06, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '四川农业大学', h1Total: 0.06, h1Online: 0.024, h1Rate: 40.0, change: 0, tag: '老系统', h2Target: 0.05, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '昆明理工大学', h1Total: 0.06, h1Online: 0.024, h1Rate: 40.0, change: 0, tag: '老系统', h2Target: 0.05, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '贵州大学', h1Total: 0.06, h1Online: 0.024, h1Rate: 40.0, change: 0, tag: '存量稳健', h2Target: 0.05, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '广西大学', h1Total: 0.06, h1Online: 0.024, h1Rate: 40.0, change: 0, tag: '存量稳健', h2Target: 0.05, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null },
+      { name: '西藏大学', h1Total: 0.04, h1Online: 0.016, h1Rate: 40.0, change: 0, tag: '老系统', h2Target: 0.03, plan: 0, planNote: '', planStatus: 'pending', planHistory: [], crossDept: null }
+    ]
+  }
+];
+
+// 区域负责人映射（用于催办等）
+const REGION_OWNERS = {
+  beijing: '张磊',
+  jiangzhehu: '李明',
+  dongbeixibei: '王芳',
+  tianjin: '陈刚',
+  guangdongfujian: '林强',
+  xinan: '赵敏'
+};
+
+// 跨部门协作映射
+const CROSS_DEPT_MAP = {
+  '销售部（拓新）': '需销售部协助挖掘新高校/新项目，拓展增量客户',
+  '产品部（功能）': '需产品部提供线上化功能支持（如库存同步、电子签）',
+  '营销部（活动）': '需营销部组织促销活动，推动线上转化',
+  '技术部（对接）': '需技术部完成系统对接/接口开发',
+  '客服部（驻场）': '需客服部驻场协助客户使用线上系统',
+  '多部门联动': '需要销售+产品+技术多部门联动攻坚'
+};
+
+/* ============================================================
+ * 全局状态
+ * ============================================================ */
+const state = {
+  currentRegion: 'beijing',
+  currentRole: 'hq',          // 'hq' | 'region'
+  currentRegionAsOwner: 'beijing',
+  taskFilter: 'all',          // 'all'|'pending'|'filling'|'reviewing'|'done'
+  projPage: 1,
+  projPageSize: 10,
+  projTagFilter: 'all',
+  urgeLogs: []
+};
+
+/* ============================================================
+ * 计算函数
+ * ============================================================ */
+function sumRegions() {
+  let onlineTarget = 0, totalTarget = 0, h1Online = 0, h1Total = 0, planCover = 0, projCount = 0;
+  REGIONS.forEach(r => {
+    onlineTarget += r.h2OnlineTarget;
+    totalTarget += r.h2TotalTarget;
+    h1Online += r.h1Online;
+    h1Total += r.h1Total;
+    r.projects.forEach(p => { planCover += p.plan; projCount++; });
+  });
+  return { onlineTarget, totalTarget, h1Online, h1Total, planCover, projCount };
+}
+
+function regionStats(region) {
+  let plan = 0, target = 0, done = 0, filling = 0, reviewing = 0, pending = 0;
+  region.projects.forEach(p => {
+    plan += p.plan;
+    target += p.h2Target;
+    if (p.planStatus === 'done') done++;
+    else if (p.planStatus === 'reviewing') reviewing++;
+    else if (p.planStatus === 'filling') filling++;
+    else if (p.planStatus === 'rejected') pending++;  // rejected 重填回 pending
+    else pending++;
+  });
+  const coverage = target > 0 ? (plan / target * 100) : 0;
+  const gap = Math.max(0, target - plan);
+  return { plan, target, done, filling, reviewing, pending, coverage, gap };
+}
+
+function taskCount() {
+  let pending = 0, filling = 0, reviewing = 0, done = 0, rejected = 0, total = 0;
+  REGIONS.forEach(r => r.projects.forEach(p => {
+    total++;
+    if (p.planStatus === 'done') done++;
+    else if (p.planStatus === 'reviewing') reviewing++;
+    else if (p.planStatus === 'rejected') rejected++;
+    else if (p.planStatus === 'filling') filling++;
+    else pending++;
+  }));
+  return { pending, filling, reviewing, done, rejected, total };
+}
+
+function healthTag(health) {
+  if (health === 'red') return { txt: '预警', cls: 'tag-red' };
+  if (health === 'yellow') return { txt: '关注', cls: 'tag-yellow' };
+  return { txt: '健康', cls: 'tag-green' };
+}
+
+function tagInfo(tag) {
+  const map = {
+    '存量头部': { cls: 'tag-blue', icon: '★' },
+    '存量稳健': { cls: 'tag-green', icon: '' },
+    '新上线': { cls: 'tag-purple', icon: '新' },
+    '老系统': { cls: 'tag-gray', icon: '' },
+    '标杆': { cls: 'tag-blue', icon: '♔' }
+  };
+  return map[tag] || { cls: 'tag-gray', icon: '' };
+}
+
+function statusText(s) {
+  return { pending: '待下发', filling: '填报中', reviewing: '待审核', done: '已完成', rejected: '已打回' }[s] || s;
+}
+
+function statusClass(s) {
+  return { pending: 'tag-gray', filling: 'tag-blue', reviewing: 'tag-yellow', done: 'tag-green', rejected: 'tag-red' }[s] || 'tag-gray';
+}
+
+function now() {
+  const d = new Date();
+  return `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
+}
+
+/* ============================================================
+ * 渲染：KPI
+ * ============================================================ */
+function renderKpi() {
+  const s = sumRegions();
+  const tc = taskCount();
+  const closeRate = tc.total > 0 ? Math.round(tc.done / tc.total * 100) : 0;
+  // 战略缺口 = 总部25亿目标 - 区域汇总目标
+  const strategicGap = H2_TARGET - s.totalTarget;
+
+  document.getElementById('kpiBar').innerHTML = `
+    <div class="kpi kpi-target">
+      <div class="kpi-label">H2 总部目标</div>
+      <div class="kpi-value">${H2_TARGET}<span class="unit">亿元</span></div>
+      <div class="kpi-delta" style="color:rgba(255,255,255,0.85)">系统总额口径</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">1-6月已完（线上）</div>
+      <div class="kpi-value">${H1_DONE}<span class="unit">亿元</span></div>
+      <div class="kpi-delta delta-up">↑ 同比 +36.42%</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">区域 H2 目标汇总</div>
+      <div class="kpi-value">${s.totalTarget.toFixed(2)}<span class="unit">亿元</span></div>
+      <div class="kpi-delta delta-flat">${REGIONS.length} 区域 · ${s.projCount} 项目</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">区域计划覆盖（实时）</div>
+      <div class="kpi-value">${s.planCover.toFixed(2)}<span class="unit">亿元</span></div>
+      <div class="kpi-delta delta-flat">${s.totalTarget > 0 ? Math.round(s.planCover/s.totalTarget*100) : 0}% 区域目标覆盖率</div>
+    </div>
+    <div class="kpi kpi-gap">
+      <div class="kpi-label">战略缺口</div>
+      <div class="kpi-value">${strategicGap.toFixed(2)}<span class="unit">亿元</span></div>
+      <div class="kpi-delta" style="color:rgba(255,255,255,0.85)">${strategicGap > 0 ? '总部目标-区域汇总' : '区域汇总已超额'}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">H2 任务闭环率</div>
+      <div class="kpi-value">${closeRate}<span class="unit">%</span></div>
+      <div class="kpi-delta delta-up">${tc.done}/${tc.total} 已闭环</div>
+    </div>
+  `;
+  document.getElementById('closeRate').textContent = `闭环率 ${closeRate}%`;
+  document.getElementById('regionCount').textContent = `${REGIONS.length} 区域`;
+}
+
+/* ============================================================
+ * 渲染：左侧区域列表
+ * ============================================================ */
+function renderRegionList() {
+  document.getElementById('regionList').innerHTML = REGIONS.map(r => {
+    const st = regionStats(r);
+    const tag = healthTag(r.health);
+    const fillPct = st.target > 0 ? Math.min(100, st.plan / st.target * 100) : 0;
+    const gapPct = st.target > 0 ? Math.max(0, (st.target - st.plan) / st.target * 100) : 0;
+    const isActive = r.id === state.currentRegion;
+    return `
+      <div class="region-card ${isActive ? 'active' : ''}" onclick="selectRegion('${r.id}')">
+        <div class="rc-head">
+          <div class="rc-name">${r.name}</div>
+          <span class="tag ${tag.cls}">${tag.txt}</span>
+        </div>
+        <div class="rc-rows">
+          <div class="rc-row"><span class="lbl">H1线上</span><span class="val">${r.h1Online.toFixed(2)}亿</span></div>
+          <div class="rc-row"><span class="lbl">H1总额</span><span class="val">${r.h1Total.toFixed(2)}亿</span></div>
+          <div class="rc-row"><span class="lbl">线上率</span><span class="val">${r.h1Rate.toFixed(1)}%</span></div>
+          <div class="rc-row"><span class="lbl">项目数</span><span class="val">${r.projects.length}个</span></div>
+          <div class="rc-row"><span class="lbl">H2线上</span><span class="val">${r.h2OnlineTarget.toFixed(2)}亿</span></div>
+          <div class="rc-row"><span class="lbl">H2总额</span><span class="val">${r.h2TotalTarget.toFixed(2)}亿</span></div>
+        </div>
+        <div class="rc-progress" title="计划覆盖 ${st.coverage.toFixed(0)}%">
+          <div class="fill" style="width:${fillPct}%"></div>
+          <div class="gap" style="width:${gapPct}%"></div>
+        </div>
+        <div class="rc-rows" style="margin-top:6px">
+          <div class="rc-row"><span class="lbl">已覆盖</span><span class="val">${st.coverage.toFixed(0)}%</span></div>
+          <div class="rc-row"><span class="lbl">负责人</span><span class="val">${REGION_OWNERS[r.id] || '-'}</span></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ============================================================
+ * 渲染：中间区域详情
+ * ============================================================ */
+function renderCenter() {
+  const r = REGIONS.find(x => x.id === state.currentRegion);
+  if (!r) return;
+  const st = regionStats(r);
+  const fillPct = st.target > 0 ? Math.min(100, st.plan / st.target * 100) : 0;
+  const insightType = r.health === 'red' ? '' : (r.health === 'yellow' ? 'warn' : 'info');
+  const insightTitle = r.health === 'red' ? '🔴 区域预警' : (r.health === 'yellow' ? '🟡 区域关注' : '🟢 区域健康');
+
+  document.getElementById('regionSummary').innerHTML = `
+    <div class="rs-hd">
+      <div>
+        <h3>${r.name} <span class="tag ${healthTag(r.health).cls}" style="margin-left:6px">${healthTag(r.health).txt}</span></h3>
+        <div class="sub">2026上半年数据概览 & 下半年任务追踪</div>
+      </div>
+      <div style="font-size:12px;color:var(--text-3)">负责人：<strong style="color:var(--text)">${REGION_OWNERS[r.id] || '-'}</strong></div>
+    </div>
+    <div class="rs-cards">
+      <div class="rs-card">
+        <div class="lbl">H1 线上金额</div>
+        <div class="val">${r.h1Online.toFixed(2)}<span class="unit">亿</span></div>
+        <div class="delta ${r.h1Yoy >= 0 ? 'delta-up' : 'delta-down'}">${r.h1Yoy >= 0 ? '↑' : '↓'} 同比 ${r.h1Yoy > 0 ? '+' : ''}${r.h1Yoy.toFixed(1)}%</div>
+      </div>
+      <div class="rs-card">
+        <div class="lbl">H1 系统总额</div>
+        <div class="val">${r.h1Total.toFixed(2)}<span class="unit">亿</span></div>
+        <div class="delta delta-flat">占比 ${(r.h1Total/(r.h1Total+r.h1Online/(r.h1Rate/100))*100).toFixed(0)}%</div>
+      </div>
+      <div class="rs-card">
+        <div class="lbl">线上率</div>
+        <div class="val">${r.h1Rate.toFixed(1)}<span class="unit">%</span></div>
+        <div class="delta delta-down">↓ 较 25H1 -26.5pts</div>
+      </div>
+      <div class="rs-card">
+        <div class="lbl">H2 线上目标</div>
+        <div class="val">${r.h2OnlineTarget.toFixed(2)}<span class="unit">亿</span></div>
+        <div class="delta delta-flat">线上率回升至 50%+</div>
+      </div>
+      <div class="rs-card">
+        <div class="lbl">H2 总额目标</div>
+        <div class="val">${r.h2TotalTarget.toFixed(2)}<span class="unit">亿</span></div>
+        <div class="delta delta-flat">项目数 ${r.projects.length}</div>
+      </div>
+      <div class="rs-card">
+        <div class="lbl">已覆盖/缺口</div>
+        <div class="val" style="color:${st.coverage >= 100 ? 'var(--green)' : st.coverage >= 70 ? 'var(--yellow)' : 'var(--red)'}">${st.coverage.toFixed(0)}<span class="unit">%</span></div>
+        <div class="delta ${st.gap > 0 ? 'delta-down' : 'delta-up'}">缺口 ${st.gap.toFixed(2)} 亿</div>
+      </div>
+    </div>
+    <div class="insight-bar ${insightType}">
+      <span class="icon">${r.health === 'red' ? '⚠️' : (r.health === 'yellow' ? '👀' : '✅')}</span>
+      <div class="body">
+        <strong>${insightTitle}：</strong>
+        ${r.issues.map((s, i) => `<span>${i > 0 ? ' · ' : ''}${s}</span>`).join('')}
+      </div>
+    </div>
+  `;
+
+  renderProjTable(r);
+}
+
+function renderProjTable(r) {
+  // 筛选
+  let projects = r.projects.slice();
+  if (state.projTagFilter !== 'all') {
+    projects = projects.filter(p => p.tag === state.projTagFilter);
+  }
+  if (state.taskFilter !== 'all') {
+    const map = { pending: ['pending','rejected'], filling: ['filling'], reviewing: ['reviewing'], done: ['done'] };
+    projects = projects.filter(p => map[state.taskFilter].includes(p.planStatus));
+  }
+
+  // 分页
+  const total = projects.length;
+  const pages = Math.max(1, Math.ceil(total / state.projPageSize));
+  if (state.projPage > pages) state.projPage = pages;
+  const start = (state.projPage - 1) * state.projPageSize;
+  const pageData = projects.slice(start, start + state.projPageSize);
+
+  // 项目级汇总
+  let sumTarget = 0, sumPlan = 0, sumGap = 0;
+  projects.forEach(p => { sumTarget += p.h2Target; sumPlan += p.plan; sumGap += Math.max(0, p.h2Target - p.plan); });
+
+  const st = regionStats(r);
+
+  document.getElementById('projPanel').innerHTML = `
+    <div class="proj-hd">
+      <h3>项目级穿透 · ${r.name} <span style="color:var(--text-3);font-weight:400;font-size:12px;margin-left:6px">（共 ${r.projects.length} 个项目）</span></h3>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="filter-bar">
+          <button class="filter-btn ${state.projTagFilter==='all'?'active':''}" onclick="setProjTag('all')">全部</button>
+          <button class="filter-btn ${state.projTagFilter==='存量头部'?'active':''}" onclick="setProjTag('存量头部')">存量头部</button>
+          <button class="filter-btn ${state.projTagFilter==='新上线'?'active':''}" onclick="setProjTag('新上线')">新上线</button>
+          <button class="filter-btn ${state.projTagFilter==='存量稳健'?'active':''}" onclick="setProjTag('存量稳健')">存量稳健</button>
+          <button class="filter-btn ${state.projTagFilter==='老系统'?'active':''}" onclick="setProjTag('老系统')">老系统</button>
+        </div>
+        <div class="proj-tools">
+          <button class="btn" onclick="batchAssign()">批量下发</button>
+          <button class="btn btn-primary" onclick="showAssignDialog()">+ 下发项目</button>
+        </div>
+      </div>
+    </div>
+    <div style="max-height:520px;overflow-y:auto">
+      <table class="proj-table">
+        <thead>
+          <tr>
+            <th>项目名称</th>
+            <th class="num">H1总额</th>
+            <th class="num">H1线上</th>
+            <th class="num">线上率</th>
+            <th class="num">同比</th>
+            <th>类型标签</th>
+            <th class="num">H2目标</th>
+            <th class="num">填报金额</th>
+            <th class="num">缺口</th>
+            <th>状态</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${pageData.map(p => {
+            const gap = Math.max(0, p.h2Target - p.plan);
+            const cov = p.h2Target > 0 ? (p.plan / p.h2Target * 100) : 0;
+            const tipInfo = tagInfo(p.tag);
+            const sc = statusClass(p.planStatus);
+            const stt = statusText(p.planStatus);
+            const isWarn = p.tag === '新上线' && p.h1Rate < 20 || p.change < -15;
+            return `
+              <tr class="${isWarn ? 'row-warn' : ''}">
+                <td class="pname">${p.name}${p.crossDept ? `<span class="tag tag-purple" style="margin-left:4px;font-size:10px;padding:1px 5px">${p.crossDept.split('（')[0]}</span>` : ''}</td>
+                <td class="num">${p.h1Total.toFixed(2)}</td>
+                <td class="num">${p.h1Online.toFixed(2)}</td>
+                <td class="num">${p.h1Rate.toFixed(1)}%</td>
+                <td class="num ${p.change < 0 ? 'delta-down' : (p.change > 0 ? 'delta-up' : 'delta-flat')}">${p.change > 0 ? '+' : ''}${p.change.toFixed(1)}%</td>
+                <td><span class="tag ${tipInfo.cls}">${tipInfo.icon ? tipInfo.icon + ' ' : ''}${p.tag}</span></td>
+                <td class="num row-target">${p.h2Target.toFixed(2)}</td>
+                <td class="num row-plan">${p.plan > 0 ? p.plan.toFixed(2) : '--'}</td>
+                <td class="num ${gap > 0 ? 'row-gap' : ''}">${gap > 0 ? gap.toFixed(2) : '✓'}</td>
+                <td><span class="tag ${sc}">${stt}</span></td>
+                <td>
+                  <button class="btn" style="height:22px;padding:0 8px;font-size:11px" onclick="showProjDetail('${r.id}','${p.name}')">详情</button>
+                  ${p.planStatus === 'pending' || p.planStatus === 'rejected' ? `<button class="btn btn-primary" style="height:22px;padding:0 8px;font-size:11px" onclick="showFillDialog('${r.id}','${p.name}')">填报</button>` : ''}
+                  ${p.planStatus === 'filling' || p.planStatus === 'reviewing' ? `<button class="btn btn-warn" style="height:22px;padding:0 8px;font-size:11px" onclick="showFillDialog('${r.id}','${p.name}')">查看</button>` : ''}
+                </td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="proj-footer">
+      <div class="summary">
+        <div class="item"><span class="lbl">本区域 H2 目标：</span><span class="val" style="color:var(--primary)">${st.target.toFixed(2)} 亿</span></div>
+        <div class="item"><span class="lbl">已填报：</span><span class="val" style="color:var(--green)">${st.plan.toFixed(2)} 亿</span></div>
+        <div class="item"><span class="lbl">缺口：</span><span class="val" style="color:var(--red)">${st.gap.toFixed(2)} 亿</span></div>
+        <div class="item"><span class="lbl">覆盖率：</span><span class="val">${st.coverage.toFixed(0)}%</span></div>
+        <div class="item"><span class="lbl">已闭环：</span><span class="val">${st.done} / ${r.projects.length}</span></div>
+      </div>
+      <div class="pager">
+        <button onclick="setProjPage(${state.projPage-1})" ${state.projPage===1?'disabled':''}>‹</button>
+        ${Array.from({length: pages}, (_,i) => `<button class="${state.projPage===i+1?'active':''}" onclick="setProjPage(${i+1})">${i+1}</button>`).join('')}
+        <button onclick="setProjPage(${state.projPage+1})" ${state.projPage===pages?'disabled':''}>›</button>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+ * 渲染：右侧任务闭环
+ * ============================================================ */
+function renderRight() {
+  const tc = taskCount();
+  const tabs = [
+    { key: 'all', name: '全部', count: tc.total },
+    { key: 'pending', name: '待下发', count: tc.pending, urgent: tc.pending > 5 },
+    { key: 'filling', name: '填报中', count: tc.filling, urgent: false },
+    { key: 'reviewing', name: '待审核', count: tc.reviewing, urgent: tc.reviewing > 0 },
+    { key: 'done', name: '已完成', count: tc.done, urgent: false }
+  ];
+  document.getElementById('taskTabs').innerHTML = tabs.map(t => `
+    <div class="tp-tab ${state.taskFilter===t.key?'active':''}" onclick="setTaskFilter('${t.key}')">
+      ${t.name}<span class="count ${t.urgent && state.taskFilter!==t.key ? 'has-urgent' : ''}">${t.count}</span>
+    </div>
+  `).join('');
+
+  // 收集任务
+  let tasks = [];
+  REGIONS.forEach(r => r.projects.forEach(p => {
+    tasks.push({ region: r, project: p });
+  }));
+
+  if (state.taskFilter !== 'all') {
+    const map = { pending: ['pending','rejected'], filling: ['filling'], reviewing: ['reviewing'], done: ['done'] };
+    tasks = tasks.filter(t => map[state.taskFilter].includes(t.project.planStatus));
+  }
+
+  // 排序：待审核 > 填报中 > 待下发 > 已完成
+  const order = { reviewing: 0, filling: 1, pending: 2, rejected: 3, done: 4 };
+  tasks.sort((a, b) => (order[a.project.planStatus] - order[b.project.planStatus]));
+
+  if (tasks.length === 0) {
+    document.getElementById('taskList').innerHTML = `<div style="padding:40px 16px;text-align:center;color:var(--text-3);font-size:12px">该状态下暂无任务</div>`;
+  } else {
+    document.getElementById('taskList').innerHTML = tasks.slice(0, 50).map(t => {
+      const p = t.project;
+      const r = t.region;
+      const cov = p.h2Target > 0 ? (p.plan / p.h2Target * 100) : 0;
+      const fillCls = cov < 70 ? 'danger' : (cov < 100 ? 'warn' : '');
+      const sc = statusClass(p.planStatus);
+      const stt = statusText(p.planStatus);
+      const tagInfo2 = tagInfo(p.tag);
+      return `
+        <div class="tp-item">
+          <div class="tp-row1">
+            <div class="tp-title">${p.name}</div>
+            <span class="tag ${sc}" style="font-size:10px;padding:1px 6px">${stt}</span>
+          </div>
+          <div class="tp-row2">
+            <span class="tag ${tagInfo2.cls}" style="font-size:10px;padding:1px 6px">${tagInfo2.icon ? tagInfo2.icon + ' ' : ''}${p.tag}</span>
+            <span class="tp-meta">${r.name} · 负责人 ${REGION_OWNERS[r.id]}</span>
+          </div>
+          <div class="tp-row3">
+            <div class="tp-progress">
+              <div class="tp-bar"><div class="fill ${fillCls}" style="width:${Math.min(100,cov)}%"></div></div>
+            </div>
+            <div class="tp-amount">${p.plan > 0 ? p.plan.toFixed(2) : '0.00'} / ${p.h2Target.toFixed(2)} 亿</div>
+          </div>
+          <div class="tp-actions">
+            <button class="btn" onclick="urge('${r.id}','${p.name}')">🔔 催办</button>
+            ${p.planStatus === 'pending' || p.planStatus === 'rejected' ? `<button class="btn btn-primary" onclick="showFillDialog('${r.id}','${p.name}')">填报</button>` : ''}
+            ${p.planStatus === 'filling' ? `<button class="btn" onclick="submitFill('${r.id}','${p.name}')">提交审核</button>` : ''}
+            ${p.planStatus === 'reviewing' ? `<button class="btn btn-primary" onclick="approveTask('${r.id}','${p.name}')">通过</button><button class="btn btn-danger" onclick="rejectTask('${r.id}','${p.name}')">打回</button>` : ''}
+            ${p.planStatus === 'done' ? `<button class="btn" onclick="showProjDetail('${r.id}','${p.name}')">查看</button>` : ''}
+            <button class="btn" onclick="showProjDetail('${r.id}','${p.name}')">详情</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+}
+
+/* ============================================================
+ * 渲染：催办记录
+ * ============================================================ */
+function renderUrgeLog() {
+  const el = document.getElementById('urgeLog');
+  document.getElementById('urgeCount').textContent = `${state.urgeLogs.length} 条`;
+  if (state.urgeLogs.length === 0) {
+    el.innerHTML = `<div class="log-item">暂无催办</div>`;
+  } else {
+    el.innerHTML = state.urgeLogs.slice(-10).reverse().map(l => `
+      <div class="log-item"><span class="time">${l.time}</span>${l.text}</div>
+    `).join('');
+  }
+}
+
+/* ============================================================
+ * 渲染：底部预警
+ * ============================================================ */
+function renderAlert() {
+  const s = sumRegions();
+  const strategicGap = H2_TARGET - s.totalTarget;
+  // 找出线上率最低的几个项目
+  const allProjs = [];
+  REGIONS.forEach(r => r.projects.forEach(p => allProjs.push({ r, p })));
+  const lowRate = allProjs.filter(x => x.p.h1Rate < 30).sort((a,b) => a.p.h1Rate - b.p.h1Rate).slice(0, 3);
+  const bigDrop = allProjs.filter(x => x.p.change < -15).sort((a,b) => a.p.change - b.p.change).slice(0, 3);
+  const highRate = allProjs.filter(x => x.p.h1Rate > 60 && x.p.h1Online > 0.1).sort((a,b) => b.p.h1Rate - a.p.h1Rate).slice(0, 3);
+
+  document.getElementById('alertList').innerHTML = `
+    <div class="alert red">
+      <div class="icon">⚠️</div>
+      <div class="body">
+        <strong>线上率断崖</strong>
+        <p>${lowRate.length > 0 ? lowRate.map(x => `${x.p.name}（${x.r.name}）${x.p.h1Rate.toFixed(1)}%`).join('、') : '暂无'}</p>
+      </div>
+    </div>
+    <div class="alert red">
+      <div class="icon">📉</div>
+      <div class="body">
+        <strong>头部项目流失</strong>
+        <p>${bigDrop.length > 0 ? bigDrop.map(x => `${x.p.name} 同比${x.p.change.toFixed(1)}%`).join('、') : '暂无'}</p>
+      </div>
+    </div>
+    <div class="alert ${strategicGap > 0.5 ? 'red' : 'yellow'}">
+      <div class="icon">🎯</div>
+      <div class="body">
+        <strong>战略级缺口</strong>
+        <p>总部 25亿 目标 vs 区域汇总 ${s.totalTarget.toFixed(2)}亿，缺口 <strong style="color:var(--red)">${strategicGap.toFixed(2)}亿</strong>，需重新拆解或申请增量</p>
+      </div>
+    </div>
+    <div class="alert yellow">
+      <div class="icon">💡</div>
+      <div class="body">
+        <strong>标杆复制机会</strong>
+        <p>${highRate.length > 0 ? highRate.map(x => `${x.p.name}（${x.p.h1Rate.toFixed(1)}%）`).join('、') : '暂无'}，建议总结打法推广</p>
+      </div>
+    </div>
+    <div class="alert yellow">
+      <div class="icon">🔄</div>
+      <div class="body">
+        <strong>老系统切换护航</strong>
+        <p>全平台 <strong>${allProjs.filter(x => x.p.tag === '老系统').length}</strong> 个老系统项目，H2期间需重点保障订单不丢</p>
+      </div>
+    </div>
+    <div class="alert green">
+      <div class="icon">🚀</div>
+      <div class="body">
+        <strong>江浙沪高增长</strong>
+        <p>H1 同比 +96.9% 表现强劲，但线上率仅 27%，线上化提升空间大</p>
+      </div>
+    </div>
+  `;
+}
+
+/* ============================================================
+ * 全量渲染
+ * ============================================================ */
+function renderAll() {
+  renderKpi();
+  renderRegionList();
+  renderCenter();
+  renderRight();
+  renderUrgeLog();
+  renderAlert();
+}
+
+/* ============================================================
+ * 交互：选择区域/筛选
+ * ============================================================ */
+function selectRegion(id) {
+  state.currentRegion = id;
+  state.projPage = 1;
+  state.projTagFilter = 'all';
+  renderRegionList();
+  renderCenter();
+}
+
+function setProjTag(t) {
+  state.projTagFilter = t;
+  state.projPage = 1;
+  renderCenter();
+}
+
+function setProjPage(p) {
+  state.projPage = p;
+  renderCenter();
+}
+
+function setTaskFilter(f) {
+  state.taskFilter = f;
+  renderRight();
+}
+
+// 角色切换
+document.getElementById('roleToggle').querySelectorAll('button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.getElementById('roleToggle').querySelectorAll('button').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    state.currentRole = b.dataset.role;
+    if (state.currentRole === 'region') {
+      state.currentRegion = state.currentRegionAsOwner;
+    }
+    renderAll();
+  });
+});
+
+/* ============================================================
+ * 弹窗：下发任务
+ * ============================================================ */
+function showAssignDialog() {
+  const regionOpts = REGIONS.map(r => `<option value="${r.id}" ${r.id===state.currentRegion?'selected':''}>${r.name}</option>`).join('');
+  const html = `
+    <div class="modal-hd">
+      <h3>下发新任务</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <label>目标区域 <span class="req">*</span></label>
+        <select id="assignRegion">${regionOpts}</select>
+      </div>
+      <div class="form-row">
+        <label>项目名称 <span class="req">*</span></label>
+        <input id="assignProject" placeholder="例如：清华大学 H2 存量保卫" />
+      </div>
+      <div class="form-row">
+        <label>任务类型 <span class="req">*</span></label>
+        <select id="assignType">
+          <option value="存量头部">存量头部保卫</option>
+          <option value="新上线">新项目线上化攻坚</option>
+          <option value="存量稳健">存量稳健增长</option>
+          <option value="老系统">老系统切换护航</option>
+          <option value="标杆">标杆复制推广</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>H2 目标金额（亿元） <span class="req">*</span></label>
+        <input id="assignTarget" type="number" step="0.01" min="0" placeholder="例如：0.8" />
+      </div>
+      <div class="form-row">
+        <label>任务描述</label>
+        <textarea id="assignDesc" placeholder="说明：当前状况、目标要求、关键动作..."></textarea>
+        <div class="hint">建议包含：问题诊断、目标值、关键节点、需要支持</div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" onclick="submitAssign()">下发</button>
+    </div>
+  `;
+  showModal(html);
+}
+
+function submitAssign() {
+  const region = document.getElementById('assignRegion').value;
+  const name = document.getElementById('assignProject').value.trim();
+  const type = document.getElementById('assignType').value;
+  const target = parseFloat(document.getElementById('assignTarget').value);
+  const desc = document.getElementById('assignDesc').value.trim();
+  if (!name) { showFormError('assignProject', '请填写项目名称'); return; }
+  if (!target || target <= 0) { showFormError('assignTarget', '请填写目标金额'); return; }
+  const r = REGIONS.find(x => x.id === region);
+  r.projects.unshift({
+    name, h1Total: 0, h1Online: 0, h1Rate: 0, change: 0,
+    tag: type, h2Target: target, plan: 0, planNote: desc,
+    planStatus: 'filling', planHistory: [], crossDept: null
+  });
+  closeModal();
+  renderAll();
+  showToast(`已下发任务：${name}（${r.name}）`, 'success');
+}
+
+function batchAssign() {
+  const r = REGIONS.find(x => x.id === state.currentRegion);
+  if (!r) return;
+  let cnt = 0;
+  r.projects.forEach(p => {
+    if (p.planStatus === 'pending') {
+      p.planStatus = 'filling';
+      cnt++;
+    }
+  });
+  renderAll();
+  showToast(`已将 ${r.name} 的 ${cnt} 个项目批量下发到填报中`, 'success');
+}
+
+/* ============================================================
+ * 弹窗：填报计划
+ * ============================================================ */
+function showFillDialog(regionId, projectName) {
+  const r = REGIONS.find(x => x.id === regionId);
+  const p = r.projects.find(x => x.name === projectName);
+  const gap = Math.max(0, p.h2Target - p.plan);
+  const isRejected = p.planStatus === 'rejected';
+  const html = `
+    <div class="modal-hd">
+      <h3>${isRejected ? '✏️ 重新填报' : '📝 填报计划'} · ${p.name}</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--panel-2);padding:10px 12px;border-radius:6px;margin-bottom:14px;font-size:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text-3)">所属区域</span><span><strong>${r.name}</strong> · 负责人 ${REGION_OWNERS[r.id]}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text-3)">任务类型</span><span class="tag ${tagInfo(p.tag).cls}">${p.tag}</span></div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="color:var(--text-3)">H2 目标金额</span><span style="color:var(--primary);font-weight:600">${p.h2Target.toFixed(2)} 亿</span></div>
+        ${isRejected && p.planHistory.length > 0 ? `<div style="display:flex;justify-content:space-between;margin-top:6px;padding-top:6px;border-top:1px solid var(--border)"><span style="color:var(--red)">上轮打回理由</span><span style="color:var(--red);max-width:60%;text-align:right">${p.planHistory[p.planHistory.length-1].reject || '无'}</span></div>` : ''}
+      </div>
+
+      <div class="form-row">
+        <label>计划覆盖金额（亿元） <span class="req">*</span></label>
+        <input id="fillPlan" type="number" step="0.01" min="0" value="${p.plan > 0 ? p.plan : ''}" placeholder="例如：0.6" />
+        <div class="hint" id="fillHint">系统将自动计算覆盖率与缺口</div>
+      </div>
+
+      <div class="form-row">
+        <label>关键动作 <span class="req">*</span></label>
+        <textarea id="fillAction" placeholder="请描述：为完成此目标你打算做什么动作？分阶段计划？">${p.planNote || ''}</textarea>
+        <div class="hint">建议包含：分月计划、关键动作、责任人</div>
+      </div>
+
+      <div class="form-row">
+        <label>需要的支持</label>
+        <textarea id="fillSupport" placeholder="需要总部提供什么支持？资源/政策/对接..."></textarea>
+      </div>
+
+      <div class="form-row">
+        <label>是否需要跨部门协作？</label>
+        <div class="dept-list" id="deptList">
+          <div class="dept-btn" data-dept="销售部（拓新）">🤝 销售部（拓新）</div>
+          <div class="dept-btn" data-dept="产品部（功能）">🛠️ 产品部（功能）</div>
+          <div class="dept-btn" data-dept="营销部（活动）">📢 营销部（活动）</div>
+          <div class="dept-btn" data-dept="技术部（对接）">⚙️ 技术部（对接）</div>
+          <div class="dept-btn" data-dept="客服部（驻场）">💁 客服部（驻场）</div>
+          <div class="dept-btn" data-dept="多部门联动">🔗 多部门联动</div>
+        </div>
+        <div class="hint" id="deptHint">如果区域内部方案已用尽仍不能完成目标，请选择需要的协作部门</div>
+      </div>
+
+      <div class="gap-info" id="gapInfo"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn" onclick="saveFill('${regionId}','${projectName}')">暂存</button>
+      <button class="btn btn-primary" onclick="submitFill('${regionId}','${projectName}')">提交审核</button>
+    </div>
+  `;
+  showModal(html);
+
+  // 绑定部门选择
+  document.querySelectorAll('#deptList .dept-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      b.classList.toggle('active');
+    });
+  });
+
+  // 绑定金额变化 → 实时计算
+  document.getElementById('fillPlan').addEventListener('input', updateGapInfo);
+  updateGapInfo();
+}
+
+function updateGapInfo() {
+  const plan = parseFloat(document.getElementById('fillPlan').value) || 0;
+  const r = REGIONS.find(x => x.id === state.currentRegion);
+  // 找当前项目
+  const modal = document.getElementById('modalContent');
+  const titleText = modal.querySelector('h3').textContent;
+  // 简化：直接遍历找
+  let target = 0;
+  REGIONS.forEach(reg => reg.projects.forEach(p => {
+    if (titleText.includes(p.name)) target = p.h2Target;
+  }));
+  const gap = Math.max(0, target - plan);
+  const cov = target > 0 ? (plan / target * 100) : 0;
+  document.getElementById('gapInfo').innerHTML = `
+    <div class="row"><span class="lbl">H2 目标金额</span><span class="val">${target.toFixed(2)} 亿</span></div>
+    <div class="row"><span class="lbl">填报金额</span><span class="val" style="color:var(--green)">${plan.toFixed(2)} 亿</span></div>
+    <div class="row ${gap > 0 ? 'danger' : 'success'}"><span class="lbl">${gap > 0 ? '缺口' : '超出'}</span><span class="val">${Math.abs(target - plan).toFixed(2)} 亿</span></div>
+    <div class="row ${cov >= 100 ? 'success' : cov >= 70 ? '' : 'danger'}"><span class="lbl">覆盖率</span><span class="val">${cov.toFixed(0)}% ${cov >= 100 ? '✓ 计划已覆盖目标' : (cov >= 70 ? '⚠ 覆盖不足' : '✗ 严重不足')}</span></div>
+  `;
+}
+
+function saveFill(regionId, projectName) {
+  const r = REGIONS.find(x => x.id === regionId);
+  const p = r.projects.find(x => x.name === projectName);
+  const plan = parseFloat(document.getElementById('fillPlan').value) || 0;
+  const action = document.getElementById('fillAction').value.trim();
+  const support = document.getElementById('fillSupport').value.trim();
+  const depts = Array.from(document.querySelectorAll('#deptList .dept-btn.active')).map(b => b.dataset.dept);
+
+  p.plan = plan;
+  p.planNote = `${action}${support ? '\n【需支持】' + support : ''}${depts.length ? '\n【跨部门】' + depts.join('、') : ''}`;
+  p.planStatus = 'filling';
+  if (depts.length) p.crossDept = depts[0];
+
+  closeModal();
+  renderAll();
+  showToast('已暂存（未提交审核）', 'info');
+}
+
+function submitFill(regionId, projectName) {
+  const r = REGIONS.find(x => x.id === regionId);
+  const p = r.projects.find(x => x.name === projectName);
+  const plan = parseFloat(document.getElementById('fillPlan').value) || 0;
+  const action = document.getElementById('fillAction').value.trim();
+  if (!action) { showFormError('fillAction', '请填写关键动作'); return; }
+  if (plan <= 0) { showFormError('fillPlan', '请填写计划金额'); return; }
+
+  const support = document.getElementById('fillSupport').value.trim();
+  const depts = Array.from(document.querySelectorAll('#deptList .dept-btn.active')).map(b => b.dataset.dept);
+
+  p.plan = plan;
+  p.planNote = `${action}${support ? '\n【需支持】' + support : ''}${depts.length ? '\n【跨部门】' + depts.join('、') : ''}`;
+  p.planStatus = 'reviewing';
+  if (depts.length) p.crossDept = depts[0];
+
+  closeModal();
+  renderAll();
+  showToast(`已提交：${p.name} → 待审核`, 'success');
+}
+
+/* ============================================================
+ * 审核
+ * ============================================================ */
+function approveTask(regionId, projectName) {
+  const r = REGIONS.find(x => x.id === regionId);
+  const p = r.projects.find(x => x.name === projectName);
+  p.planStatus = 'done';
+  p.planHistory.push({ time: now(), action: 'approved', by: '运营总监' });
+  renderAll();
+  showToast(`✓ 已通过：${p.name}`, 'success');
+}
+
+function rejectTask(regionId, projectName) {
+  const r = REGIONS.find(x => x.id === regionId);
+  const p = r.projects.find(x => x.name === projectName);
+  // 自动生成打回理由
+  const gap = Math.max(0, p.h2Target - p.plan);
+  const cov = p.h2Target > 0 ? (p.plan / p.h2Target * 100) : 0;
+  let reason = '';
+  if (cov < 70) {
+    reason = `计划覆盖金额仅 ${p.plan.toFixed(2)} 亿，缺口 ${gap.toFixed(2)} 亿（覆盖率仅 ${cov.toFixed(0)}%），请补充执行方案或申请跨部门协作`;
+  } else if (cov < 100) {
+    reason = `计划覆盖率 ${cov.toFixed(0)}%，距 H2 目标仍有 ${gap.toFixed(2)} 亿缺口，请补充动作`;
+  } else {
+    reason = `计划已超额 ${(p.plan - p.h2Target).toFixed(2)} 亿，请确认是否需要相应资源支持，或调整目标`;
+  }
+  const html = `
+    <div class="modal-hd">
+      <h3>打回计划 · ${p.name}</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--red-soft);padding:10px 12px;border-radius:6px;margin-bottom:14px;font-size:12px">
+        <strong>系统建议理由：</strong>${reason}
+      </div>
+      <div class="form-row">
+        <label>打回理由 <span class="req">*</span></label>
+        <textarea id="rejectReason">${reason}</textarea>
+        <div class="hint">区域负责人重新提交时会看到这段话</div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal()">取消</button>
+      <button class="btn btn-danger" onclick="confirmReject('${regionId}','${projectName}')">确认打回</button>
+    </div>
+  `;
+  showModal(html);
+}
+
+function confirmReject(regionId, projectName) {
+  const reason = document.getElementById('rejectReason').value.trim();
+  const r = REGIONS.find(x => x.id === regionId);
+  const p = r.projects.find(x => x.name === projectName);
+  p.planStatus = 'rejected';
+  p.planHistory.push({ time: now(), action: 'rejected', by: '运营总监', reject: reason });
+  closeModal();
+  renderAll();
+  showToast(`已打回：${p.name}`, 'error');
+}
+
+/* ============================================================
+ * 催办
+ * ============================================================ */
+function urge(regionId, projectName) {
+  const r = REGIONS.find(x => x.id === regionId);
+  const p = r.projects.find(x => x.name === projectName);
+  const text = `🔔 ${now()} 催办 ${REGION_OWNERS[r.id]}：请尽快处理「${p.name}」${p.planStatus === 'pending' || p.planStatus === 'rejected' ? '（待填报）' : '（待审核）'}`;
+  state.urgeLogs.push({ time: now(), text: text.replace(/^🔔 \d+\/\d+ \d+:\d+ /, '') });
+  renderUrgeLog();
+  showToast(`已催办 ${REGION_OWNERS[r.id]}：${p.name}`, 'warn');
+}
+
+/* ============================================================
+ * 项目详情
+ * ============================================================ */
+function showProjDetail(regionId, projectName) {
+  const r = REGIONS.find(x => x.id === regionId);
+  const p = r.projects.find(x => x.name === projectName);
+  const cov = p.h2Target > 0 ? (p.plan / p.h2Target * 100) : 0;
+  const gap = Math.max(0, p.h2Target - p.plan);
+  const tag = tagInfo(p.tag);
+  const historyHtml = p.planHistory.length === 0
+    ? '<div style="color:var(--text-3);font-size:12px;padding:10px;text-align:center">暂无历史</div>'
+    : p.planHistory.map(h => `
+        <div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">
+          <div style="color:var(--primary);font-size:11px">${h.time} · ${h.by || '系统'}</div>
+          <div style="margin-top:2px">${h.action === 'approved' ? '✓ 通过' : '✗ 打回'}：${h.reject || '审核通过'}</div>
+        </div>
+      `).join('');
+  const html = `
+    <div class="modal-hd">
+      <h3>${p.name} · 项目详情</h3>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="rs-cards" style="grid-template-columns:repeat(3,1fr);margin-bottom:14px">
+        <div class="rs-card"><div class="lbl">H1 总额</div><div class="val">${p.h1Total.toFixed(2)}<span class="unit">亿</span></div></div>
+        <div class="rs-card"><div class="lbl">H1 线上</div><div class="val">${p.h1Online.toFixed(2)}<span class="unit">亿</span></div></div>
+        <div class="rs-card"><div class="lbl">线上率</div><div class="val">${p.h1Rate.toFixed(1)}<span class="unit">%</span></div></div>
+        <div class="rs-card"><div class="lbl">同比</div><div class="val" style="color:${p.change<0?'var(--red)':p.change>0?'var(--green)':'var(--text)'}">${p.change>0?'+':''}${p.change.toFixed(1)}<span class="unit">%</span></div></div>
+        <div class="rs-card"><div class="lbl">H2 目标</div><div class="val" style="color:var(--primary)">${p.h2Target.toFixed(2)}<span class="unit">亿</span></div></div>
+        <div class="rs-card"><div class="lbl">填报</div><div class="val" style="color:${p.plan>0?'var(--green)':'var(--text-3)'}">${p.plan>0?p.plan.toFixed(2):'--'}<span class="unit">亿</span></div></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <span class="tag ${tag.cls}">${tag.icon?tag.icon+' ':''}${p.tag}</span>
+        <span class="tag ${statusClass(p.planStatus)}" style="margin-left:6px">${statusText(p.planStatus)}</span>
+        ${p.crossDept ? `<span class="tag tag-purple" style="margin-left:6px">${p.crossDept}</span>` : ''}
+      </div>
+      ${p.planNote ? `<div style="background:var(--panel-2);padding:10px 12px;border-radius:6px;font-size:12px;white-space:pre-wrap;margin-bottom:12px">${p.planNote}</div>` : ''}
+      <div class="gap-info" style="margin-top:0">
+        <div class="row"><span class="lbl">覆盖率</span><span class="val" style="color:${cov>=100?'var(--green)':cov>=70?'var(--yellow)':'var(--red)'}">${cov.toFixed(0)}%</span></div>
+        <div class="row ${gap>0?'danger':'success'}"><span class="lbl">${gap>0?'缺口':'超出'}</span><span class="val">${Math.abs(p.h2Target-p.plan).toFixed(2)} 亿</span></div>
+      </div>
+      <h4 style="font-size:13px;margin:14px 0 6px">📜 审核历史</h4>
+      <div style="max-height:120px;overflow-y:auto">${historyHtml}</div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn" onclick="closeModal()">关闭</button>
+    </div>
+  `;
+  showModal(html);
+}
+
+/* ============================================================
+ * 弹窗 工具
+ * ============================================================ */
+function showModal(html) {
+  document.getElementById('modalContent').innerHTML = html;
+  document.getElementById('modalMask').classList.add('show');
+}
+function closeModal() {
+  document.getElementById('modalMask').classList.remove('show');
+}
+document.getElementById('modalMask').addEventListener('click', e => {
+  if (e.target.id === 'modalMask') closeModal();
+});
+
+function showFormError(id, msg) {
+  const el = document.getElementById(id);
+  el.style.borderColor = 'var(--red)';
+  const row = el.closest('.form-row');
+  row.querySelector('.hint').textContent = msg;
+  row.querySelector('.hint').style.color = 'var(--red)';
+  el.focus();
+}
+
+function showToast(msg, type) {
+  const colors = { success: 'var(--green)', error: 'var(--red)', warn: 'var(--yellow)', info: 'var(--primary)' };
+  const t = document.createElement('div');
+  t.style.cssText = `position:fixed;top:80px;left:50%;transform:translateX(-50%);background:${colors[type]||'var(--primary)'};color:#fff;padding:10px 20px;border-radius:6px;z-index:200;font-size:13px;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:slideDown 0.3s`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity 0.3s'; setTimeout(() => t.remove(), 300); }, 2200);
+}
+
+function exportData() {
+  const data = {
+    exportedAt: new Date().toISOString(),
+    h2Target: H2_TARGET,
+    regions: REGIONS.map(r => ({
+      ...r,
+      stats: regionStats(r)
+    })),
+    summary: sumRegions(),
+    taskCount: taskCount(),
+    urgeLogs: state.urgeLogs
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `库巴扎工作台_数据_${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('数据已导出', 'success');
+}
+
+// 动画
+const styleEl = document.createElement('style');
+styleEl.textContent = `@keyframes slideDown { from { opacity:0; transform:translateX(-50%) translateY(-20px) } to { opacity:1; transform:translateX(-50%) translateY(0) } }`;
+document.head.appendChild(styleEl);
+
+/* ============================================================
+ * 初始化
+ * ============================================================ */
+renderAll();
+
+// 演示数据：自动生成一些填好的任务，让初次访问有内容可看
+function seedDemo() {
+  // 北京清华已填报
+  const p1 = REGIONS[0].projects[0];  // 清华
+  p1.plan = 0.65; p1.planStatus = 'done';
+  p1.planNote = '【关键动作】\n1. 8月：组织3场实验室耗材集中采购活动\n2. 9月：联合清华设备处推动线上化\n3. 10-12月：建立清华专属客户成功团队\n【需支持】需要总部提供 50万 营销预算';
+  p1.planHistory = [{ time: '8/1 14:30', action: 'approved', by: '运营总监' }];
+
+  const p2 = REGIONS[0].projects[2];  // 中农大
+  p2.plan = 0.18; p2.planStatus = 'reviewing';
+  p2.planNote = '【关键动作】\n1. 联合中农大设备处开展线上化培训（已3场）\n2. 推动院系级管理员账号开通\n【跨部门】销售部（拓新）— 需协助挖掘中农大新学院项目';
+  p2.crossDept = '销售部（拓新）';
+
+  // 江浙沪浙大
+  const p3 = REGIONS[1].projects[0];  // 浙大
+  p3.plan = 0.55; p3.planStatus = 'reviewing';
+  p3.planNote = '【关键动作】\n1. 推动浙大各院系实验室系统切换\n2. 配合浙大举办线上采购节\n3. 建立院系管理员激励';
+
+  // 天津南开
+  const p5 = REGIONS[3].projects[1];  // 南开
+  p5.plan = 0.20; p5.planStatus = 'done';
+  p5.planNote = '【关键动作】\n1. 维护南开已有实验室客户\n2. 推动新实验室开通';
+  p5.planHistory = [{ time: '7/28 10:15', action: 'approved', by: '运营总监' }];
+
+  // 广东中山大学
+  const p6 = REGIONS[4].projects[0];
+  p6.plan = 0.22; p6.planStatus = 'filling';
+  p6.planNote = '【关键动作】\n1. 推动中大各附属医院开通\n2. 联合举办危化品管理培训';
+
+  // 东北西安交大 - 已打回
+  const p7 = REGIONS[2].projects[0];
+  p7.plan = 0.05; p7.planStatus = 'rejected';
+  p7.planNote = '【关键动作】计划通过存量维护达成';
+  p7.planHistory = [{ time: '7/30 16:20', action: 'rejected', by: '运营总监', reject: '计划覆盖金额仅 0.05 亿，缺口 0.07 亿（覆盖率仅 42%），请补充执行方案或申请跨部门协作' }];
+}
+seedDemo();
+renderAll();
+
+</script>
+</body>
+</html>
