@@ -157,6 +157,33 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Mi
 
 /* 区域视角填报说明 */
 .fill-notice { background:#fff3e0; border:1px solid #ffe0b2; border-radius:6px; padding:10px 14px; margin-bottom:12px; font-size:13px; color:#e65100; }
+
+/* 操作流程说明 */
+.flow-guide { background:#fff; border-radius:8px; margin:12px 24px; box-shadow:0 1px 3px rgba(0,0,0,0.08); overflow:hidden; }
+.flow-guide-header { display:flex; justify-content:space-between; align-items:center; padding:10px 16px; cursor:pointer; user-select:none; background:linear-gradient(90deg,#e3f2fd,#f3e5f5); }
+.flow-guide-header .fg-title { font-size:14px; font-weight:600; color:#1a237e; display:flex; align-items:center; gap:6px; }
+.flow-guide-header .fg-toggle { font-size:12px; color:#666; }
+.flow-guide-body { padding:14px 16px; display:flex; gap:8px; align-items:stretch; flex-wrap:wrap; }
+.flow-step { flex:1; min-width:150px; padding:10px 12px; border-radius:6px; position:relative; font-size:12px; }
+.flow-step .fs-num { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; color:#fff; margin-bottom:6px; }
+.flow-step .fs-title { font-weight:600; font-size:13px; margin-bottom:3px; }
+.flow-step .fs-role { font-size:11px; color:#999; margin-bottom:4px; }
+.flow-step .fs-desc { color:#555; line-height:1.5; }
+.flow-step .fs-arrow { position:absolute; right:-10px; top:50%; transform:translateY(-50%); color:#bbb; font-size:16px; z-index:1; }
+.fs-1 { background:#e3f2fd; } .fs-1 .fs-num { background:#1565c0; } .fs-1 .fs-title { color:#0d47a1; }
+.fs-2 { background:#e8f5e9; } .fs-2 .fs-num { background:#2e7d32; } .fs-2 .fs-title { color:#1b5e20; }
+.fs-3 { background:#fff3e0; } .fs-3 .fs-num { background:#e65100; } .fs-3 .fs-title { color:#bf360c; }
+.fs-4 { background:#fce4ec; } .fs-4 .fs-num { background:#c62828; } .fs-4 .fs-title { color:#b71c1c; }
+.fs-5 { background:#f3e5f5; } .fs-5 .fs-num { background:#7b1fa2; } .fs-5 .fs-title { color:#4a148c; }
+.fs-6 { background:#e0f2f1; } .fs-6 .fs-num { background:#00838f; } .fs-6 .fs-title { color:#006064; }
+.flow-guide.collapsed .flow-guide-body { display:none; }
+
+/* 新增项目按钮 */
+.btn-add-proj { padding:5px 14px; background:#2e7d32; color:#fff; border:none; border-radius:16px; cursor:pointer; font-size:12px; transition:all 0.2s; }
+.btn-add-proj:hover { background:#1b5e20; }
+.btn-del-proj { padding:3px 8px; background:#c62828; color:#fff; border:none; border-radius:3px; cursor:pointer; font-size:11px; }
+.btn-del-proj:hover { background:#b71c1c; }
+.new-proj-tag { display:inline-block; padding:1px 6px; border-radius:3px; font-size:10px; background:#2e7d32; color:#fff; margin-left:4px; }
 .fill-notice strong { color:#bf360c; }
 </style>
 </head>
@@ -164,7 +191,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Mi
 
 <div class="header">
   <div>
-    <h1>库巴扎运营数据工作台 — 2026H2任务下发系统</h1>
+    <h1>库巴扎运营数据—2026H2任务下发系统</h1>
     <div class="date">数据基准：2026年H1（1-6月）实际 | H2任务下发周期</div>
   </div>
   <div class="view-switch">
@@ -174,6 +201,21 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Mi
 </div>
 
 <div class="kpi-bar" id="kpiBar"></div>
+
+<div class="flow-guide" id="flowGuide">
+  <div class="flow-guide-header" onclick="toggleFlowGuide()">
+    <span class="fg-title">📋 操作流程说明（下发 → 填报 → 提交 → 审核 → 执行 → 完成）</span>
+    <span class="fg-toggle" id="flowToggle">收起 ▲</span>
+  </div>
+  <div class="flow-guide-body">
+    <div class="flow-step fs-1"><div class="fs-num">1</div><div class="fs-title">下发任务</div><div class="fs-role">总部操作</div><div class="fs-desc">总部在「总部视角」对6个区域逐一点击"下发任务"，区域负责人收到通知并可开始填报。</div><span class="fs-arrow">→</span></div>
+    <div class="flow-step fs-2"><div class="fs-num">2</div><div class="fs-title">逐项填报</div><div class="fs-role">区域负责人</div><div class="fs-desc">切到「区域视角」，逐个项目填写H2计划线上金额和执行动作；如有可预估的新增项目，可点"新增项目"补录。</div><span class="fs-arrow">→</span></div>
+    <div class="flow-step fs-3"><div class="fs-num">3</div><div class="fs-title">汇总提交</div><div class="fs-role">区域负责人</div><div class="fs-desc">所有项目填报完成后点击"汇总提交区域计划"。计划覆盖金额需达到区域H2目标，不足100%会有提醒且可能被审核打回。</div><span class="fs-arrow">→</span></div>
+    <div class="flow-step fs-4"><div class="fs-num">4</div><div class="fs-title">总部审核</div><div class="fs-role">总部操作</div><div class="fs-desc">总部逐个项目审核，可"通过"或"打回"。打回时系统自动生成理由（如缺口过大、方案不足等），区域需修改后重新提交。</div><span class="fs-arrow">→</span></div>
+    <div class="flow-step fs-5"><div class="fs-num">5</div><div class="fs-title">落地执行</div><div class="fs-role">区域负责人</div><div class="fs-desc">审核通过的项目进入执行阶段，区域按计划落地推进，确保线上额达标。</div><span class="fs-arrow">→</span></div>
+    <div class="flow-step fs-6"><div class="fs-num">6</div><div class="fs-title">闭环完成</div><div class="fs-role">双方协作</div><div class="fs-desc">项目实际达成后标记完成，全区域形成闭环。总部可通过"催办"持续追踪进度。</div></div>
+  </div>
+</div>
 
 <div class="main">
   <div class="sidebar-left" id="regionList"></div>
@@ -592,6 +634,7 @@ function renderRegionView() {
   filters.forEach(f => {
     filterHtml += '<button class="filter-btn '+(currentFilter===f.key?'active':'')+'" onclick="setFilter(\''+f.key+'\')">'+f.label+' <span class="count">'+f.count+'</span></button>';
   });
+  filterHtml += '<button class="btn-add-proj" onclick="openAddProjectModal()">+ 新增项目</button>';
   filterHtml += '</div>';
   
   // 项目类型标签
@@ -651,14 +694,19 @@ function renderRegionView() {
     } else if (p.status === 'passed') {
       btnHtml = '<span style="color:#2e7d32;">✓</span>';
     }
+    // 新增项目可删除
+    if (p.isNew) {
+      btnHtml += ' <button class="btn-del-proj" onclick="deleteProject('+p.pidx+')">删除</button>';
+    }
     
     let collabHtml = '';
     if (p.collaborate && p.collaborate.length > 0) {
       collabHtml = ' <span class="type-tag tt-new_low">'+p.collaborate.join('/')+'</span>';
     }
+    let newTag = p.isNew ? ' <span class="new-proj-tag">新增</span>' : '';
     
     html += '<tr>'+
-      '<td>'+p.name+collabHtml+'</td>'+
+      '<td>'+p.name+newTag+collabHtml+'</td>'+
       '<td>'+typeTag(p.type)+'</td>'+
       '<td>'+fmtWan(p.h1Online)+'</td>'+
       '<td>'+fmtPct(p.rate)+'</td>'+
@@ -797,6 +845,88 @@ function setFilter(f) {
 function goPage(p) {
   currentPage = p;
   renderRegionView();
+}
+
+// ====== 流程说明折叠 ======
+function toggleFlowGuide() {
+  const g = document.getElementById('flowGuide');
+  const t = document.getElementById('flowToggle');
+  g.classList.toggle('collapsed');
+  t.textContent = g.classList.contains('collapsed') ? '展开 ▼' : '收起 ▲';
+}
+
+// ====== 新增项目 ======
+function openAddProjectModal() {
+  document.getElementById('modalContent').innerHTML =
+    '<h3>新增预估项目 — '+state[currentRegion].name+'</h3>'+
+    '<div class="fill-notice" style="margin-bottom:14px;"><strong>说明：</strong>用于录入可预估的新增项目（如即将上线、新签约项目）。新增项目的计划金额会自动汇总到区域计划覆盖率中。如后续判断该项目不成立，可随时删除。</div>'+
+    '<div class="form-group">'+
+      '<label>项目名称（必填）</label>'+
+      '<input type="text" id="newProjName" placeholder="如：XX大学（预计26.X上线）">'+
+    '</div>'+
+    '<div class="form-group">'+
+      '<label>H2预估线上金额（万元，必填）</label>'+
+      '<input type="number" id="newProjAmount" placeholder="请输入预估金额" min="0" step="1">'+
+    '</div>'+
+    '<div class="form-group">'+
+      '<label>具体执行动作（必填）</label>'+
+      '<textarea id="newProjActions" placeholder="请描述：预计何时上线、由谁负责推进、预估流量来源等"></textarea>'+
+    '</div>'+
+    '<div class="form-group">'+
+      '<label>跨部门协作（可选）</label>'+
+      '<div class="collab-options">'+DEPARTMENTS.map(d => '<span class="collab-chip" onclick="this.classList.toggle(\'selected\')">'+d+'</span>').join('')+'</div>'+
+    '</div>'+
+    '<div class="btn-row">'+
+      '<button class="btn-cancel" onclick="closeModal()">取消</button>'+
+      '<button class="btn-submit" onclick="addProject()">确认新增</button>'+
+    '</div>';
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function addProject() {
+  const name = document.getElementById('newProjName').value.trim();
+  const amount = parseFloat(document.getElementById('newProjAmount').value) || 0;
+  const actions = document.getElementById('newProjActions').value.trim();
+  const collabs = [];
+  document.querySelectorAll('#modalContent .collab-chip.selected').forEach(c => collabs.push(c.textContent));
+
+  if (!name) { alert('请填写项目名称'); return; }
+  if (amount <= 0) { alert('请填写H2预估线上金额'); return; }
+  if (!actions) { alert('请填写具体执行动作'); return; }
+
+  let now = new Date();
+  let timeStr = (now.getMonth()+1)+'/'+now.getDate()+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+
+  const newProj = {
+    name: name,
+    h1Online: 0, h1Total: 0, rate: 0, h2Natural: 0, h1_25_online: 0,
+    type: 'new_low', isNew: true,
+    status: 'filling',
+    planAmount: amount, planActions: actions, planDate: timeStr,
+    auditNote: '', history: [{time:timeStr, action:'新增预估项目', detail:'预估金额'+fmtWan(amount)+'，'+actions.substring(0,50)+(actions.length>50?'...':'')}],
+    collaborate: collabs
+  };
+  state[currentRegion].projects.push(newProj);
+  closeModal();
+  // 跳到最后一页让用户看到新增的项目
+  let total = state[currentRegion].projects.length;
+  currentPage = Math.ceil(total / PAGE_SIZE);
+  renderRegionView();
+  renderRegionList();
+  renderKPI();
+  renderTaskSummary();
+  alert('已新增预估项目「'+name+'」，预估金额'+fmtWan(amount)+'已计入区域计划覆盖率。');
+}
+
+function deleteProject(pidx) {
+  const p = state[currentRegion].projects[pidx];
+  if (!p.isNew) { alert('仅可删除新增的预估项目，存量项目不可删除。'); return; }
+  if (!confirm('确认删除新增项目「'+p.name+'」？\n\n删除后其计划金额'+fmtWan(p.planAmount)+'将从区域计划中扣除。')) return;
+  state[currentRegion].projects.splice(pidx, 1);
+  renderRegionView();
+  renderRegionList();
+  renderKPI();
+  renderTaskSummary();
 }
 
 // ====== 任务下发 ======
