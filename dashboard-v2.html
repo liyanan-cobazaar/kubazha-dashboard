@@ -185,6 +185,84 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Mi
 .btn-del-proj:hover { background:#b71c1c; }
 .new-proj-tag { display:inline-block; padding:1px 6px; border-radius:3px; font-size:10px; background:#2e7d32; color:#fff; margin-left:4px; }
 .fill-notice strong { color:#bf360c; }
+
+/* 表格横向滚动容器 */
+.table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+/* 统计栏 */
+.stats-bar { display:flex; gap:16px; margin-bottom:12px; padding:10px; background:#f5f5f5; border-radius:6px; flex-wrap:wrap; align-items:center; }
+
+/* ========== 移动端适配 ========== */
+@media (max-width: 768px) {
+  /* Header: 标题和按钮纵向堆叠 */
+  .header { flex-direction:column; align-items:flex-start; gap:10px; padding:12px 16px; }
+  .header h1 { font-size:16px; }
+  .view-switch { width:100%; }
+  .view-btn { flex:1; text-align:center; padding:8px; }
+
+  /* KPI: 缩小卡片，保持横滑 */
+  .kpi-bar { padding:10px 12px; gap:8px; }
+  .kpi { min-width:130px; padding:10px; }
+  .kpi-value { font-size:19px; }
+
+  /* 流程说明: 纵向排列，隐藏箭头 */
+  .flow-guide { margin:10px 12px; }
+  .flow-guide-body { flex-direction:column; }
+  .flow-step { min-width:0; }
+  .flow-step .fs-arrow { display:none; }
+
+  /* 主布局: 三栏改纵向堆叠 */
+  .main { flex-direction:column; padding:10px 12px; gap:12px; }
+  .sidebar-left { width:100%; }
+  .sidebar-right { width:100%; }
+  .content { width:100%; }
+
+  /* 区域卡片: 横向滚动条 */
+  .sidebar-left { display:flex; flex-direction:row; overflow-x:auto; gap:8px; padding-bottom:6px; -webkit-overflow-scrolling:touch; }
+  .region-card { min-width:220px; flex-shrink:0; margin-bottom:0; }
+  .region-card .rc-data { font-size:11px; }
+
+  /* 统计栏: 换行 */
+  .stats-bar { gap:6px 14px; font-size:12px; }
+
+  /* Panel */
+  .panel { padding:12px; }
+  .panel-title { font-size:14px; flex-wrap:wrap; gap:4px; }
+  .panel-title .badge { font-size:11px; }
+
+  /* 筛选按钮 */
+  .filter-bar { gap:6px; }
+  .filter-btn { padding:5px 10px; font-size:11px; }
+  .btn-add-proj { font-size:11px; padding:5px 10px; }
+
+  /* 弹窗: 全宽适配 */
+  .modal { width:calc(100vw - 24px) !important; max-width:560px; padding:16px; }
+  .modal-overlay { padding:12px; align-items:flex-start; }
+  .modal h3 { font-size:16px; }
+  .modal .btn-row { flex-wrap:wrap; }
+
+  /* 预警面板 */
+  .alert-panel { margin:0 12px 12px !important; }
+
+  /* 底部 */
+  .alert { font-size:12px; }
+  .pagination button { padding:4px 8px; font-size:11px; }
+  .pagination { flex-wrap:wrap; }
+}
+
+@media (max-width: 480px) {
+  .header h1 { font-size:14px; }
+  .header .date { font-size:11px; }
+  .kpi { min-width:115px; padding:8px 10px; }
+  .kpi-value { font-size:17px; }
+  .kpi-label { font-size:11px; }
+  .region-card { min-width:190px; }
+  .dispatch-table { font-size:11px; }
+  .dispatch-table th, .dispatch-table td { padding:6px 4px; }
+  .modal { padding:14px; }
+  .stats-bar { gap:4px 12px; }
+  .view-btn { font-size:12px; }
+}
 </style>
 </head>
 <body>
@@ -234,7 +312,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Mi
   </div>
 </div>
 
-<div class="panel" style="margin:0 24px 16px;">
+<div class="panel alert-panel" style="margin:0 24px 16px;">
   <div class="panel-title">自动预警与洞察</div>
   <div id="alertArea"></div>
 </div>
@@ -519,7 +597,7 @@ function renderHQView() {
   let html = '<div class="panel">'+
     '<div class="panel-title">区域任务下发 <span class="badge">总部以区域为单位下发H2目标</span></div>'+
     '<div class="fill-notice"><strong>说明：</strong>总部向6个区域分别下发H2线上目标，区域负责人收到后进入"区域视角"逐个项目填报计划。</div>'+
-    '<table class="dispatch-table">'+
+    '<div class="table-scroll"><table class="dispatch-table">'+
     '<thead><tr>'+
     '<th>区域</th><th>项目数</th><th>H1线上</th><th>H2自然流量</th><th>H2目标</th>'+
     '<th>缺口</th><th>已填报</th><th>计划覆盖</th><th>覆盖率</th><th>状态</th><th>操作</th>'+
@@ -589,8 +667,8 @@ function renderHQView() {
     '<td>-</td><td>-</td>'+
   '</tr>';
   
-  html += '</tbody></table></div>';
-  
+  html += '</tbody></table></div></div>';
+
   document.getElementById('contentArea').innerHTML = html;
 }
 
@@ -655,7 +733,7 @@ function renderRegionView() {
     '<div class="panel-title">'+r.name+' — 项目级填报 <span class="badge">'+r.projects.length+'个项目 | H2目标 '+fmtWan(target)+'</span></div>'+
     '<div class="fill-notice"><strong>区域负责人操作指引：</strong>请逐个项目填写H2计划线上金额和具体执行动作，填报完成后汇总提交审核。计划覆盖金额需达到区域H2目标，否则将被打回。</div>'+
     
-    '<div style="display:flex;gap:16px;margin-bottom:12px;padding:10px;background:#f5f5f5;border-radius:6px;">'+
+    '<div class="stats-bar">'+
       '<div><strong>H2目标：</strong>'+fmtWan(target)+'</div>'+
       '<div><strong>自然流量：</strong>'+fmtWan(r.h2Natural)+'</div>'+
       '<div><strong>缺口：</strong><span style="color:#c62828;">'+fmtWan(gap)+'</span></div>'+
@@ -665,7 +743,7 @@ function renderRegionView() {
     
     filterHtml+
     
-    '<table class="dispatch-table">'+
+    '<div class="table-scroll"><table class="dispatch-table">'+
     '<thead><tr>'+
     '<th>项目名称</th><th>类型</th><th>H1线上</th><th>线上率</th><th>H2自然</th>'+
     '<th>计划金额</th><th>覆盖率</th><th>状态</th><th>操作</th>'+
@@ -718,8 +796,8 @@ function renderRegionView() {
     '</tr>';
   });
   
-  html += '</tbody></table>';
-  
+  html += '</tbody></table></div>';
+
   // 分页
   if (totalPages > 1) {
     html += '<div class="pagination">';
