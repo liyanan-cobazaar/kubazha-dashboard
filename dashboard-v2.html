@@ -1254,12 +1254,22 @@ async function dispatchRegion(rc) {
   }
 }
 
-function urgeRegion(rc) {
+async function urgeRegion(rc) {
   let now = new Date();
   let timeStr = (now.getMonth()+1)+'/'+now.getDate()+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   let unfilled = state[rc].projects.filter(p => p.status === 'dispatched' || p.status === 'pending').length;
   urgeLog.unshift({time:timeStr, region:state[rc].name, msg:'已催办：请尽快填报'+unfilled+'个项目的H2计划'});
   refresh();
+
+  var taskTitle = '催办提醒 — ' + state[rc].name + '区域';
+  var taskContent = '【催办】' + state[rc].name + '区域还有 ' + unfilled + ' 个项目尚未填报H2计划。\n\n请区域负责人尽快进入工作台完成填报。';
+  var result = await notifyDingTalk(taskTitle, taskContent);
+
+  if (result.ok) {
+    alert('已向' + state[rc].name + '区域发送催办，区域负责人将在钉钉群收到提醒。');
+  } else {
+    alert('系统内已记录催办。\n\n钉钉通知未发送：' + result.error);
+  }
 }
 
 function goAudit(rc) {
