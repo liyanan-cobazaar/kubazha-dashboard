@@ -115,6 +115,13 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Mi
 .modal .btn-cancel { padding:8px 20px; border:1px solid #ddd; background:#fff; border-radius:4px; cursor:pointer; font-size:14px; }
 .modal .btn-submit { padding:8px 20px; background:#1565c0; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:14px; }
 .modal .btn-submit:hover { background:#0d47a1; }
+.monthly-table { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+.monthly-table th, .monthly-table td { padding:8px 6px; border:1px solid #e0e0e0; text-align:center; }
+.monthly-table th { background:#f5f5f5; font-weight:500; }
+.monthly-table input { width:80px; padding:6px; text-align:right; }
+.monthly-table .muted { color:#999; font-size:12px; }
+.monthly-total { text-align:right; margin-top:6px; font-size:13px; color:#333; }
+.monthly-total strong { color:#1565c0; }
 
 /* 右侧栏 */
 .task-summary { font-size:13px; }
@@ -529,6 +536,16 @@ let planEditingKey = null; // 当前正在编辑的方案 "rcode:planType"
 // 深拷贝初始数据
 let state = JSON.parse(JSON.stringify(REGIONS));
 
+// 初始化每个项目的月度目标/实际/原因/补差方案字段
+Object.values(state).forEach(r => {
+  r.projects.forEach(p => {
+    p.monthlyTargets = p.monthlyTargets || {7:0, 8:0, 9:0, 10:0, 11:0, 12:0};
+    p.monthlyActuals = p.monthlyActuals || {7:0, 8:0, 9:0, 10:0, 11:0, 12:0};
+    p.monthlyReasons = p.monthlyReasons || {8:'', 9:'', 10:'', 11:'', 12:''};
+    p.monthlyRecoveries = p.monthlyRecoveries || {8:'', 9:'', 10:'', 11:'', 12:''};
+  });
+});
+
 // 初始化每个区域的方案容器
 REGION_ORDER.forEach(rc => { regionPlans[rc] = {}; });
 
@@ -681,7 +698,7 @@ function renderHQView() {
     } else if (regionStatus === 'filling') {
       btnHtml = '<button class="btn btn-urge" onclick="urgeRegion(\''+rc+'\')">🔔 催办</button>';
     } else if (regionStatus === 'review') {
-      btnHtml = '<button class="btn btn-audit" onclick="goAudit(\''+rc+'\')">去审核</button>';
+      btnHtml = '<button class="btn btn-audit" onclick="openAuditModal(\''+rc+'\')">去审核 ('+counts.review+')</button>';
     } else {
       btnHtml = '<span style="color:#2e7d32;">✓ 已闭环</span>';
     }
@@ -818,7 +835,7 @@ function renderRegionView() {
     } else if (p.status === 'filling' || p.status === 'review') {
       btnHtml = '<button class="btn btn-small" style="background:#9e9e9e;color:#fff;" onclick="openFillModal(\''+currentRegion+'\','+p.pidx+')">查看</button>';
     } else if (p.status === 'passed') {
-      btnHtml = '<span style="color:#2e7d32;">✓</span>';
+      btnHtml = '<button class="btn btn-small" style="background:#2e7d32;color:#fff;" onclick="openTrackModal(\''+currentRegion+'\','+p.pidx+')">跟踪</button>';
     }
     // 新增项目可删除
     if (p.isNew) {
@@ -1286,6 +1303,19 @@ function openFillModal(rc, pidx) {
     '<span class="collab-chip '+(selectedCollab.includes(d)?'selected':'')+'" onclick="toggleCollab(\''+d+'\')">'+d+'</span>'
   ).join('');
   
+  // 月度拆解表格：7月填实际，8-12月填目标
+  let monthRows = '';
+  for (let m = 7; m <= 12; m++) {
+    let isJuly = m === 7;
+    let targetInput = isJuly ? '<span class="muted">—</span>' : 
+      '<input type="number" id="target'+m+'" value="'+(p.monthlyTargets[m] > 0 ? p.monthlyTargets[m] : '')+'" min="0" step="1" oninput="syncMonthlyTotal()" placeholder="目标">';
+    let actualInput = isJuly ? 
+      '<input type="number" id="actual'+m+'" value="'+(p.monthlyActuals[m] > 0 ? p.monthlyActuals[m] : '')+'" min="0" step="1" placeholder="实际">' : 
+      '<span class="muted">月底回填</span>';
+    let statusCell = isJuly ? '<span class="muted">已结束</span>' : '<span id="diff'+m+'">—</span>';
+    monthRows += '<tr><td>'+m+'月'+(isJuly?'（已结束）':'')+'</td><td>'+targetInput+'</td><td>'+actualInput+'</td><td>'+statusCell+'</td></tr>';
+  }
+  
   document.getElementById('modalContent').innerHTML = 
     '<h3>填报 — '+p.name+'</h3>'+
     '<div style="background:#f5f5f5;border-radius:6px;padding:10px;margin-bottom:14px;font-size:13px;">'+
@@ -1294,9 +1324,14 @@ function openFillModal(rc, pidx) {
       '<div>H2自然流量预估：'+fmtWan(p.h2Natural)+'</div>'+
     '</div>'+
     '<div class="form-group">'+
-      '<label>H2计划线上金额（万元）</label>'+
-      '<input type="number" id="planAmount" value="'+(p.planAmount||'')+'" placeholder="请输入计划线上金额" min="0" step="1">'+
+      '<label>H2计划线上金额（万元）<span style="font-weight:normal;color:#999;"> — 月度目标之和自动汇总</span></label>'+
+      '<input type="number" id="planAmount" value="'+(p.planAmount > 0 ? p.planAmount : '')+'" placeholder="0" min="0" step="1" oninput="syncPlanFromTotal()">'+
       '<div style="font-size:11px;color:#999;margin-top:4px;">参考自然流量：'+p.h2Natural.toFixed(0)+'万</div>'+
+    '</div>'+
+    '<div class="form-group">'+
+      '<label>月度拆解</label>'+
+      '<table class="monthly-table"><thead><tr><th>月份</th><th>目标金额（万）</th><th>实际金额（万）</th><th>状态</th></tr></thead><tbody>'+monthRows+'</tbody></table>'+
+      '<div class="monthly-total">月度目标合计：<strong id="monthlyTotal">0</strong> 万</div>'+
     '</div>'+
     '<div class="form-group">'+
       '<label>具体执行动作（必填）</label>'+
@@ -1313,7 +1348,40 @@ function openFillModal(rc, pidx) {
     '</div>';
   
   document.getElementById('modalOverlay').classList.add('show');
+  syncMonthlyTotal();
   updateCollabHint();
+}
+
+function syncMonthlyTotal() {
+  let total = 0;
+  for (let m = 8; m <= 12; m++) {
+    total += parseFloat(document.getElementById('target'+m).value) || 0;
+  }
+  document.getElementById('monthlyTotal').textContent = total.toFixed(0);
+  // 同步更新总计划金额（以月度之和为准）
+  document.getElementById('planAmount').value = total > 0 ? total.toFixed(0) : '';
+}
+
+function syncPlanFromTotal() {
+  const total = parseFloat(document.getElementById('planAmount').value) || 0;
+  // 按当前各月目标的比例分配，若都为0则平均分配
+  let currentTotal = 0;
+  let currents = {};
+  for (let m = 8; m <= 12; m++) {
+    currents[m] = parseFloat(document.getElementById('target'+m).value) || 0;
+    currentTotal += currents[m];
+  }
+  
+  if (currentTotal === 0) {
+    for (let m = 8; m <= 12; m++) {
+      document.getElementById('target'+m).value = total > 0 ? (total / 5).toFixed(0) : '';
+    }
+  } else {
+    for (let m = 8; m <= 12; m++) {
+      document.getElementById('target'+m).value = total > 0 ? (total * currents[m] / currentTotal).toFixed(0) : '';
+    }
+  }
+  syncMonthlyTotal();
 }
 
 function getTypeLabel(type) {
@@ -1355,6 +1423,16 @@ function submitFill(rc, pidx) {
   if (amount <= 0) { alert('请填写H2计划线上金额'); return; }
   if (!actions) { alert('请填写具体执行动作'); return; }
   
+  // 校验月度目标之和
+  let monthlyTotal = 0;
+  for (let m = 8; m <= 12; m++) {
+    monthlyTotal += parseFloat(document.getElementById('target'+m).value) || 0;
+  }
+  if (Math.abs(monthlyTotal - amount) > 1) {
+    alert('月度目标合计（'+monthlyTotal.toFixed(0)+'万）与H2计划金额（'+amount.toFixed(0)+'万）不一致，请调整。');
+    return;
+  }
+  
   let now = new Date();
   let timeStr = (now.getMonth()+1)+'/'+now.getDate()+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
   
@@ -1364,6 +1442,13 @@ function submitFill(rc, pidx) {
   p.collaborate = [...selectedCollab];
   p.planDate = timeStr;
   p.status = 'review'; // 提交后进入待审核
+  
+  // 保存月度目标与7月实际
+  for (let m = 8; m <= 12; m++) {
+    p.monthlyTargets[m] = parseFloat(document.getElementById('target'+m).value) || 0;
+  }
+  p.monthlyActuals[7] = parseFloat(document.getElementById('actual7').value) || 0;
+  
   p.history.push({time:timeStr, action:'填报提交', detail:'计划金额'+fmtWan(amount)+'，执行动作：'+actions.substring(0,50)+(actions.length>50?'...':'')});
   
   closeModal();
@@ -1394,6 +1479,63 @@ function submitRegionPlan(rc) {
   refresh();
 }
 
+// ====== 审核弹窗 ======
+function openAuditModal(rc) {
+  const r = state[rc];
+  const reviewProjects = r.projects.map((p, i) => ({...p, pidx: i})).filter(p => p.status === 'review');
+  
+  if (reviewProjects.length === 0) {
+    alert(r.name + '区域暂无待审核项目。');
+    return;
+  }
+  
+  let cardsHtml = reviewProjects.map(p => {
+    let projTarget = p.h2Natural;
+    let pCover = projTarget > 0 ? p.planAmount/projTarget*100 : 0;
+    let pCoverCls = pCover >= 100 ? 'good' : pCover >= 70 ? 'warn' : 'bad';
+    
+    // 月度目标表格
+    let monthRows = '';
+    for (let m = 8; m <= 12; m++) {
+      monthRows += '<tr><td>'+m+'月</td><td>'+fmtWan(p.monthlyTargets[m] || 0)+'</td></tr>';
+    }
+    if (p.monthlyActuals[7] > 0) {
+      monthRows += '<tr style="background:#e8f5e9;"><td>7月（实际）</td><td>'+fmtWan(p.monthlyActuals[7])+'</td></tr>';
+    }
+    
+    let collabHtml = (p.collaborate && p.collaborate.length > 0) ? 
+      '<div style="margin-top:8px;"><strong>跨部门协作：</strong>'+p.collaborate.join('、')+'</div>' : '';
+    
+    return '<div class="audit-card" style="border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:14px;background:#fafafa;">'+ 
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+ 
+        '<div><strong style="font-size:15px;">'+p.name+'</strong> <span class="type-tag tt-'+p.type+'">'+getTypeLabel(p.type)+'</span></div>'+ 
+        '<div><span class="coverage '+pCoverCls+'">覆盖率 '+fmtPct(pCover)+'</span></div>'+ 
+      '</div>'+ 
+      '<div style="font-size:13px;color:#333;margin-bottom:10px;">'+ 
+        '<strong>H2计划金额：</strong>'+fmtWan(p.planAmount)+' &nbsp;|&nbsp; <strong>H2自然流量：</strong>'+fmtWan(p.h2Natural)+ 
+      '</div>'+ 
+      '<table class="monthly-table" style="margin-bottom:10px;"><thead><tr><th>月份</th><th>目标金额</th></tr></thead><tbody>'+monthRows+'</tbody></table>'+ 
+      '<div style="background:#fff;border-radius:6px;padding:10px;font-size:13px;margin-bottom:10px;border:1px solid #eee;">'+ 
+        '<strong>执行动作：</strong><br>'+(p.planActions || '未填写').replace(/\n/g,'<br>')+ 
+      '</div>'+ 
+      collabHtml+ 
+      '<div class="btn-row" style="margin-top:12px;">'+ 
+        '<button class="btn-cancel" onclick="auditProject(\''+rc+'\','+p.pidx+',false); openAuditModal(\''+rc+'\');">打回</button>'+ 
+        '<button class="btn-submit" onclick="auditProject(\''+rc+'\','+p.pidx+',true); openAuditModal(\''+rc+'\');">通过</button>'+ 
+      '</div>'+ 
+    '</div>';
+  }).join('');
+  
+  document.getElementById('modalContent').innerHTML = 
+    '<h3>'+r.name+'区域 — 项目审核 <span style="font-size:13px;color:#999;font-weight:normal;">('+reviewProjects.length+'个待审核)</span></h3>'+ 
+    '<div style="max-height:60vh;overflow-y:auto;padding-right:6px;">'+cardsHtml+'</div>'+ 
+    '<div class="btn-row" style="margin-top:16px;">'+ 
+      '<button class="btn-cancel" onclick="closeModal()">关闭</button>'+ 
+    '</div>';
+  
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
 // ====== 审核操作 ======
 function auditProject(rc, pidx, pass) {
   const p = state[rc].projects[pidx];
@@ -1421,6 +1563,99 @@ function auditProject(rc, pidx, pass) {
     p.auditNote = reason;
     p.history.push({time:timeStr, action:'审核打回', detail:reason});
   }
+  refresh();
+}
+
+// ====== 执行跟踪弹窗 ======
+function openTrackModal(rc, pidx) {
+  const p = state[rc].projects[pidx];
+  
+  // 月度跟踪表格
+  let monthRows = '';
+  for (let m = 7; m <= 12; m++) {
+    let isJuly = m === 7;
+    let target = p.monthlyTargets[m] || 0;
+    let actual = p.monthlyActuals[m] || 0;
+    let targetCell = isJuly ? '<span class="muted">—</span>' : fmtWan(target);
+    let actualCell = isJuly ? 
+      '<span>'+fmtWan(actual)+'</span>' : 
+      '<input type="number" id="trackActual'+m+'" value="'+(actual > 0 ? actual : '')+'" min="0" step="1" oninput="checkTrackMonth('+m+','+target+')" placeholder="实际">';
+    let diffHtml = isJuly ? '<span class="muted">已结束</span>' : '<span id="trackDiff'+m+'">—</span>';
+    let reasonArea = isJuly ? '' : 
+      '<div id="trackReasonBox'+m+'" style="display:none;margin-top:6px;padding:10px;background:#fff3e0;border-radius:4px;font-size:12px;">'+ 
+        '<div style="margin-bottom:8px;"><strong>未达标原因（必填）：</strong><input type="text" id="trackReason'+m+'" value="'+(p.monthlyReasons[m]||'')+'" style="width:100%;padding:5px 8px;font-size:12px;margin-top:4px;" placeholder="请说明本月未达标原因"></div>'+ 
+        '<div><strong>下月补差方案（必填）：</strong><input type="text" id="trackRecovery'+m+'" value="'+(p.monthlyRecoveries[m]||'')+'" style="width:100%;padding:5px 8px;font-size:12px;margin-top:4px;" placeholder="请说明如何在后续月份补足差额"></div>'+ 
+      '</div>';
+    monthRows += '<tr><td>'+m+'月</td><td>'+targetCell+'</td><td>'+actualCell+'</td><td>'+diffHtml+'</td></tr>'+ 
+      (isJuly ? '' : '<tr id="trackReasonRow'+m+'" style="display:none;"><td colspan="4" style="padding:0;border:none;">'+reasonArea+'</td></tr>');
+  }
+  
+  document.getElementById('modalContent').innerHTML = 
+    '<h3>执行跟踪 — '+p.name+'</h3>'+ 
+    '<div style="background:#f5f5f5;border-radius:6px;padding:10px;margin-bottom:14px;font-size:13px;">'+ 
+      '<div>H2计划金额：'+fmtWan(p.planAmount)+' | H2自然流量：'+fmtWan(p.h2Natural)+'</div>'+ 
+      '<div>执行动作：'+p.planActions.substring(0,60)+(p.planActions.length>60?'...':'')+'</div>'+ 
+    '</div>'+ 
+    '<div class="form-group">'+ 
+      '<label>月度目标 vs 实际</label>'+ 
+      '<table class="monthly-table"><thead><tr><th>月份</th><th>目标金额</th><th>实际金额</th><th>差额</th></tr></thead><tbody>'+monthRows+'</tbody></table>'+ 
+    '</div>'+ 
+    '<div class="btn-row">'+ 
+      '<button class="btn-cancel" onclick="closeModal()">取消</button>'+ 
+      '<button class="btn-submit" onclick="submitTrack(\''+rc+'\','+pidx+')">保存跟踪</button>'+ 
+    '</div>';
+  
+  document.getElementById('modalOverlay').classList.add('show');
+  // 初始化各月状态
+  for (let m = 8; m <= 12; m++) {
+    checkTrackMonth(m, p.monthlyTargets[m] || 0);
+  }
+}
+
+function checkTrackMonth(m, target) {
+  let actualEl = document.getElementById('trackActual'+m);
+  let diffEl = document.getElementById('trackDiff'+m);
+  let reasonRow = document.getElementById('trackReasonRow'+m);
+  if (!actualEl || !diffEl || !reasonRow) return;
+  
+  let actual = parseFloat(actualEl.value) || 0;
+  let diff = actual - target;
+  diffEl.textContent = (diff >= 0 ? '+' : '') + fmtWan(diff);
+  diffEl.className = diff >= 0 ? 'good' : 'bad';
+  
+  // 实际<目标时显示原因和补差方案输入框
+  reasonRow.style.display = diff < 0 ? 'table-row' : 'none';
+}
+
+function submitTrack(rc, pidx) {
+  const p = state[rc].projects[pidx];
+  
+  // 保存实际金额、原因、补差方案
+  for (let m = 8; m <= 12; m++) {
+    let actual = parseFloat(document.getElementById('trackActual'+m).value) || 0;
+    let target = p.monthlyTargets[m] || 0;
+    p.monthlyActuals[m] = actual;
+    
+    if (actual < target) {
+      let reason = document.getElementById('trackReason'+m).value.trim();
+      let recovery = document.getElementById('trackRecovery'+m).value.trim();
+      if (!reason || !recovery) {
+        alert(m+'月实际金额低于目标，请填写未达标原因和下月补差方案。');
+        return;
+      }
+      p.monthlyReasons[m] = reason;
+      p.monthlyRecoveries[m] = recovery;
+    } else {
+      p.monthlyReasons[m] = '';
+      p.monthlyRecoveries[m] = '';
+    }
+  }
+  
+  let now = new Date();
+  let timeStr = (now.getMonth()+1)+'/'+now.getDate()+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  p.history.push({time:timeStr, action:'执行跟踪更新', detail:'更新了月度实际金额'});
+  
+  closeModal();
   refresh();
 }
 
