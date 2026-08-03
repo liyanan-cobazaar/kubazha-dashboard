@@ -14,6 +14,10 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Mi
 .view-btn { background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:6px 16px; border-radius:6px; cursor:pointer; font-size:13px; transition:all 0.2s; }
 .view-btn:hover { background:rgba(255,255,255,0.25); }
 .view-btn.active { background:#fff; color:#1a237e; font-weight:600; }
+.dingtalk-status { display:flex; align-items:center; gap:6px; font-size:12px; color:rgba(255,255,255,0.85); white-space:nowrap; }
+.dt-dot { width:8px; height:8px; border-radius:50%; background:#ff9800; flex-shrink:0; transition:background 0.3s; }
+.dt-dot.online { background:#4caf50; box-shadow:0 0 4px #4caf50; }
+.dt-dot.offline { background:#f44336; }
 
 .kpi-bar { display:flex; gap:12px; padding:16px 24px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.08); overflow-x:auto; }
 .kpi { flex:1; min-width:140px; padding:12px 16px; border-radius:8px; position:relative; overflow:hidden; }
@@ -307,9 +311,10 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Mi
     <h1>库巴扎运营数据—2026H2任务下发系统</h1>
     <div class="date">数据基准：2026年H1（1-6月）实际 | H2任务下发周期</div>
   </div>
-  <div class="view-switch">
+  <div class="view-switch" style="display:flex;align-items:center;gap:12px;">
     <button class="view-btn active" onclick="switchView('hq')">总部视角</button>
     <button class="view-btn" onclick="switchView('region')">区域视角</button>
+    <span class="dingtalk-status" id="dingtalkStatus" title="双击「启动钉钉通知服务.command」启动后变绿"><span class="dt-dot"></span><span id="dtText">检查中</span></span>
   </div>
 </div>
 
@@ -1205,13 +1210,48 @@ function deleteProject(pidx) {
   renderTaskSummary();
 }
 
+// ====== 钉钉通知推送 ======
+var DINGTALK_BACKEND = 'http://localhost:3000';
+var DINGTALK_TOKEN = 'kubazha-2026-h2-notify';
+
+async function notifyDingTalk(taskTitle, taskContent) {
+  try {
+    var res = await fetch(DINGTALK_BACKEND + '/api/notify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + DINGTALK_TOKEN
+      },
+      body: JSON.stringify({
+        group: 'all',
+        taskTitle: taskTitle,
+        taskContent: taskContent
+      })
+    });
+    return await res.json();
+  } catch (e) {
+    return { ok: false, error: '无法连接通知服务。请确认已双击「启动钉钉通知服务.command」并保持窗口开启。' };
+  }
+}
+
 // ====== 任务下发 ======
-function dispatchRegion(rc) {
+async function dispatchRegion(rc) {
   state[rc].projects.forEach(p => {
     if (p.status === 'pending') p.status = 'dispatched';
   });
   refresh();
-  alert('已向'+state[rc].name+'区域下发H2任务通知，区域负责人可进入"区域视角"逐项目填报计划。');
+
+  var taskTitle = 'H2任务下发 — ' + state[rc].name + '区域';
+  var unfilled = state[rc].projects.filter(p => p.status === 'dispatched').length;
+  var taskContent = '总部已向' + state[rc].name + '区域下发H2线上目标任务，共' + unfilled + '个项目待填报。\n\n请区域负责人尽快进入工作台，逐个项目填报H2计划。';
+
+  var result = await notifyDingTalk(taskTitle, taskContent);
+
+  if (result.ok) {
+    alert('已向' + state[rc].name + '区域下发H2任务。\n\n' + result.message + '，区域负责人将在钉钉群收到通知，点击消息中的链接即可打开工作台填报。');
+  } else {
+    alert('系统内已向' + state[rc].name + '区域下发任务。\n\n钉钉通知未发送：' + result.error);
+  }
 }
 
 function urgeRegion(rc) {
@@ -1430,6 +1470,26 @@ function refresh() {
 
 // 初始化
 refresh();
+
+// 钉钉通知服务状态检查
+async function checkDingTalkStatus() {
+  var dot = document.querySelector('.dt-dot');
+  var text = document.getElementById('dtText');
+  if (!dot) return;
+  try {
+    var res = await fetch('http://localhost:3000/api/health');
+    var data = await res.json();
+    if (data.ok) {
+      dot.className = 'dt-dot online';
+      text.textContent = '钉钉服务已连接';
+    } else { throw new Error('not ok'); }
+  } catch (e) {
+    dot.className = 'dt-dot offline';
+    text.textContent = '钉钉服务未启动';
+  }
+}
+checkDingTalkStatus();
+setInterval(checkDingTalkStatus, 30000);
 </script>
 </body>
 </html>
