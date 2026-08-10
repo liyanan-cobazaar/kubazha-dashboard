@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>运营管理工作台 | 2026 H2</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1e40af;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-800: #1f2937;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: var(--gray-100);
+            color: var(--gray-800);
+            line-height: 1.6;
+        }
+        
+        /* ===== 顶部导航 ===== */
+        .navbar {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 0 24px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-lg);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .navbar-brand {
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .navbar-brand::before {
+            content: "📊";
+            font-size: 24px;
+        }
+        
+        .navbar-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* ===== 主容器 ===== */
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 24px;
+        }
+        
+        /* ===== Tab导航 ===== */
+        .tab-nav {
+            display: flex;
+            gap: 4px;
+            background: white;
+            padding: 6px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-600);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .tab-btn:hover {
+            background: var(--gray-50);
+            color: var(--primary);
+        }
+        
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            box-shadow: var(--shadow);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* ===== KPI卡片网格 ===== */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        
+        .kpi-card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .kpi-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+        }
+        
+        .kpi-card.success::before { background: var(--success); }
+        .kpi-card.warning::before { background: var(--warning); }
+        .kpi-card.danger::before { background: var(--danger); }
+        .kpi-card.info::before { background: var(--primary); }
+        
+        .kpi-label {
+            font-size: 13px;
+            color: var(--gray-600);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .kpi-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--gray-800);
+            margin-bottom: 4px;
+        }
+        
+        .kpi-trend {
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .trend-up { color: var(--danger); }  /* 涨=红 */
+        .trend-down { color: var(--success); }  /* 跌=绿 */
+        
+        .kpi-status {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        
+        .status-green { background: var(--success); box-shadow: 0 0 8px rgba(22,163,74,0.4); }
+        .status-yellow { background: var(--warning); box-shadow: 0 0 8px rgba(217,119,6,0.4); }
+        .status-red { background: var(--danger); box-shadow: 0 0 8px rgba(220,38,38,0.4); }
+        
+        /* ===== 内容卡片 ===== */
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .card-body {
+            padding: 24px;
+        }
+        
+        /* ===== 表格样式 ===== */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+        
+        .data-table th {
+            background: var(--gray-50);
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--gray-600);
+            border-bottom: 2px solid var(--gray-200);
+            white-space: nowrap;
+        }
+        
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--gray-100);
+        }
+        
+        .data-table tr:hover {
+            background: var(--gray-50);
+        }
+        
+        /* 状态标签 */
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-success { background: #dcfce7; color: #166534; }
+        .badge-warning { background: #fef3c7; color: #92400e; }
+        .badge-danger { background: #fee2e2; color: #991b1b; }
+        .badge-info { background: #dbeafe; color: #1e40af; }
+        
+        /* 用户池等级标签 */
+        .grade-s { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; font-weight: 700; }
+        .grade-a { background: #dcfce7; color: #166534; }
+        .grade-b { background: #dbeafe; color: #1e40af; }
+        .grade-c { background: #f3f4f6; color: #4b5563; }
+        
+        /* ===== 双栏布局 ===== */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+        
+        /* ===== 进度条 ===== */
+        .progress-bar {
+            height: 8px;
+            background: var(--gray-200);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-fill.success { background: var(--success); }
+        .progress-fill.warning { background: var(--warning); }
+        .progress-fill.danger { background: var(--danger); }
+        
+        /* ===== 上传区域 ===== */
+        .upload-zone {
+            border: 2px dashed var(--gray-300);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--gray-50);
+        }
+        
+        .upload-zone:hover {
+            border-color: var(--primary);
+            background: white;
+        }
+        
+        .upload-zone.dragover {
+            border-color: var(--primary);
+            background: #eff6ff;
+        }
+        
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        /* ===== 红绿灯看板 ===== */
+        .traffic-light {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .light-item {
+            text-align: center;
+        }
+        
+        .light-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 0 auto 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+            box-shadow: inset 0 -4px 0 rgba(0,0,0,0.2);
+        }
+        
+        .light-green { background: linear-gradient(135deg, #22c55e, #16a34a); }
+        .light-yellow { background: linear-gradient(135deg, #eab308, #d97706); }
+        .light-red { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        
+        /* ===== 响应式 ===== */
+        @media (max-width: 1024px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .tab-nav { flex-wrap: wrap; }
+            .tab-btn { flex: 0 0 calc(50% - 2px); }
+        }
+        
+        @media (max-width: 640px) {
+            .container { padding: 16px; }
+            .kpi-grid { grid-template-columns: 1fr; }
+            .tab-btn { flex: 1 1 100%; }
+        }
+
+        /* ===== 工具栏 ===== */
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-outline {
+            background: white;
+            color: var(--gray-600);
+            border: 1px solid var(--gray-300);
+        }
+        
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
+        /* 搜索框 */
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 16px;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        
+        /* 统计数字高亮 */
+        .highlight-num {
+            font-weight: 700;
+            font-size: 1.1em;
+        }
+        
+        .text-success { color: var(--success); }
+        .text-warning { color: var(--warning); }
+        .text-danger { color: var(--danger); }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航 -->
+    <nav class="navbar">
+        <div class="navbar-brand">运营管理工作台</div>
+        <div class="navbar-info">
+            <span class="status-dot"></span>
+            <span id="currentTime"></span>
+            <span>2026年 H2</span>
+        </div>
+    </nav>
+
+    <div class="container">
+        <!-- Tab导航 -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('dashboard')">
+                📊 数据概览
+            </button>
+            <button class="tab-btn" onclick="switchTab('userpool')">
+                👥 用户池管理
+            </button>
+            <button class="tab-btn" onclick="switchTab('datacollect')">
+                📈 数据收集
+            </button>
+            <button class="tab-btn" onclick="switchTab('marketing')">
+                🎯 营销活动
+            </button>
+            <button class="tab-btn" onclick="switchTab('campus')">
+                🏫 校园行管理
+            </button>
+        </div>
+
+        <!-- ===== Tab1: 数据概览 Dashboard ===== -->
+        <div id="tab-dashboard" class="tab-content active">
+            <!-- 红绿灯状态看板 -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div class="card-header">
+                    <h2 class="card-title">🚦 月度运营健康度看板</h2>
+                    <span style="font-size: 13px; color: var(--gray-600);">更新时间: 2026-08-07</span>
+                </div>
+                <div class="card-body">
+                    <div class="traffic-light">
+                        <div class="light-item">
+                            <div class="light-circle light-green">6</div>
+                            <div style="font-weight: 600;">达标项</div>
+                            <div style="font-size: 12px; color: var(--gray-600);">流量/培训/用户池等</div>
+                        </div>
+                        <div class="light-item">
+                            <div class="light-circle light-yellow">2</div>
+                            <div style="font-weight: 600;">风险项</div>
+                            <div style="font-size: 12px; color: var(--gray-600);">结算率/校园行</div>
+                        </div>
+                        <div class="light-item">
+                            <div class="light-circle light-red">1</div>
+                            <div style="font-weight: 600;">滞后项</div>
+                            <div style="font-size: 12px; color: var(--gray-600);">有效触达</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI卡片 -->
+            <div class="kpi-grid">
+                <div class="kpi-card success">
+                    <div class="kpi-status status-green"></div>
+                    <div class="kpi-label">📈 月度总流量</div>
+                    <div class="kpi-value">105.3M</div>
+                    <div class="kpi-trend trend-up">↑ 118.5% vs 同期</div>
+                </div>
+                <div class="kpi-card warning">
+                    <div class="kpi-status status-yellow"></div>
+                    <div class="kpi-label">💰 平均结算率</div>
+                    <div class="kpi-value">56.8%</div>
+                    <div class="kpi-trend trend-down">↓ 目标≥85%</div>
+                </div>
+                <div class="kpi-card success">
+                    <div class="kpi-status status-green"></div>
+                    <div class="kpi-label">👥 用户池总量</div>
+                    <div class="kpi-value">1,986</div>
+                    <div class="kpi-trend trend-up">↑ 本月+127人</div>
+                </div>
+                <div class="kpi-card danger">
+                    <div class="kpi-status status-red"></div>
+                    <div class="kpi-label">🎯 有效触达</div>
+                    <div class="kpi-value">42</div>
+                    <div class="kpi-trend trend-down">↓ 目标100次/人</div>
+                </div>
+                <div class="kpi-card info">
+                    <div class="kpi-status status-green"></div>
+                    <div class="kpi-label">🏫 校园行场次</div>
+                    <div class="kpi-value">28</div>
+                    <div class="kpi-trend trend-up">↑ 年累计</div>
+                </div>
+                <div class="kpi-card success">
+                    <div class="kpi-status status-green"></div>
+                    <div class="kpi-label">📚 培训场次</div>
+                    <div class="kpi-value">52</div>
+                    <div class="kpi-trend trend-up">↑ 目标达成129%</div>
+                </div>
+            </div>
+
+            <!-- 图表区域 -->
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📊 月度流量趋势</h3>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="flowTrendChart" height="280"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">🏆 区域业绩排名</h3>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="regionRankChart" height="280"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 各区域快速状态 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">🗺️ 各区域关键指标一览</h3>
+                </div>
+                <div class="card-body">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>区域主管</th>
+                                <th>负责学校数</th>
+                                <th>月流量</th>
+                                <th>流量完成率</th>
+                                <th>结算率均值</th>
+                                <th>用户池</th>
+                                <th>状态</th>
+                            </tr>
+                        </thead>
+                        <tbody id="regionTableBody">
+                            <!-- JS动态填充 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Tab2: 用户池管理 ===== -->
+        <div id="tab-userpool" class="tab-content">
+            <!-- 用户池统计 -->
+            <div class="kpi-grid" style="margin-bottom: 24px;">
+                <div class="kpi-card info">
+                    <div class="kpi-label">总用户数</div>
+                    <div class="kpi-value" id="totalUsers">1,986</div>
+                </div>
+                <div class="kpi-card success">
+                    <div class="kpi-label grade-s">S级 (核心)</div>
+                    <div class="kpi-value" id="countS">186</div>
+                </div>
+                <div class="kpi-card info">
+                    <div class="kpi-label grade-a">A级 (重要)</div>
+                    <div class="kpi-value" id="countA">423</div>
+                </div>
+                <div class="kpi-card warning">
+                    <div class="kpi-label grade-b">B级 (一般)</div>
+                    <div class="kpi-value" id="countB">687</div>
+                </div>
+                <div class="kpi-card danger">
+                    <div class="kpi-label grade-c">C级 (待激活)</div>
+                    <div class="kpi-value" id="countC">690</div>
+                </div>
+            </div>
+
+            <!-- 工具栏 -->
+            <div class="toolbar">
+                <input type="text" class="search-box" placeholder="🔍 搜索姓名/学校/学院..." oninput="filterUserPool(this.value)">
+                <select class="btn btn-outline" onchange="filterByGrade(this.value)" style="padding-right: 24px;">
+                    <option value="">全部等级</option>
+                    <option value="S">S级 (核心)</option>
+                    <option value="A">A级 (重要)</option>
+                    <option value="B">B级 (一般)</option>
+                    <option value="C">C级 (待激活)</option>
+                </select>
+                <select class="btn btn-outline" onchange="filterBySchool(this.value)" style="padding-right: 24px;" id="schoolFilter">
+                    <option value="">全部学校</option>
+                </select>
+                <label class="btn btn-primary" for="uploadUserPool">
+                    📤 导入用户池数据
+                </label>
+                <input type="file" id="uploadUserPool" accept=".xlsx,.xls" style="display:none" onchange="handleUserPoolUpload(event)">
+            </div>
+
+            <!-- 用户池表格 -->
+            <div class="card">
+                <div class="card-body" style="padding: 0;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>姓名</th>
+                                <th>学校</th>
+                                <th>学院/部门</th>
+                                <th>等级</th>
+                                <th>联系方式</th>
+                                <th>最近活跃</th>
+                                <th>备注</th>
+                            </tr>
+                        </thead>
+                        <tbody id="userPoolTableBody">
+                            <!-- JS动态填充 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Tab3: 数据收集 ===== -->
+        <div id="tab-datacollect" class="tab-content">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📈 月度核心指标趋势</h3>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="monthlyMetricsChart" height="320"></canvas>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📊 指标完成率雷达图</h3>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="metricsRadarChart" height="320"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 月度数据明细表 -->
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">📋 月度数据汇总</h3>
+                    <label class="btn btn-outline" for="uploadDataCollect">
+                        📤 导入月度数据
+                    </label>
+                    <input type="file" id="uploadDataCollect" accept=".xlsx,.xls" style="display:none" onchange="handleDataCollectUpload(event)">
+                </div>
+                <div class="card-body" style="padding: 0;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>月份</th>
+                                <th>总流量</th>
+                                <th>环比</th>
+                                <th>同比</th>
+                                <th>新增用户</th>
+                                <th>培训场次</th>
+                                <th>校园行场次</th>
+                                <th>平均结算率</th>
+                                <th>状态</th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthlyDataTableBody">
+                            <!-- JS动态填充 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Tab4: 营销活动 ===== -->
+        <div id="tab-marketing" class="tab-content">
+            <!-- 活动统计 -->
+            <div class="kpi-grid" style="margin-bottom: 24px;">
+                <div class="kpi-card info">
+                    <div class="kpi-label">策划活动总数</div>
+                    <div class="kpi-value">26</div>
+                </div>
+                <div class="kpi-card success">
+                    <div class="kpi-label">已完成</div>
+                    <div class="kpi-value">18</div>
+                </div>
+                <div class="kpi-card warning">
+                    <div class="kpi-label">进行中</div>
+                    <div class="kpi-value">5</div>
+                </div>
+                <div class="kpi-card danger">
+                    <div class="kpi-label">未启动</div>
+                    <div class="kpi-value">3</div>
+                </div>
+            </div>
+
+            <!-- 工具栏 -->
+            <div class="toolbar">
+                <input type="text" class="search-box" placeholder="🔍 搜索活动名称/学校..." oninput="filterMarketing(this.value)">
+                <select class="btn btn-outline" onchange="filterByStatus(this.value)">
+                    <option value="">全部状态</option>
+                    <option value="已完成">已完成</option>
+                    <option value="进行中">进行中</option>
+                    <option value="未启动">未启动</option>
+                </select>
+                <label class="btn btn-primary" for="uploadMarketing">
+                    📤 导入活动计划
+                </label>
+                <input type="file" id="uploadMarketing" accept=".xlsx,.xls" style="display:none" onchange="handleMarketingUpload(event)">
+            </div>
+
+            <!-- 活动进度表 -->
+            <div class="card">
+                <div class="card-body" style="padding: 0;">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>序号</th>
+                                <th>活动名称</th>
+                                <th>负责学校</th>
+                                <th>负责人</th>
+                                <th>计划时间</th>
+                                <th>进度</th>
+                                <th>状态</th>
+                                <th>备注</th>
+                            </tr>
+                        </thead>
+                        <tbody id="marketingTableBody">
+                            <!-- JS动态填充 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== Tab5: 校园行管理 ===== -->
+        <div id="tab-campus" class="tab-content">
+            <!-- 三列布局：模式库 / 下半年计划 / 实施跟踪 -->
+            
+            <!-- 子Tab -->
+            <div class="tab-nav" style="margin-bottom: 20px;">
+                <button class="tab-btn active" onclick="switchCampusSubTab('modes')">📚 活动模式库</button>
+                <button class="tab-btn" onclick="switchCampusSubTab('plan')">📅 下半年计划</button>
+                <button class="tab-btn" onclick="switchCampusSubTab('history')">✅ 历史实施记录</button>
+            </div>
+
+            <!-- 5.1 活动模式库 -->
+            <div id="campus-modes" class="campus-subtab active">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📚 11种校园行活动模式</h3>
+                        <span style="font-size: 13px; color: var(--gray-600);">标准化执行方案</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="campusModesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
+                            <!-- JS动态填充模式卡片 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5.2 下半年计划 -->
+            <div id="campus-plan" class="campus-subtab" style="display:none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">📅 2026年下半年校园行计划 (7-11月)</h3>
+                        <label class="btn btn-outline" for="uploadCampusPlan">
+                            📤 导入计划表
+                        </label>
+                        <input type="file" id="uploadCampusPlan" accept=".xlsx,.xls" style="display:none" onchange="handleCampusPlanUpload(event)">
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>序号</th>
+                                    <th>学校</th>
+                                    <th>计划日期</th>
+                                    <th>活动模式</th>
+                                    <th>负责人</th>
+                                    <th>预计人数</th>
+                                    <th>预算</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="campusPlanTableBody">
+                                <!-- JS动态填充 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5.3 历史实施记录 -->
+            <div id="campus-history" class="campus-subtab" style="display:none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">✅ 校园行历史实施记录</h3>
+                        <label class="btn btn-outline" for="uploadCampusHistory">
+                            📤 导入实施表
+                        </label>
+                        <input type="file" id="uploadCampusHistory" accept=".xlsx,.xls" style="display:none" onchange="handleCampusHistoryUpload(event)">
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>序号</th>
+                                    <th>学校</th>
+                                    <th>实际日期</th>
+                                    <th>活动模式</th>
+                                    <th>参与人数</th>
+                                    <th>实际花费</th>
+                                    <th>效果评估</th>
+                                    <th>照片/资料</th>
+                                </tr>
+                            </thead>
+                            <tbody id="campusHistoryTableBody">
+                                <!-- JS动态填充 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // 全局数据存储（模拟数据，支持Excel导入后替换）
+        // ============================================================
+        const AppData = {
+            // 区域数据
+            regions: [
+                { leader: '陈宝华', schools: 4, flow: 3436617, flowRate: 120, settleRate: 84.3, users: 287, status: 'green' },
+                { leader: '周滨', schools: 8, flow: 13416677, flowRate: 101.2, settleRate: 19.0, users: 423, status: 'red' },
+                { leader: '高欢庆', schools: 10, flow: 18133043, flowRate: 154.5, settleRate: 88.4, users: 398, status: 'green' },
+                { leader: '田晓燕', schools: 8, flow: 56208659, flowRate: 117.2, settleRate: 47.3, users: 456, status: 'yellow' },
+                { leader: '刘金玲', schools: 3, flow: 15397903, flowRate: 118.7, settleRate: 68.3, users: 189, status: 'yellow' },
+                { leader: '张璟', schools: 4, flow: 7176639, flowRate: 140.4, settleRate: 100.3, users: 233, status: 'green' },
+            ],
+            
+            // 用户池模拟数据
+            userPool: [],
+            
+            // 月度数据
+            monthlyData: [
+                { month: '3月', flow: 78.5, mom: null, yoy: 95.2, newUsers: 89, training: 32, campus: 8, settleRate: 62.3, status: 'warning' },
+                { month: '4月', flow: 85.2, mom: 8.5, yoy: 102.1, newUsers: 112, training: 41, campus: 12, settleRate: 58.7, status: 'warning' },
+                { month: '5月', flow: 92.8, mom: 8.9, yoy: 115.6, newUsers: 145, training: 48, campus: 15, settleRate: 65.2, status: 'success' },
+                { month: '6月', flow: 98.1, mom: 5.7, yoy: 108.3, newUsers: 134, training: 45, campus: 10, settleRate: 71.8, status: 'success' },
+                { month: '7月', flow: 105.3, mom: 7.4, yoy: 118.5, newUsers: 127, training: 52, campus: 14, settleRate: 56.8, status: 'danger' },
+            ],
+            
+            // 营销活动模拟数据
+            marketingActivities: [
+                { id: 1, name: '开学季推广活动', school: '广州中医药大学', owner: '黄乐怡', planDate: '2026-09-01~09-30', progress: 80, status: '进行中' },
+                { id: 2, name: '试剂耗材促销季', school: '广州大学', owner: '孙嘉睿', planDate: '2026-09-01~09-30', progress: 60, status: '进行中' },
+                { id: 3, name: '新生入学宣讲', school: '西安交通大学', owner: '王书妍', planDate: '2026-08-25~09-10', progress: 100, status: '已完成' },
+                { id: 4, name: '实验室安全培训', school: '南开大学', owner: '郝倩', planDate: '2026-09-15~09-20', progress: 0, status: '未启动' },
+                { id: 5, name: '科研平台体验日', school: '清华大学', owner: '王春光', planDate: '2026-10-10~10-15', progress: 45, status: '进行中' },
+            ],
+            
+            // 校园行模式
+            campusModes: [
+                { id: 1, name: '新生入学宣讲', desc: '面向新生的平台介绍与注册引导', difficulty: '⭐⭐', effect: '高', supplier: '自执行' },
+                { id: 2, name: '实验室安全培训', desc: '联合设备处开展危化品管理培训', difficulty: '⭐⭐⭐', effect: '极高',供应商: '外部讲师' },
+                { id: 3, name: '科研平台体验日', desc: '邀请师生现场体验系统功能', difficulty: '⭐⭐⭐', effect: '高', supplier: '自执行' },
+                { id: 4, name: '学术沙龙/讲座', desc: '结合学科热点举办小型讲座', difficulty: '⭐⭐', effect: '中', supplier: '合作方' },
+                { id: 5, name: '供应商联合推广', desc: '携手品牌商开展产品试用', difficulty: '⭐⭐⭐⭐', effect: '极高', supplier: '品牌商' },
+                { id: 6, name: '问卷调查有奖', desc: '填写需求问卷送小礼品', difficulty: '⭐', effect: '中', supplier: '自执行' },
+                { id: 7, name: '公众号/社群运营', desc: '线上内容推送+私域转化', difficulty: '⭐⭐', effect: '中', supplier: '自执行' },
+                { id: 8, name: '院系拜访', desc: '一对一拜访课题组PI', difficulty: '⭐⭐⭐⭐', effect: '极高', supplier: '自执行' },
+                { id: 9, name: '展会/会议参展', desc: '参加学术年会或行业展会', difficulty: '⭐⭐⭐', effect: '高', supplier: '主办方' },
+                { id: 10, name: '案例分享会', desc: '成功案例校内巡讲', difficulty: '⭐⭐', effect: '高', supplier: '自执行' },
+                { id: 11, name: '节日主题活动', desc: '教师节/校庆等节点营销', difficulty: '⭐⭐', effect: '中', supplier: '自执行' },
+            ],
+            
+            // 下半年校园行计划
+            campusPlan: [],
+            
+            // 历史实施记录
+            campusHistory: [],
+        };
+
+        // ============================================================
+        // 初始化
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            initDashboard();
+            initUserPool();
+            initDataCollect();
+            initMarketing();
+            initCampus();
+        });
+
+        function updateTime() {
+            const now = new Date();
+            const opts = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
+            document.getElementById('currentTime').textContent = now.toLocaleDateString('zh-CN', opts);
+        }
+
+        // ============================================================
+        // Tab切换
+        // ============================================================
+        function switchTab(tabId) {
+            // 隐藏所有tab内容
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            // 移除所有按钮active状态
+            document.querySelectorAll('.tab-nav .tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // 显示目标tab
+            document.getElementById('tab-' + tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+
+        function switchCampusSubTab(subId) {
+            document.querySelectorAll('.campus-subtab').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('#tab-campus .tab-nav .tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            document.getElementById('campus-' + subId).style.display = 'block';
+            event.target.classList.add('active');
+        }
+
+        // ============================================================
+        // Dashboard 初始化
+        // ============================================================
+        function initDashboard() {
+            // 渲染区域表格
+            renderRegionTable();
+            
+            // 流量趋势图
+            const flowCtx = document.getElementById('flowTrendChart').getContext('2d');
+            new Chart(flowCtx, {
+                type: 'line',
+                data: {
+                    labels: ['3月', '4月', '5月', '6月', '7月'],
+                    datasets: [{
+                        label: '月度流量(百万)',
+                        data: [78.5, 85.2, 92.8, 98.1, 105.3],
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37,99,235,0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        pointRadius: 5,
+                        pointHoverRadius: 8,
+                    }, {
+                        label: '同期流量(百万)',
+                        data: [82.4, 83.5, 80.3, 90.6, 88.9],
+                        borderColor: '#94a3b8',
+                        borderDash: [5, 5],
+                        fill: false,
+                        tension: 0.4,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { position: 'top' } },
+                    scales: { y: { beginAtZero: false } }
+                }
+            });
+            
+            // 区域排名图
+            const rankCtx = document.getElementById('regionRankChart').getContext('2d');
+            new Chart(rankCtx, {
+                type: 'bar',
+                data: {
+                    labels: AppData.regions.map(r => r.leader),
+                    datasets: [{
+                        label: '流量完成率(%)',
+                        data: AppData.regions.map(r => r.flowRate),
+                        backgroundColor: AppData.regions.map(r => 
+                            r.status === 'green' ? '#22c55e' : r.status === 'yellow' ? '#eab308' : '#ef4444'
+                        ),
+                        borderRadius: 6,
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { max: 160 } }
+                }
+            });
+        }
+
+        function renderRegionTable() {
+            const tbody = document.getElementById('regionTableBody');
+            tbody.innerHTML = AppData.regions.map(r => `
+                <tr>
+                    <td><strong>${r.leader}</strong></td>
+                    <td>${r.schools}所</td>
+                    <td>${(r.flow/1000000).toFixed(1)}M</td>
+                    <td><span class="${r.flowRate >= 100 ? 'text-success' : 'text-danger'}">${r.flowRate}%</span></td>
+                    <td><span class="${r.settleRate >= 85 ? 'text-success' : 'text-warning'}">${r.settleRate}%</span></td>
+                    <td>${r.users}人</td>
+                    <td><span class="badge badge-${r.status === 'green' ? 'success' : r.status === 'yellow' ? 'warning' : 'danger'}">${r.status === 'green' ? '达标' : r.status === 'yellow' ? '风险' : '滞后'}</span></td>
+                </tr>
+            `).join('');
+        }
+
+        // ============================================================
+        // 用户池初始化
+        // ============================================================
+        function initUserPool() {
+            // 生成模拟用户池数据
+            const schools = ['广州中医药大学', '广州大学', '西安交通大学', '南开大学', '清华大学', '北京大学', '中国农业大学', '北京师范大学', '上海交通大学', '复旦大学'];
+            const grades = ['S', 'A', 'B', 'C'];
+            const depts = ['化学学院', '生命科学学院', '药学院', '材料学院', '环境学院', '医学院', '物理学院'];
+            
+            for (let i = 0; i < 50; i++) {
+                AppData.userPool.push({
+                    id: i + 1,
+                    name: `用户${i + 1}`,
+                    school: schools[i % schools.length],
+                    dept: depts[i % depts.length],
+                    grade: grades[Math.floor(Math.random() * 4)],
+                    contact: `138****${String(1000 + i).padStart(4, '0')}`,
+                    lastActive: `${Math.floor(Math.random() * 30) + 1}天前`,
+                    remark: ''
+                });
+            }
+            
+            renderUserPoolTable(AppData.userPool);
+            updateSchoolFilter(schools);
+        }
+
+        function renderUserPoolTable(data) {
+            const tbody = document.getElementById('userPoolTableBody');
+            tbody.innerHTML = data.slice(0, 100).map(u => `
+                <tr>
+                    <td>${u.id}</td>
+                    <td><strong>${u.name}</strong></td>
+                    <td>${u.school}</td>
+                    <td>${u.dept}</td>
+                    <td><span class="badge grade-${u.grade.toLowerCase()}">${u.grade}级</span></td>
+                    <td>${u.contact}</td>
+                    <td>${u.lastActive}</td>
+                    <td>${u.remark || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterUserPool(keyword) {
+            const filtered = AppData.userPool.filter(u => 
+                u.name.includes(keyword) || u.school.includes(keyword) || u.dept.includes(keyword)
+            );
+            renderUserPoolTable(filtered);
+        }
+
+        function filterByGrade(grade) {
+            if (!grade) return renderUserPoolTable(AppData.userPool);
+            const filtered = AppData.userPool.filter(u => u.grade === grade);
+            renderUserPoolTable(filtered);
+        }
+
+        function filterBySchool(school) {
+            if (!school) return renderUserPoolTable(AppData.userPool);
+            const filtered = AppData.userPool.filter(u => u.school === school);
+            renderUserPoolTable(filtered);
+        }
+
+        function updateSchoolFilter(schools) {
+            const select = document.getElementById('schoolFilter');
+            schools.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s;
+                opt.textContent = s;
+                select.appendChild(opt);
+            });
+        }
+
+        // ============================================================
+        // 数据收集初始化
+        // ============================================================
+        function initDataCollect() {
+            // 渲染月度数据表
+            const tbody = document.getElementById('monthlyDataTableBody');
+            tbody.innerHTML = AppData.monthlyData.map(m => `
+                <tr>
+                    <td><strong>${m.month}</strong></td>
+                    <td>${m.flow}M</td>
+                    <td class="${m.mom > 0 ? 'trend-up' : ''}">${m.mom ? (m.mom > 0 ? '+' : '') + m.mom + '%' : '-'}</td>
+                    <td class="${m.yoy > 100 ? 'trend-up' : 'trend-down'}">${m.yoy}%</td>
+                    <td>+${m.newUsers}人</td>
+                    <td>${m.training}场</td>
+                    <td>${m.campus}场</td>
+                    <td class="${m.settleRate >= 85 ? 'text-success' : 'text-warning'}">${m.settleRate}%</td>
+                    <td><span class="badge badge-${m.status}">${m.status === 'success' ? '达标' : m.status === 'warning' ? '风险' : '滞后'}</span></td>
+                </tr>
+            `).join('');
+
+            // 月度指标趋势图
+            const ctx = document.getElementById('monthlyMetricsChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: AppData.monthlyData.map(m => m.month),
+                    datasets: [
+                        { label: '流量(M)', data: AppData.monthlyData.map(m => m.flow), borderColor: '#2563eb', yAxisID: 'y' },
+                        { label: '新增用户', data: AppData.monthlyData.map(m => m.newUsers), borderColor: '#16a34a', yAxisID: 'y1' },
+                        { label: '培训场次', data: AppData.monthlyData.map(m => m.training), borderColor: '#d97706', yAxisID: 'y1' },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        y: { type: 'linear', display: true, position: 'left' },
+                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+
+            // 雷达图
+            const radarCtx = document.getElementById('metricsRadarChart').getContext('2d');
+            const latestMonth = AppData.monthlyData[AppData.monthlyData.length - 1];
+            new Chart(radarCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['流量增长', '用户增长', '培训达标', '校园行', '结算率', '有效触达'],
+                    datasets: [{
+                        label: latestMonth.month + '完成率',
+                        data: [latestMonth.yoy, 95, (latestMonth.training/40)*100, (latestMonth.campus/12)*100, (latestMonth.settleRate/85)*100, 42],
+                        backgroundColor: 'rgba(37,99,235,0.2)',
+                        borderColor: '#2563eb',
+                        pointBackgroundColor: '#2563eb',
+                    }]
+                },
+                options: { responsive: true, scales: { r: { min: 0, max: 150 } } }
+            });
+        }
+
+        // ============================================================
+        // 营销活动初始化
+        // ============================================================
+        function initMarketing() {
+            renderMarketingTable(AppData.marketingActivities);
+        }
+
+        function renderMarketingTable(data) {
+            const tbody = document.getElementById('marketingTableBody');
+            tbody.innerHTML = data.map(a => `
+                <tr>
+                    <td>${a.id}</td>
+                    <td><strong>${a.name}</strong></td>
+                    <td>${a.school}</td>
+                    <td>${a.owner}</td>
+                    <td>${a.planDate}</td>
+                    <td>
+                        <div class="progress-bar" style="width: 120px;">
+                            <div class="progress-fill ${a.progress >= 80 ? 'success' : a.progress >= 30 ? 'warning' : 'danger'}" style="width: ${a.progress}%"></div>
+                        </div>
+                        <small>${a.progress}%</small>
+                    </td>
+                    <td><span class="badge badge-${a.status === '已完成' ? 'success' : a.status === '进行中' ? 'warning' : 'danger'}">${a.status}</span></td>
+                    <td>-</td>
+                </tr>
+            `).join('');
+        }
+
+        function filterMarketing(keyword) {
+            const filtered = AppData.marketingActivities.filter(a =>
+                a.name.includes(keyword) || a.school.includes(keyword)
+            );
+            renderMarketingTable(filtered);
+        }
+
+        function filterByStatus(status) {
+            if (!status) return renderMarketingTable(AppData.marketingActivities);
+            const filtered = AppData.marketingActivities.filter(a => a.status === status);
+            renderMarketingTable(filtered);
+        }
+
+        // ============================================================
+        // 校园行管理初始化
+        // ============================================================
+        function initCampus() {
+            // 渲染模式卡片
+            const grid = document.getElementById('campusModesGrid');
+            grid.innerHTML = AppData.campusModes.map(m => `
+                <div style="border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; background: white;">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                        <h4 style="font-size: 15px; margin: 0;">${m.name}</h4>
+                        <span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 10px; font-size: 12px;">#${m.id}</span>
+                    </div>
+                    <p style="font-size: 13px; color: #6b7280; margin-bottom: 12px;">${m.desc}</p>
+                    <div style="display: flex; gap: 12px; font-size: 12px;">
+                        <span>难度: ${m.difficulty}</span>
+                        <span>效果: <strong class="${m.effect === '极高' ? 'text-success' : ''}">${m.effect}</strong></span>
+                        <span>执行: ${m.supplier}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // ============================================================
+        // Excel 文件上传处理
+        // ============================================================
+        function handleUserPoolUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const wb = XLSX.read(e.target.result, { type: 'binary' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const data = XLSX.utils.sheet_to_json(ws);
+                
+                // 转换并存储到全局数据
+                AppData.userPool = data.map((row, idx) => ({
+                    id: idx + 1,
+                    name: row['姓名'] || row['用户名'] || '-',
+                    school: row['学校'] || '-',
+                    dept: row['学院'] || row['部门'] || '-',
+                    grade: (row['等级'] || row['评级'] || 'B').toString().toUpperCase(),
+                    contact: row['手机'] || row['联系方式'] || '-',
+                    lastActive: row['最近活跃'] || '-',
+                    remark: row['备注'] || '',
+                }));
+                
+                renderUserPoolTable(AppData.userPool);
+                alert(`✅ 成功导入 ${AppData.userPool.length} 条用户数据！`);
+            };
+            reader.readAsBinaryString(file);
+        }
+
+        function handleDataCollectUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            alert('📊 月度数据导入功能已触发！\n（请提供包含月度指标的Excel文件）');
+        }
+
+        function handleMarketingUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            alert('🎯 营销活动数据导入功能已触发！');
+        }
+
+        function handleCampusPlanUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            alert('📅 校园行计划导入功能已触发！');
+        }
+
+        function handleCampusHistoryUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            alert('✅ 校园行历史记录导入功能已触发！');
+        }
+    </script>
+</body>
+</html>
