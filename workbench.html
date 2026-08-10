@@ -3,15 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>运营管理工作台 | 2026 H2</title>
+    <title>运营管理工作台 v4 - 库巴扎运营部</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
         :root {
             --primary: #2563eb;
-            --primary-dark: #1e40af;
             --success: #16a34a;
             --warning: #d97706;
             --danger: #dc2626;
@@ -19,1473 +15,1567 @@
             --gray-100: #f3f4f6;
             --gray-200: #e5e7eb;
             --gray-300: #d1d5db;
-            --gray-600: #4b5563;
-            --gray-800: #1f2937;
-            --shadow: 0 1px 3px rgba(0,0,0,0.1);
-            --shadow-lg: 0 10px 25px rgba(0,0,0,0.1);
+            --gray-500: #6b7280;
+            --gray-700: #374151;
+            --gray-900: #111827;
         }
-
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
-            background: var(--gray-100);
-            color: var(--gray-800);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", sans-serif;
+            background: var(--gray-50);
+            color: var(--gray-900);
             line-height: 1.6;
         }
-
-        /* ===== 顶部导航 ===== */
-        .navbar {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        
+        /* 顶部导航 */
+        .header {
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
             color: white;
-            padding: 0 24px;
-            height: 60px;
+            padding: 20px 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 { font-size: 24px; font-weight: 600; }
+        .header p { opacity: 0.9; font-size: 14px; margin-top: 4px; }
+        
+        /* 时间筛选栏 */
+        .time-filter-bar {
+            background: white;
+            padding: 15px 30px;
+            border-bottom: 1px solid var(--gray-200);
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            box-shadow: var(--shadow-lg);
+            gap: 15px;
+            flex-wrap: wrap;
             position: sticky;
             top: 0;
             z-index: 100;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-
-        .navbar-brand {
-            font-size: 20px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .navbar-brand::before {
-            content: "📊";
-            font-size: 24px;
-        }
-
-        .navbar-info {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #4ade80;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-
-        /* ===== 主容器 ===== */
-        .container {
-            max-width: 1440px;
-            margin: 0 auto;
-            padding: 24px;
-        }
-
-        /* ===== 时间筛选栏（新增） ===== */
-        .time-filter-bar {
-            background: white;
-            border-radius: 12px;
-            padding: 16px 24px;
-            margin-bottom: 20px;
-            box-shadow: var(--shadow);
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-
-        .time-filter-label {
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--gray-600);
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .time-filter-label::before {
-            content: "📅";
-        }
-
-        .time-filter-group {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .time-filter-btn {
-            padding: 6px 16px;
+        
+        .time-filter-bar label { font-weight: 600; color: var(--gray-700); }
+        
+        .filter-group { display: flex; gap: 8px; align-items: center; }
+        
+        .filter-btn {
+            padding: 6px 14px;
             border: 1px solid var(--gray-300);
-            background: white;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--gray-600);
-            transition: all 0.2s;
-        }
-
-        .time-filter-btn:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        .time-filter-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        .month-picker {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
-        .month-btn {
-            padding: 6px 12px;
-            border: 1px solid var(--gray-300);
-            background: white;
             border-radius: 6px;
+            background: white;
             cursor: pointer;
             font-size: 13px;
-            color: var(--gray-600);
             transition: all 0.2s;
         }
-
-        .month-btn:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        .month-btn.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-        }
-
-        /* ===== Tab导航 ===== */
-        .tab-nav {
-            display: flex;
-            gap: 4px;
+        
+        .filter-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .filter-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        
+        .month-btns { display: flex; gap: 6px; }
+        .month-btn {
+            padding: 5px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 4px;
             background: white;
-            padding: 6px;
-            border-radius: 12px;
-            margin-bottom: 24px;
-            box-shadow: var(--shadow);
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 12px 20px;
-            border: none;
-            background: transparent;
-            border-radius: 8px;
             cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--gray-600);
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            font-size: 12px;
         }
-
-        .tab-btn:hover {
-            background: var(--gray-50);
-            color: var(--primary);
-        }
-
-        .tab-btn.active {
-            background: var(--primary);
-            color: white;
-            box-shadow: var(--shadow);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* ===== KPI卡片网格 ===== */
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
-            margin-bottom: 24px;
-        }
-
-        .kpi-card {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            box-shadow: var(--shadow);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .kpi-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-        }
-
-        .kpi-card.success::before { background: var(--success); }
-        .kpi-card.warning::before { background: var(--warning); }
-        .kpi-card.danger::before { background: var(--danger); }
-        .kpi-card.info::before { background: var(--primary); }
-
-        .kpi-label {
+        .month-btn.active { background: var(--primary); color: white; }
+        
+        .date-range { display: flex; gap: 8px; align-items: center; }
+        .date-range input {
+            padding: 6px 10px;
+            border: 1px solid var(--gray-300);
+            border-radius: 4px;
             font-size: 13px;
-            color: var(--gray-600);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
-
-        .kpi-value {
-            font-size: 32px;
-            font-weight: 700;
-            color: var(--gray-800);
-            margin-bottom: 4px;
-        }
-
-        .kpi-trend {
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .trend-up { color: var(--danger); }  /* 涨=红 */
-        .trend-down { color: var(--success); }  /* 跌=绿 */
-
-        .kpi-status {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-        }
-
-        .status-green { background: var(--success); box-shadow: 0 0 8px rgba(22,163,74,0.4); }
-        .status-yellow { background: var(--warning); box-shadow: 0 0 8px rgba(217,119,6,0.4); }
-        .status-red { background: var(--danger); box-shadow: 0 0 8px rgba(220,38,38,0.4); }
-
-        /* ===== 内容卡片 ===== */
-        .card {
-            background: white;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            margin-bottom: 24px;
-            overflow: hidden;
-        }
-
-        .card-header {
-            padding: 20px 24px;
+        
+        /* 主内容区 */
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        
+        /* 模块卡片 */
+        .module { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; overflow: hidden; }
+        
+        .module-header {
+            padding: 18px 24px;
             border-bottom: 1px solid var(--gray-200);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: var(--gray-50);
         }
-
-        .card-title {
-            font-size: 16px;
-            font-weight: 600;
-            display: flex;
+        
+        .module-header h2 { font-size: 18px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .module-header .emoji { font-size: 22px; }
+        
+        .module-body { padding: 24px; }
+        
+        /* KPI卡片 */
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        
+        .kpi-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 10px;
+            padding: 18px;
+            text-align: center;
+        }
+        
+        .kpi-card .label { font-size: 13px; color: var(--gray-500); margin-bottom: 6px; }
+        .kpi-card .value { font-size: 28px; font-weight: 700; color: var(--gray-900); }
+        .kpi-card .trend { font-size: 12px; margin-top: 4px; }
+        .trend.up { color: var(--danger); } /* 涨=红 */
+        .trend.down { color: var(--success); } /* 跌=绿 */
+        
+        /* 红绿灯状态 */
+        .status-badge {
+            display: inline-flex;
             align-items: center;
-            gap: 8px;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
         }
-
-        .card-body {
-            padding: 24px;
-        }
-
-        /* ===== 表格样式 ===== */
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 14px;
-        }
-
+        .status-green { background: #dcfce7; color: #166534; }
+        .status-yellow { background: #fef9c3; color: #854d0e; }
+        .status-red { background: #fee2e2; color: #991b1b; }
+        
+        /* 表格样式 */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
         .data-table th {
             background: var(--gray-50);
-            padding: 12px 16px;
+            padding: 12px 10px;
             text-align: left;
             font-weight: 600;
-            color: var(--gray-600);
             border-bottom: 2px solid var(--gray-200);
             white-space: nowrap;
         }
-
-        .data-table td {
-            padding: 12px 16px;
-            border-bottom: 1px solid var(--gray-100);
-        }
-
-        .data-table tr:hover {
-            background: var(--gray-50);
-        }
-
-        /* 状态标签 */
-        .badge {
-            display: inline-block;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
+        .data-table td { padding: 12px 10px; border-bottom: 1px solid var(--gray-100); }
+        .data-table tr:hover { background: var(--gray-50); }
+        
+        /* 图表容器 */
+        .chart-container { position: relative; height: 350px; margin: 20px 0; }
+        .chart-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        /* Tab切换 */
+        .tabs { display: flex; gap: 0; border-bottom: 2px solid var(--gray-200); margin-bottom: 20px; }
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
             font-weight: 500;
+            color: var(--gray-500);
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
         }
-
-        .badge-success { background: #dcfce7; color: #166534; }
-        .badge-warning { background: #fef3c7; color: #92400e; }
-        .badge-danger { background: #fee2e2; color: #991b1b; }
-        .badge-info { background: #dbeafe; color: #1e40af; }
-
-        /* 用户池等级标签 */
-        .grade-s { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; font-weight: 700; }
-        .grade-a { background: #dcfce7; color: #166534; }
-        .grade-b { background: #dbeafe; color: #1e40af; }
-        .grade-c { background: #f3f4f6; color: #4b5563; }
-
-        /* ===== 双栏布局 ===== */
-        .grid-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-
-        /* ===== 进度条 ===== */
+        .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        /* 进度条 */
         .progress-bar {
             height: 8px;
             background: var(--gray-200);
             border-radius: 4px;
             overflow: hidden;
         }
-
-        .progress-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.5s ease;
-        }
-
-        .progress-fill.success { background: var(--success); }
-        .progress-fill.warning { background: var(--warning); }
-        .progress-fill.danger { background: var(--danger); }
-
-        /* ===== 上传区域 ===== */
-        .upload-zone {
-            border: 2px dashed var(--gray-300);
-            border-radius: 12px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: var(--gray-50);
-        }
-
-        .upload-zone:hover {
-            border-color: var(--primary);
-            background: white;
-        }
-
-        .upload-zone.dragover {
-            border-color: var(--primary);
-            background: #eff6ff;
-        }
-
-        .upload-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-        }
-
-        /* ===== 红绿灯看板 ===== */
-        .traffic-light {
-            display: flex;
-            gap: 16px;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .light-item {
-            text-align: center;
-        }
-
-        .light-circle {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            margin: 0 auto 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: 700;
-            color: white;
-            box-shadow: inset 0 -4px 0 rgba(0,0,0,0.2);
-        }
-
-        .light-green { background: linear-gradient(135deg, #22c55e, #16a34a); }
-        .light-yellow { background: linear-gradient(135deg, #eab308, #d97706); }
-        .light-red { background: linear-gradient(135deg, #ef4444, #dc2626); }
-
-        /* ===== 响应式 ===== */
-        @media (max-width: 1024px) {
-            .grid-2 { grid-template-columns: 1fr; }
-            .tab-nav { flex-wrap: wrap; }
-            .tab-btn { flex: 0 0 calc(50% - 2px); }
-        }
-
-        @media (max-width: 640px) {
-            .container { padding: 16px; }
-            .kpi-grid { grid-template-columns: 1fr; }
-            .tab-btn { flex: 1 1 100%; }
-            .time-filter-bar { flex-direction: column; align-items: stretch; }
-        }
-
-        /* ===== 工具栏 ===== */
-        .toolbar {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-        }
-
+        .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+        .progress-fill.green { background: var(--success); }
+        .progress-fill.yellow { background: var(--warning); }
+        .progress-fill.red { background: var(--danger); }
+        
+        /* 按钮 */
         .btn {
             padding: 8px 16px;
             border: none;
-            border-radius: 8px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
-            transition: all 0.2s;
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            transition: all 0.2s;
         }
-
-        .btn-primary {
-            background: var(--primary);
-            color: white;
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: #1d4ed8; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-outline { background: white; border: 1px solid var(--gray-300); color: var(--gray-700); }
+        .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+        
+        /* 输入框 */
+        input[type="text"], input[type="number"], select, textarea {
+            padding: 8px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: 6px;
+            font-size: 13px;
+            width: 100%;
         }
-
-        .btn-primary:hover {
-            background: var(--primary-dark);
+        input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); }
+        
+        /* 绩效等级颜色 */
+        .grade-s { color: #166534; font-weight: 700; }
+        .grade-a { color: #15803d; font-weight: 700; }
+        .grade-b { color: #a16207; font-weight: 700; }
+        .grade-c { color: #dc2626; font-weight: 700; }
+        .grade-d { color: #991b1b; font-weight: 700; }
+        
+        /* 响应式 */
+        @media (max-width: 768px) {
+            .chart-row { grid-template-columns: 1fr; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .time-filter-bar { flex-direction: column; align-items: flex-start; }
         }
-
-        .btn-outline {
+        
+        /* 弹窗 */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal {
             background: white;
-            color: var(--gray-600);
-            border: 1px solid var(--gray-300);
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
         }
-
-        .btn-outline:hover {
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        /* 搜索框 */
-        .search-box {
-            flex: 1;
-            min-width: 200px;
-            padding: 8px 16px;
-            border: 1px solid var(--gray-300);
-            border-radius: 8px;
-            font-size: 14px;
-        }
-
-        .search-box:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
-        }
-
-        /* 统计数字高亮 */
-        .highlight-num {
-            font-weight: 700;
-            font-size: 1.1em;
-        }
-
-        .text-success { color: var(--success); }
-        .text-warning { color: var(--warning); }
-        .text-danger { color: var(--danger); }
+        .modal h3 { margin-bottom: 16px; font-size: 18px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-weight: 500; margin-bottom: 6px; font-size: 13px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
     </style>
 </head>
 <body>
-    <!-- 顶部导航 -->
-    <nav class="navbar">
-        <div class="navbar-brand">运营管理工作台</div>
-        <div class="navbar-info">
-            <span class="status-dot"></span>
-            <span id="currentTime"></span>
-            <span>2026年 H2</span>
+
+<!-- 顶部 -->
+<div class="header">
+    <h1>📊 运营管理工作台 v4</h1>
+    <p>库巴扎运营部 · 数据更新时间：<span id="updateTime">2026年8月10日</span></p>
+</div>
+
+<!-- 时间筛选栏 -->
+<div class="time-filter-bar">
+    <label>📅 时间筛选：</label>
+    
+    <div class="filter-group">
+        <button class="filter-btn active" onclick="setViewMode('month')">单月查看</button>
+        <button class="filter-btn" onclick="setViewMode('quarter')">季度汇总</button>
+        <button class="filter-btn" onclick="setViewMode('ytd')">年初至今</button>
+        <button class="filter-btn" onclick="setViewMode('all')">全部数据</button>
+    </div>
+    
+    <div class="month-btns" id="monthBtns">
+        <button class="month-btn" onclick="selectMonth('3月')">3月</button>
+        <button class="month-btn" onclick="selectMonth('4月')">4月</button>
+        <button class="month-btn" onclick="selectMonth('5月')">5月</button>
+        <button class="month-btn" onclick="selectMonth('6月')">6月</button>
+        <button class="month-btn active" onclick="selectMonth('7月')">7月</button>
+        <button class="month-btn" onclick="selectMonth('8月')">8月</button>
+    </div>
+    
+    <div class="date-range">
+        <span>汇总范围：</span>
+        <input type="text" placeholder="起始月" value="3月" style="width:80px">
+        <span>至</span>
+        <input type="text" placeholder="结束月" value="7月" style="width:80px">
+        <button class="btn btn-primary" onclick="applyDateRange()">应用</button>
+    </div>
+</div>
+
+<div class="container">
+
+<!-- ==================== 模块1: 运营概览 ==================== -->
+<div class="module" id="overview">
+    <div class="module-header">
+        <h2><span class="emoji">📈</span> 运营概览</h2>
+        <div style="display:flex;gap:10px;">
+            <button class="btn btn-outline" onclick="exportOverview()">📤 导出报表</button>
         </div>
-    </nav>
-
-    <div class="container">
-        <!-- 全局时间筛选栏 -->
-        <div class="time-filter-bar">
-            <div class="time-filter-label">时间筛选</div>
-            <div class="time-filter-group">
-                <button class="time-filter-btn active" onclick="setTimeFilter('month')">单月查看</button>
-                <button class="time-filter-btn" onclick="setTimeFilter('quarter')">季度汇总</button>
-                <button class="time-filter-btn" onclick="setTimeFilter('ytd')">年初至今</button>
-                <button class="time-filter-btn" onclick="setTimeFilter('all')">全部数据</button>
+    </div>
+    <div class="module-body">
+        <!-- KPI卡片 -->
+        <div class="kpi-grid" id="overviewKPIs"></div>
+        
+        <!-- 图表行 -->
+        <div class="chart-row">
+            <div class="chart-container">
+                <canvas id="flowTrendChart"></canvas>
             </div>
-            <div class="month-picker" id="monthPicker">
-                <button class="month-btn" onclick="selectMonth(3)">3月</button>
-                <button class="month-btn" onclick="selectMonth(4)">4月</button>
-                <button class="month-btn" onclick="selectMonth(5)">5月</button>
-                <button class="month-btn" onclick="selectMonth(6)">6月</button>
-                <button class="month-btn active" onclick="selectMonth(7)">7月</button>
-                <button class="month-btn" onclick="selectMonth(8)">8月</button>
-            </div>
-            <div style="margin-left: auto; font-size: 13px; color: var(--gray-600);">
-                当前显示: <strong id="currentFilterDisplay">7月 (单月)</strong>
-            </div>
-        </div>
-
-        <!-- Tab导航 -->
-        <div class="tab-nav">
-            <button class="tab-btn active" onclick="switchTab('dashboard')">
-                📊 数据概览
-            </button>
-            <button class="tab-btn" onclick="switchTab('userpool')">
-                👥 用户池管理
-            </button>
-            <button class="tab-btn" onclick="switchTab('datacollect')">
-                📈 数据收集
-            </button>
-            <button class="tab-btn" onclick="switchTab('marketing')">
-                🎯 营销活动
-            </button>
-            <button class="tab-btn" onclick="switchTab('campus')">
-                🏫 校园行管理
-            </button>
-        </div>
-
-        <!-- ===== Tab1: 数据概览 Dashboard ===== -->
-        <div id="tab-dashboard" class="tab-content active">
-            <!-- 红绿灯状态看板 -->
-            <div class="card" style="margin-bottom: 24px;">
-                <div class="card-header">
-                    <h2 class="card-title">🚦 月度运营健康度看板</h2>
-                    <span style="font-size: 13px; color: var(--gray-600);" id="dashboardUpdateTime">更新时间: 2026-08-10</span>
-                </div>
-                <div class="card-body">
-                    <div class="traffic-light" id="trafficLight">
-                        <!-- JS动态填充 -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- KPI卡片 -->
-            <div class="kpi-grid" id="kpiGrid">
-                <!-- JS动态填充 -->
-            </div>
-
-            <!-- 图表区域 -->
-            <div class="grid-2">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">📊 月度流量趋势</h3>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="flowTrendChart" height="280"></canvas>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">🏆 区域业绩排名</h3>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="regionRankChart" height="280"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 各区域快速状态 -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">🗺️ 各区域关键指标一览</h3>
-                </div>
-                <div class="card-body">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>区域主管</th>
-                                <th>区域</th>
-                                <th>负责学校数</th>
-                                <th>团队成员</th>
-                                <th>月流量(万)</th>
-                                <th>流量完成率</th>
-                                <th>结算率均值</th>
-                                <th>用户池</th>
-                                <th>状态</th>
-                            </tr>
-                        </thead>
-                        <tbody id="regionTableBody">
-                            <!-- JS动态填充 -->
-                        </tbody>
-                    </table>
-                </div>
+            <div class="chart-container">
+                <canvas id="regionRankChart"></canvas>
             </div>
         </div>
+        
+        <!-- 各区域关键指标一览表 -->
+        <h3 style="margin:24px 0 16px;font-size:16px;">🏆 各区域关键指标一览</h3>
+        <div style="overflow-x:auto;">
+            <table class="data-table" id="regionTable">
+                <thead>
+                    <tr>
+                        <th>区域主管</th><th>区域</th><th>负责学校数</th><th>团队成员</th>
+                        <th>月流量(万)</th><th>流量完成率</th><th>结算率均值</th>
+                        <th>用户池</th><th>状态</th>
+                    </tr>
+                </thead>
+                <tbody id="regionTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
 
-        <!-- ===== Tab2: 用户池管理 ===== -->
-        <div id="tab-userpool" class="tab-content">
-            <!-- 用户池统计 -->
-            <div class="kpi-grid" style="margin-bottom: 24px;" id="userPoolKPIs">
-                <!-- JS动态填充 -->
-            </div>
 
-            <!-- 工具栏 -->
-            <div class="toolbar">
-                <input type="text" class="search-box" placeholder="🔍 搜索姓名/学校/学院..." oninput="filterUserPool(this.value)">
-                <select class="btn btn-outline" onchange="filterByGrade(this.value)" style="padding-right: 24px;">
-                    <option value="">全部等级</option>
-                    <option value="S">S级 (核心)</option>
-                    <option value="A">A级 (重要)</option>
-                    <option value="B">B级 (一般)</option>
-                    <option value="C">C级 (待激活)</option>
-                </select>
-                <select class="btn btn-outline" onchange="filterBySchool(this.value)" style="padding-right: 24px;" id="schoolFilter">
-                    <option value="">全部学校</option>
-                </select>
-                <label class="btn btn-primary" for="uploadUserPool">
-                    📤 导入用户池数据
-                </label>
-                <input type="file" id="uploadUserPool" accept=".xlsx,.xls" style="display:none" onchange="handleUserPoolUpload(event)">
-            </div>
-
-            <!-- 用户池表格 -->
-            <div class="card">
-                <div class="card-body" style="padding: 0;">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>序号</th>
-                                <th>姓名</th>
-                                <th>学校</th>
-                                <th>学院/部门</th>
-                                <th>等级</th>
-                                <th>联系方式</th>
-                                <th>最近活跃</th>
-                                <th>备注</th>
-                            </tr>
-                        </thead>
-                        <tbody id="userPoolTableBody">
-                            <!-- JS动态填充 -->
-                        </tbody>
-                    </table>
-                </div>
+<!-- ==================== 模块2: 绩效评估 ==================== -->
+<div class="module" id="performance">
+    <div class="module-header">
+        <h2><span class="emoji">🎯</span> 绩效评估</h2>
+        <div style="display:flex;gap:10px;">
+            <button class="btn btn-outline" onclick="exportPerformance()">📤 导出评分表</button>
+            <button class="btn btn-primary" onclick="saveSubjectiveScores()">💾 保存主观分</button>
+        </div>
+    </div>
+    <div class="module-body">
+        <!-- Tab切换 -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchPerfTab('leaders')">区域主管(6人)</button>
+            <button class="tab-btn" onclick="switchPerfTab('managers')">项目营销负责人(4人)</button>
+            <button class="tab-btn" onclick="switchPerfTab('operators')">运营专员(28人)</button>
+            <button class="tab-btn" onclick="switchPerfTab('summary')">全员汇总</button>
+        </div>
+        
+        <!-- 区域主管绩效 -->
+        <div class="tab-content active" id="perf-leaders">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>姓名</th><th>区域</th><th>负责项目</th><th>流量得分</th>
+                        <th>结算率得分</th><th>客观分小计</th><th>主观分(待填)</th>
+                        <th>总分</th><th>等级</th>
+                    </tr>
+                </thead>
+                <tbody id="leadersBody"></tbody>
+            </table>
+            
+            <div class="chart-container" style="margin-top:24px;height:300px;">
+                <canvas id="leaderScoreChart"></canvas>
             </div>
         </div>
-
-        <!-- ===== Tab3: 数据收集 ===== -->
-        <div id="tab-datacollect" class="tab-content">
-            <div class="grid-2">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">📈 月度核心指标趋势</h3>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="monthlyMetricsChart" height="320"></canvas>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">📊 指标完成率雷达图</h3>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="metricsRadarChart" height="320"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 月度数据明细表 -->
-            <div class="card">
-                <div class="card-header">
-                    <h3 class="card-title">📋 月度数据汇总</h3>
-                    <label class="btn btn-outline" for="uploadDataCollect">
-                        📤 导入月度数据
-                    </label>
-                    <input type="file" id="uploadDataCollect" accept=".xlsx,.xls" style="display:none" onchange="handleDataCollectUpload(event)">
-                </div>
-                <div class="card-body" style="padding: 0;">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>月份</th>
-                                <th>总流量(万)</th>
-                                <th>环比</th>
-                                <th>同比</th>
-                                <th>用户池</th>
-                                <th>有效触达</th>
-                                <th>培训场次</th>
-                                <th>校园行场次</th>
-                                <th>平均结算率</th>
-                                <th>状态</th>
-                            </tr>
-                        </thead>
-                        <tbody id="monthlyDataTableBody">
-                            <!-- JS动态填充 -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        
+        <!-- 项目营销负责人绩效 -->
+        <div class="tab-content" id="perf-managers">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>姓名</th><th>负责学校</th><th>流量(30%)</th><th>结算(15%)</th>
+                        <th>校园行(15%)</th><th>培训(10%)</th><th>用户池(8%)</th>
+                        <th>触达(7%)</th><th>客观分</th><th>主观分</th><th>总分</th>
+                    </tr>
+                </thead>
+                <tbody id="managersBody"></tbody>
+            </table>
         </div>
-
-        <!-- ===== Tab4: 营销活动 ===== -->
-        <div id="tab-marketing" class="tab-content">
-            <!-- 活动统计 -->
-            <div class="kpi-grid" style="margin-bottom: 24px;">
-                <div class="kpi-card info">
-                    <div class="kpi-label">策划活动总数</div>
-                    <div class="kpi-value" id="marketingTotal">26</div>
-                </div>
-                <div class="kpi-card success">
-                    <div class="kpi-label">已完成</div>
-                    <div class="kpi-value" id="marketingDone">18</div>
-                </div>
-                <div class="kpi-card warning">
-                    <div class="kpi-label">进行中</div>
-                    <div class="kpi-value" id="marketingProgress">5</div>
-                </div>
-                <div class="kpi-card danger">
-                    <div class="kpi-label">未启动</div>
-                    <div class="kpi-value" id="marketingTodo">3</div>
-                </div>
-            </div>
-
-            <!-- 工具栏 -->
-            <div class="toolbar">
-                <input type="text" class="search-box" placeholder="🔍 搜索活动名称/学校..." oninput="filterMarketing(this.value)">
-                <select class="btn btn-outline" onchange="filterByStatus(this.value)">
-                    <option value="">全部状态</option>
-                    <option value="已完成">已完成</option>
-                    <option value="进行中">进行中</option>
-                    <option value="未启动">未启动</option>
-                </select>
-                <label class="btn btn-primary" for="uploadMarketing">
-                    📤 导入活动计划
-                </label>
-                <input type="file" id="uploadMarketing" accept=".xlsx,.xls" style="display:none" onchange="handleMarketingUpload(event)">
-            </div>
-
-            <!-- 活动进度表 -->
-            <div class="card">
-                <div class="card-body" style="padding: 0;">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th>序号</th>
-                                <th>活动名称</th>
-                                <th>负责学校</th>
-                                <th>负责人</th>
-                                <th>计划时间</th>
-                                <th>进度</th>
-                                <th>状态</th>
-                                <th>备注</th>
-                            </tr>
-                        </thead>
-                        <tbody id="marketingTableBody">
-                            <!-- JS动态填充 -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        
+        <!-- 运营专员绩效 -->
+        <div class="tab-content" id="perf-operators">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>姓名</th><th>所属区域</th><th>负责学校</th><th>校园行(20%)</th>
+                        <th>培训(15%)</th><th>用户池(8%)</th><th>触达(7%)</th>
+                        <th>流量(25%)</th><th>结算(10%)</th><th>客观分</th><th>主观分</th><th>总分</th>
+                    </tr>
+                </thead>
+                <tbody id="operatorsBody"></tbody>
+            </table>
         </div>
-
-        <!-- ===== Tab5: 校园行管理 ===== -->
-        <div id="tab-campus" class="tab-content">
-            <!-- 子Tab -->
-            <div class="tab-nav" style="margin-bottom: 20px;">
-                <button class="tab-btn active" onclick="switchCampusSubTab('modes')">📚 活动模式库</button>
-                <button class="tab-btn" onclick="switchCampusSubTab('plan')">📅 下半年计划</button>
-                <button class="tab-btn" onclick="switchCampusSubTab('history')">✅ 历史实施记录</button>
-            </div>
-
-            <!-- 5.1 活动模式库 -->
-            <div id="campus-modes" class="campus-subtab active">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">📚 11种校园行活动模式</h3>
-                        <span style="font-size: 13px; color: var(--gray-600);">标准化执行方案</span>
-                    </div>
-                    <div class="card-body">
-                        <div id="campusModesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
-                            <!-- JS动态填充模式卡片 -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5.2 下半年计划 -->
-            <div id="campus-plan" class="campus-subtab" style="display:none;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">📅 2026年下半年校园行计划 (7-11月)</h3>
-                        <label class="btn btn-outline" for="uploadCampusPlan">
-                            📤 导入计划表
-                        </label>
-                        <input type="file" id="uploadCampusPlan" accept=".xlsx,.xls" style="display:none" onchange="handleCampusPlanUpload(event)">
-                    </div>
-                    <div class="card-body" style="padding: 0;">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>序号</th>
-                                    <th>学校</th>
-                                    <th>计划日期</th>
-                                    <th>活动模式</th>
-                                    <th>负责人</th>
-                                    <th>预计人数</th>
-                                    <th>预算</th>
-                                    <th>状态</th>
-                                    <th>操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="campusPlanTableBody">
-                                <!-- JS动态填充 -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 5.3 历史实施记录 -->
-            <div id="campus-history" class="campus-subtab" style="display:none;">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">✅ 校园行历史实施记录</h3>
-                        <label class="btn btn-outline" for="uploadCampusHistory">
-                            📤 导入实施表
-                        </label>
-                        <input type="file" id="uploadCampusHistory" accept=".xlsx,.xls" style="display:none" onchange="handleCampusHistoryUpload(event)">
-                    </div>
-                    <div class="card-body" style="padding: 0;">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>序号</th>
-                                    <th>学校</th>
-                                    <th>实际日期</th>
-                                    <th>活动模式</th>
-                                    <th>参与人数</th>
-                                    <th>实际花费</th>
-                                    <th>效果评估</th>
-                                    <th>照片/资料</th>
-                                </tr>
-                            </thead>
-                            <tbody id="campusHistoryTableBody">
-                                <!-- JS动态填充 -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        
+        <!-- 全员汇总 -->
+        <div class="tab-content" id="perf-summary">
+            <div class="chart-container" style="height:400px;">
+                <canvas id="allScoreChart"></canvas>
             </div>
         </div>
     </div>
+</div>
 
-    <script>
-        // ============================================================
-        // 真实数据（从2026营销完成情况.xlsx提取）
-        // ============================================================
-        const RealData = {
-            summary: {
-                total_regions: 6,
-                total_projects: 38,
-                total_operators: 26,
-                total_user_pool: 422,
-                total_flow: 12196.4,  // 万元
-                total_base: 6545.7,
-                overall_flow_completion: 186.3,
-                avg_settle: 54.5,
-                total_touch: 1779,
-                total_train: 87,
-                total_campus: 22,
+
+<!-- ==================== 模块3: 运营动作分析 ==================== -->
+<div class="module" id="actionAnalysis">
+    <div class="module-header">
+        <h2><span class="emoji">🔍</span> 运营动作分析</h2>
+        <p style="font-size:13px;color:var(--gray-500);">分析用户池、触达、培训、校园行4个动作对流量的影响</p>
+    </div>
+    <div class="module-body">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchActionTab('personnel')">个人维度分析</button>
+            <button class="tab-btn" onclick="switchActionTab('region')">区域维度分析</button>
+        </div>
+        
+        <!-- 个人维度：项目营销负责人+运营专员 -->
+        <div class="tab-content active" id="action-personnel">
+            <h3 style="margin-bottom:16px;">📊 个人运营动作 vs 流量完成情况（柱状=动作，折线=流量）</h3>
+            <div class="chart-container" style="height:450px;">
+                <canvas id="personActionChart"></canvas>
+            </div>
+            <p style="font-size:12px;color:var(--gray-500);margin-top:8px;">
+                📌 目标参考：用户池≥30人 | 有效触达≥100次 | 培训≥4场/月 | 校园行≥1场/月
+            </p>
+        </div>
+        
+        <!-- 区域维度 -->
+        <div class="tab-content" id="action-region">
+            <h3 style="margin-bottom:16px;">📊 各区域运营动作 vs 流量关系</h3>
+            <div class="chart-container" style="height:400px;">
+                <canvas id="regionActionChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- ==================== 模块4: 用户池管理 ==================== -->
+<div class="module" id="userPool">
+    <div class="module-header">
+        <h2><span class="emoji">👥</span> 用户池管理</h2>
+        <div style="display:flex;gap:10px;">
+            <button class="btn btn-outline" onclick="downloadUserPoolTemplate()">📥 下载模板</button>
+            <button class="btn btn-primary" onclick="document.getElementById('userPoolInput').click()">📤 导入Excel</button>
+            <input type="file" id="userPoolInput" accept=".xlsx,.xls" style="display:none;" onchange="importUserPool(this)">
+        </div>
+    </div>
+    <div class="module-body">
+        <div style="display:flex;gap:15px;margin-bottom:16px;flex-wrap:wrap;">
+            <input type="text" placeholder="🔍 搜索学校/人员..." style="width:250px;" onkeyup="searchUserPool(this.value)">
+            <select onchange="filterByLevel(this.value)">
+                <option value="">全部级别</option>
+                <option value="S">S级（核心）</option>
+                <option value="A">A级（重要）</option>
+                <option value="B">B级（一般）</option>
+                <option value="C">C级（潜在）</option>
+            </select>
+            <select onchange="filterByRegion(this.value)">
+                <option value="">全部区域</option>
+                <option value="陈宝华">广东福建</option>
+                <option value="周滨">北京</option>
+                <option value="高欢庆">东北西北</option>
+                <option value="田晓燕">江浙沪</option>
+                <option value="刘金玲">天津</option>
+                <option value="张璟">西南海南湖北</option>
+            </select>
+        </div>
+        
+        <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px;" id="userPoolStats"></div>
+        
+        <div style="overflow-x:auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>序号</th><th>学校</th><th>区域负责人</th><th>运营专员</th>
+                        <th>用户级别</th><th>用户姓名</th><th>联系方式</th><th>专业/科室</th>
+                        <th>用户池人数</th><th>更新时间</th>
+                    </tr>
+                </thead>
+                <tbody id="userPoolBody">
+                    <tr><td colspan="10" style="text-align:center;padding:40px;color:var(--gray-500);">
+                        请导入用户池Excel数据（支持.xlsx格式）<br>
+                        <button class="btn btn-outline" style="margin-top:10px;" onclick="loadDemoUserData()">加载演示数据</button>
+                    </td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<!-- ==================== 模块5: 营销活动（总部下发模式）==================== -->
+<div class="module" id="marketing">
+    <div class="module-header">
+        <h2><span class="emoji">🎯</span> 营销活动管理</h2>
+        <div style="display:flex;gap:10px;">
+            <button class="btn btn-outline" onclick="downloadActivityTemplate()">📥 下载计划模板</button>
+            <button class="btn btn-primary" onclick="document.getElementById('activityInput').click()">📤 导入活动计划</button>
+            <input type="file" id="activityInput" accept=".xlsx,.xls" style="display:none;" onchange="importActivity(this)">
+        </div>
+    </div>
+    <div class="module-body">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchMarketingTab('hq')">📋 总部下发任务</button>
+            <button class="tab-btn" onclick="switchMarketingTab('region')">📝 区域执行计划</button>
+            <button class="tab-btn" onclick="switchMarketingTab('output')">📊 营销产出结果</button>
+        </div>
+        
+        <!-- 总部下发任务 -->
+        <div class="tab-content active" id="marketing-hq">
+            <div style="background:#eff6ff;padding:16px;border-radius:8px;margin-bottom:16px;border-left:4px solid var(--primary);">
+                <strong>📌 总部任务说明：</strong>每月25号前由高欢庆制定下月/下季度营销活动计划，下发给各区域执行。
+            </div>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>序号</th><th>活动名称</th><th>活动周期</th><th>目标区域</th>
+                        <th>预计触达≥人</th><th>预计新增活跃≥人</th><th>预计流量提升(万)</th>
+                        <th>预计费用(元)</th><th>状态</th><th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="hqTaskBody">
+                    <tr>
+                        <td>1</td><td>开学季推广活动</td><td>2026-09-01~09-30</td><td>全部区域</td>
+                        <td><input type="number" placeholder="填写" style="width:70px;"></td>
+                        <td><input type="number" placeholder="填写" style="width:70px;"></td>
+                        <td><input type="number" placeholder="填写" step="0.1" style="width:80px;"></td>
+                        <td><input type="number" placeholder="填写" style="width:80px;"></td>
+                        <td><span class="status-badge status-yellow">待下发</span></td>
+                        <td><button class="btn btn-primary" style="padding:4px 10px;font-size:12px;">下发</button></td>
+                    </tr>
+                    <tr>
+                        <td>2</td><td>试剂耗材促销季</td><td>2026-09-01~09-30</td><td>广东福建、北京</td>
+                        <td><input type="number" placeholder="填写" style="width:70px;"></td>
+                        <td><input type="number" placeholder="填写" style="width:70px;"></td>
+                        <td><input type="number" placeholder="填写" step="0.1" style="width:80px;"></td>
+                        <td><input type="number" placeholder="填写" style="width:80px;"></td>
+                        <td><span class="status-badge status-yellow">待下发</span></td>
+                        <td><button class="btn btn-primary" style="padding:4px 10px;font-size:12px;">下发</button></td>
+                    </tr>
+                </tbody>
+            </table>
+            
+            <button class="btn btn-success" style="margin-top:16px;" onclick="showAddHQTaskModal()">➕ 新增总部任务</button>
+        </div>
+        
+        <!-- 区域执行计划 -->
+        <div class="tab-content" id="marketing-region">
+            <div style="display:flex;gap:15px;margin-bottom:16px;flex-wrap:wrap;">
+                <input type="text" placeholder="🔍 搜索活动名称/学校..." style="width:260px;">
+                <select><option>全部状态</option><option>进行中</option><option>已完成</option><option>未启动</option></select>
+                <button class="btn btn-primary" onclick="showAddRegionPlanModal()">➕ 新增区域计划</button>
+                <button class="btn btn-outline" onclick="importRegionPlan()">📤 导入计划表</button>
+            </div>
+            
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>序号</th><th>活动名称</th><th>负责学校</th><th>负责人</th>
+                        <th>计划时间</th><th>进度</th><th>状态</th>
+                        <th>预计目标</th><th>预计费用</th><th>备注</th>
+                    </tr>
+                </thead>
+                <tbody id="regionPlanBody">
+                    <tr>
+                        <td>1</td><td>开学季推广活动</td><td>广州中医药大学</td><td>黄乐怡</td>
+                        <td>2026-09-01~09-30</td>
+                        <td><div class="progress-bar"><div class="progress-fill green" style="width:80%"></div></div>80%</td>
+                        <td><span class="status-badge status-yellow">进行中</span></td>
+                        <td style="font-size:12px;line-height:1.8;">
+                            触达≥<input type="number" style="width:50px;display:inline;">人<br>
+                            新增活跃≥<input type="number" style="width:50px;display:inline;">人<br>
+                            流量↑<input type="number" step="0.1" style="width:50px;display:inline;">万
+                        </td>
+                        <td><input type="number" style="width:70px;"></td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>2</td><td>试剂耗材促销季</td><td>广州大学</td><td>孙嘉睿</td>
+                        <td>2026-09-01~09-30</td>
+                        <td><div class="progress-bar"><div class="progress-fill yellow" style="width:60%"></div></div>60%</td>
+                        <td><span class="status-badge status-yellow">进行中</span></td>
+                        <td style="font-size:12px;line-height:1.8;">
+                            触达≥<input type="number" style="width:50px;display:inline;">人<br>
+                            新增活跃≥<input type="number" style="width:50px;display:inline;">人<br>
+                            流量↑<input type="number" step="0.1" style="width:50px;display:inline;">万
+                        </td>
+                        <td><input type="number" style="width:70px;"></td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>3</td><td>新生入学宣讲</td><td>西安交通大学</td><td>王书妍</td>
+                        <td>2026-08-25~09-10</td>
+                        <td><div class="progress-bar"><div class="progress-fill green" style="width:100%"></div></div>100%</td>
+                        <td><span class="status-badge status-green">已完成</span></td>
+                        <td style="font-size:12px;line-height:1.8;">
+                            触达≥<input type="number" style="width:50px;display:inline;">人<br>
+                            新增活跃≥<input type="number" style="width:50px;display:inline;">人<br>
+                            流量↑<input type="number" step="0.1" style="width:50px;display:inline;">万
+                        </td>
+                        <td><input type="number" style="width:70px;"></td>
+                        <td>
+                            <button class="btn btn-success" style="padding:3px 8px;font-size:11px;" onclick="showOutputModal(this)">产出结果</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>4</td><td>实验室安全培训</td><td>南开大学</td><td>郝倩</td>
+                        <td>2026-09-15~09-20</td>
+                        <td><div class="progress-bar"><div class="progress-fill red" style="width:0%"></div></div>0%</td>
+                        <td><span class="status-badge status-red">未启动</span></td>
+                        <td style="font-size:12px;line-height:1.8;">
+                            触达≥<input type="number" style="width:50px;display:inline;">人<br>
+                            新增活跃≥<input type="number" style="width:50px;display:inline;">人<br>
+                            流量↑<input type="number" step="0.1" style="width:50px;display:inline;">万
+                        </td>
+                        <td><input type="number" style="width:70px;"></td>
+                        <td>-</td>
+                    </tr>
+                    <tr>
+                        <td>5</td><td>科研平台体验日</td><td>清华大学</td><td>王春光/亚娟</td>
+                        <td>2026-10-10~10-15</td>
+                        <td><div class="progress-bar"><div class="progress-fill yellow" style="width:45%"></div></div>45%</td>
+                        <td><span class="status-badge status-yellow">进行中</span></td>
+                        <td style="font-size:12px;line-height:1.8;">
+                            触达≥<input type="number" style="width:50px;display:inline;">人<br>
+                            新增活跃≥<input type="number" style="width:50px;display:inline;">人<br>
+                            流量↑<input type="number" step="0.1" style="width:50px;display:inline;">万
+                        </td>
+                        <td><input type="number" style="width:70px;"></td>
+                        <td>-</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 营销产出结果 -->
+        <div class="tab-content" id="marketing-output">
+            <h3 style="margin-bottom:16px;">📊 营销活动产出记录</h3>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>活动名称</th><th>负责学校</th><th>负责人</th><th>实际触达(人)</th>
+                        <th>新增活跃用户(人)</th><th>用户池新增(人)</th>
+                        <th>流量提升(万)</th><th>订单号</th><th>订单金额(元)</th>
+                    </tr>
+                </thead>
+                <tbody id="outputBody">
+                    <tr><td colspan="9" style="text-align:center;padding:40px;color:var(--gray-500);">
+                        暂无产出记录，请在"区域执行计划"中点击"产出结果"按钮录入
+                    </td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+
+<!-- ==================== 模块6: 校园行管理 ==================== -->
+<div class="module" id="campus">
+    <div class="module-header">
+        <h2><span class="emoji">🏫</span> 校园行管理</h2>
+    </div>
+    <div class="module-body">
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchCampusTab('modes')">📚 活动模式库</button>
+            <button class="tab-btn" onclick="switchCampusTab('plan')">📅 下半年计划</button>
+            <button class="tab-btn" onclick="switchCampusTab('history')">📋 历史实施记录</button>
+        </div>
+        
+        <!-- 活动模式库 -->
+        <div class="tab-content active" id="campus-modes">
+            <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;" id="modeCards"></div>
+        </div>
+        
+        <!-- 下半年计划 -->
+        <div class="tab-content" id="campus-plan">
+            <div style="display:flex;gap:10px;margin-bottom:16px;">
+                <button class="btn btn-outline" onclick="downloadCampusTemplate()">📥 下载计划模板</button>
+                <button class="btn btn-primary" onclick="importCampusPlan()">📤 导入计划表</button>
+                <button class="btn btn-success" onclick="showAddCampusPlanModal()">➕ 单个新增</button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr><th>序号</th><th>活动模式</th><th>学校</th><th>计划时间</th><th>负责人</th><th>预算</th><th>状态</th></tr>
+                </thead>
+                <tbody id="campusPlanBody">
+                    <tr><td colspan="7" style="text-align:center;padding:30px;color:var(--gray-500);">请导入下半年校园行计划</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 历史实施记录 -->
+        <div class="tab-content" id="campus-history">
+            <div style="display:flex;gap:10px;margin-bottom:16px;">
+                <button class="btn btn-primary" onclick="importCampusHistory()">📤 批量导入实施记录</button>
+            </div>
+            <table class="data-table">
+                <thead>
+                    <tr><th>日期</th><th>学校</th><th>活动模式</th><th>参与人数</th><th>效果评价</th><th>照片</th></tr>
+                </thead>
+                <tbody id="campusHistoryBody">
+                    <tr><td colspan="6" style="text-align:center;padding:30px;color:var(--gray-500);">暂无历史记录</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+</div><!-- end container -->
+
+
+<!-- 产出结果弹窗 -->
+<div class="modal-overlay" id="outputModal">
+    <div class="modal">
+        <h3>📝 录入营销活动产出结果</h3>
+        <div class="form-group"><label>活动名称</label><input type="text" id="outActivity" readonly></div>
+        <div class="form-group"><label>负责学校</label><input type="text" id="outSchool" readonly></div>
+        <div class="form-group"><label>实际触达人数</label><input type="number" id="outTouch" placeholder="填写实际触达人数"></div>
+        <div class="form-group"><label>新增平台活跃用户</label><input type="number" id="outActive" placeholder="填写新增活跃用户数"></div>
+        <div class="form-group"><label>用户池新增</label><input type="number" id="outPool" placeholder="填写用户池新增人数"></div>
+        <div class="form-group"><label>本月线上流量提升(万元)</label><input type="number" id="outFlow" step="0.1" placeholder="填写流量提升金额"></div>
+        <div class="form-group"><label>对应订单号</label><input type="text" id="outOrderNo" placeholder="填写订单号"></div>
+        <div class="form-group"><label>订单金额(元)</label><input type="number" id="outOrderAmt" placeholder="填写订单金额"></div>
+        <div class="modal-actions">
+            <button class="btn btn-primary" onclick="submitOutput()">✅ 提交</button>
+            <button class="btn btn-outline" onclick="closeOutputModal()">取消</button>
+        </div>
+    </div>
+</div>
+
+
+<script>
+// ============================================================
+// 数据定义
+// ============================================================
+const WORKBENCH_DATA = {
+    "performance": {
+        "region_leaders": [
+            {"name":"陈宝华","region":"广东福建","role":"区域主管","member_count":4,"project_count":4,"metrics":{"flow_total":367.5,"base_flow":276.9,"flow_completion":132.8,"flow_score":54.0,"avg_settle":84.3,"settle_completion":99.2,"settle_score":14.9},"objective_score":68.9},
+            {"name":"周滨","region":"北京","role":"区域主管","member_count":6,"project_count":9,"metrics":{"flow_total":1872.4,"base_flow":1549.6,"flow_completion":121.2,"flow_score":45.6,"avg_settle":19.0,"settle_completion":30.0,"settle_score":4.6},"objective_score":47.2},
+            {"name":"高欢庆","region":"东北西北","role":"区域主管","member_count":5,"project_count":10,"metrics":{"flow_total":1630.7,"base_flow":683.8,"flow_completion":238.4,"flow_score":54.0,"avg_settle":57.6,"settle_completion":104.1,"settle_score":15.6},"objective_score":69.6},
+            {"name":"田晓燕","region":"江浙沪","role":"区域主管","member_count":4,"project_count":8,"metrics":{"flow_total":5001.6,"base_flow":2688.4,"flow_completion":261.4,"flow_score":52.8,"avg_settle":30.5,"settle_completion":35.9,"settle_score":8.3},"objective_score":61.1},
+            {"name":"刘金玲","region":"天津","role":"区域主管","member_count":3,"project_count":3,"metrics":{"flow_total":2670.8,"base_flow":1819.2,"flow_completion":174.0,"flow_score":53.4,"avg_settle":67.5,"settle_completion":79.4,"settle_score":12.1},"objective_score":65.5},
+            {"name":"张璟","region":"西南海南湖北","role":"区域主管","member_count":4,"project_count":4,"metrics":{"flow_total":653.4,"base_flow":545.6,"flow_completion":110.3,"flow_score":54.0,"avg_settle":49.1,"settle_completion":57.8,"settle_score":17.7},"objective_score":71.7}
+        ],
+        "project_managers": [
+            {"name":"黄乐怡","school":"广州中医药大学","region_leader":"陈宝华","role":"项目营销负责人","metrics":{"user_pool":60,"touch":0,"train":5,"campus":0,"actual_order":117.90,"base_order":132.95,"settle_rate":"0.99"},"scores":{"flow":{"completion":77.1,"score":23.1},"settle":{"completion":116.5,"score":17.5},"campus":{"completion":30.0,"score":4.5},"train":{"completion":125.0,"score":12.0},"pool":{"completion":200.0,"score":9.6},"touch":{"completion":30.0,"score":2.1}},"objective_score":72.3},
+            {"name":"孙嘉睿","school":"广州大学","region_leader":"陈宝华","role":"项目营销负责人","metrics":{"user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":149.51,"base_order":132.95,"settle_rate":"0.97"},"scores":{"flow":{"completion":112.5,"score":33.8},"settle":{"completion":114.1,"score":17.1},"campus":{"completion":30.0,"score":4.5},"train":{"completion":30.0,"score":3.0},"pool":{"completion":30.0,"score":2.4},"touch":{"completion":30.0,"score":2.1}},"objective_score":65.1},
+            {"name":"王书妍","school":"西安交通大学","region_leader":"高欢庆","role":"项目营销负责人","metrics":{"user_pool":20,"touch":33,"train":4,"campus":0,"actual_order":397.98,"base_order":299.58,"settle_rate":"0.91"},"scores":{"flow":{"completion":132.8,"score":39.8},"settle":{"completion":107.1,"score":16.1},"campus":{"completion":30.0,"score":4.5},"train":{"completion":100.0,"score":10.0},"pool":{"completion":66.7,"score":5.3},"touch":{"completion":33.0,"score":2.3}},"objective_score":66.1},
+            {"name":"郝倩","school":"南开大学","region_leader":"刘金玲","role":"项目营销负责人","metrics":{"user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":0,"base_order":0,"settle_rate":"无"},"scores":{"flow":{"completion":30.0,"score":9.0},"settle":{"completion":30.0,"score":4.5},"campus":{"completion":30.0,"score":4.5},"train":{"completion":30.0,"score":3.0},"pool":{"completion":30.0,"score":2.4},"touch":{"completion":30.0,"score":2.1}},"objective_score":61.6}
+        ],
+        "operators": [
+            {"name":"卢婉炫","school":"华南理工大学","region_leader":"陈宝华","role":"运营专员","metrics":{"user_pool":30,"touch":6,"train":4,"campus":1,"actual_order":732.61,"base_order":0,"settle_rate":"未对接财务"},"scores":{"campus":{"completion":50.0,"score":10.0},"train":{"completion":100.0,"score":15.0},"pool":{"completion":100.0,"score":8.0},"touch":{"completion":6.0,"score":0.4},"flow":{"completion":120.0,"score":30.0},"settle":{"completion":30.0,"score":3.0}},"objective_score":42.6},
+            {"name":"代斯航","school":"中国农业大学","region_leader":"周滨","role":"运营专员","metrics":{"user_pool":0,"touch":0,"train":1,"campus":0,"actual_order":22.89,"base_order":17.70,"settle_rate":"0.01"},"scores":{"campus":{"completion":30.0,"score":6.0},"train":{"completion":25.0,"score":3.75},"pool":{"completion":30.0,"score":2.4},"touch":{"completion":30.0,"score":2.1},"flow":{"completion":129.3,"score":32.3},"settle":{"completion":30.0,"score":3.0}},"objective_score":49.5},
+            {"name":"王春光/亚娟","school":"清华大学","region_leader":"周滨","role":"运营专员","metrics":{"user_pool":12,"touch":0,"train":1,"campus":0,"actual_order":8442.98,"base_order":0,"settle_rate":"0.82"},"scores":{"campus":{"completion":30.0,"score":6.0},"train":{"completion":25.0,"score":3.75},"pool":{"completion":40.0,"score":3.2},"touch":{"completion":30.0,"score":2.1},"flow":{"completion":120.0,"score":30.0},"settle":{"completion":96.5,"score":9.7}},"objective_score":54.9},
+            {"name":"郭芮影","school":"药物所","region_leader":"周滨","role":"运营专员","metrics":{"user_pool":0,"touch":1,"train":6,"campus":0,"actual_order":411.53,"base_order":0,"settle_rate":"0.17"},"scores":{"campus":{"completion":30.0,"score":6.0},"train":{"completion":150.0,"score":22.5},"pool":{"completion":30.0,"score":2.4},"touch":{"completion":1.0,"score":0.07},"flow":{"completion":120.0,"score":30.0},"settle":{"completion":30.0,"score":3.0}},"objective_score":50.7},
+            {"name":"徐颖","school":"北京工商大学","region_leader":"周滨","role":"运营专员","metrics":{"user_pool":0,"touch":0,"train":2,"campus":0,"actual_order":77.98,"base_order":0,"settle_rate":"0.2"},"scores":{"campus":{"completion":30.0,"score":6.0},"train":{"completion":50.0,"score":7.5},"pool":{"completion":30.0,"score":2.4},"touch":{"completion":30.0,"score":2.1},"flow":{"completion":120.0,"score":30.0},"settle":{"completion":30.0,"score":3.0}},"objective_score":52.5}
+        ]
+    },
+    "monthly_summary": [
+        {"leader":"陈宝华","region":"广东福建","month":"7月","user_pool":110,"touch_count":6,"train_count":9,"campus_count":1,"flow_total":367.5,"project_count":4},
+        {"leader":"周滨","region":"北京","month":"7月","user_pool":33,"touch_count":3,"train_count":15,"campus_count":0,"flow_total":1872.4,"project_count":9},
+        {"leader":"高欢庆","region":"东北西北","month":"7月","user_pool":136,"touch_count":34,"train_count":23,"campus_count":0,"flow_total":1630.7,"project_count":10},
+        {"leader":"田晓燕","region":"江浙沪","month":"7月","user_pool":60,"touch_count":0,"train_count":0,"campus_count":0,"flow_total":5001.6,"project_count":8},
+        {"leader":"刘金玲","region":"天津","month":"7月","user_pool":4,"touch_count":0,"train_count":0,"campus_count":0,"flow_total":2670.8,"project_count":3},
+        {"leader":"张璟","region":"西南海南湖北","month":"7月","user_pool":79,"touch_count":0,"train_count":40,"campus_count":21,"flow_total":653.4,"project_count":4}
+    ],
+    "total_data": {
+        "total_user_pool":422,"total_touch":1779,"total_train":87,"total_campus":22,
+        "total_flow":12196.4,"total_projects":38,"total_operators":26,
+        "available_months":["3月","4月","5月","6月","7月"]
+    }
+};
+
+// 校园行模式库数据
+const CAMPUS_MODES = [
+    {id:1,name:"新生入学宣讲",desc:"针对新生的平台介绍和推广",supplier:"自办",cost:"低"},
+    {id:2,name:"实验室安全培训",desc:"结合实验室安全需求做产品植入",supplier:"合作方",cost:"中"},
+    {id:3,name:"科研平台体验日",desc:"邀请师生现场体验平台功能",supplier:"自办",cost:"中"},
+    {id:4:name:"试剂耗材促销季",desc:"开学季试剂耗材优惠活动",supplier:"供应商赞助",cost:"低"},
+    {id:5,name:"学术讲座/沙龙",desc:"联合学院举办学术活动",supplier:"合作方",cost:"中"},
+    {id:6:name:"导师课题组拜访",desc:"一对一深入沟通需求",supplier:"自办",cost:"低"},
+    {id:7,name:"校园地推/摆摊",desc:"在人流量大的地方设点宣传",supplier:"自办",cost:"低"},
+    {id:8:name:"线上直播/ webinar",desc:"面向全校的线上推广",supplier:"自办",cost:"低"},
+    {id:9:name:"学生社团合作",desc:"通过社团触达目标用户",supplier:"合作方",cost:"低"},
+    {id:10,name:"毕业季特别活动",desc:"面向毕业生的转化活动",supplier:"自办",cost:"中"},
+    {id:11:name:"科研竞赛/挑战赛",desc:"以赛促用，提高平台使用率",supplier:"合作方",cost:"高"}
+];
+
+// 全局状态
+let currentMonth = '7月';
+let currentViewMode = 'month';
+let subjectiveScores = {};
+
+// ============================================================
+// 初始化
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    initOverview();
+    initPerformance();
+    initActionAnalysis();
+    initCampusModes();
+});
+
+// ============================================================
+// 时间筛选
+// ============================================================
+function setViewMode(mode) {
+    currentViewMode = mode;
+    document.querySelectorAll('.time-filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    // 刷新所有图表和数据
+    refreshAllData();
+}
+
+function selectMonth(month) {
+    currentMonth = month;
+    document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    refreshAllData();
+}
+
+function applyDateRange() {
+    refreshAllData();
+}
+
+function refreshAllData() {
+    initOverview();
+    updatePerformanceCharts();
+    updateActionCharts();
+}
+
+// ============================================================
+// 模块1: 运营概览
+// ============================================================
+function initOverview() {
+    const d = WORKBENCH_DATA.total_data;
+    
+    // KPI卡片
+    document.getElementById('overviewKPIs').innerHTML = `
+        <div class="kpi-card">
+            <div class="label">👥 用户池总量</div>
+            <div class="value">${d.total_user_pool.toLocaleString()}</div>
+            <div class="trend">目标: ≥${38*30}人</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">📞 有效触达</div>
+            <div class="value">${d.total_touch.toLocaleString()}</div>
+            <div class="trend">目标: ≥${38*100}次</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">🎓 培训场次</div>
+            <div class="value">${d.total_train}</div>
+            <div class="trend">目标: ≥${38*4}场</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">🏫 校园行场次</div>
+            <div class="value">${d.total_campus}</div>
+            <div class="trend">目标: ≥${38}场</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">💰 月度总流量</div>
+            <div class="value">${d.total_flow.toLocaleString()}<small style="font-size:14px;">万</small></div>
+            <div class="trend up">⬆️ 较同期增长86.3%</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">📊 运营项目数</div>
+            <div class="value">${d.total_projects}</div>
+            <div class="trend">覆盖${d.total_operators}名运营</div>
+        </div>
+    `;
+    
+    // 区域表格
+    let tbody = '';
+    const regions = WORKBENCH_DATA.monthly_summary.sort((a,b) => b.flow_total - a.flow_total);
+    regions.forEach(r => {
+        const flowStatus = r.flow_completion >= 100 ? 'green' : r.flow_completion >= 80 ? 'yellow' : 'red';
+        const settleStatus = r.avg_settle >= 85 ? 'green' : r.avg_settle >= 60 ? 'yellow' : 'red';
+        const overallStatus = r.flow_completion >= 100 && r.avg_settle >= 85 ? '达标' : 
+                              r.flow_completion >= 80 && r.avg_settle >= 60 ? '风险' : '滞后';
+        tbody += `<tr>
+            <td><strong>${r.leader}</strong></td>
+            <td>${r.region}</td>
+            <td>${r.project_count}所</td>
+            <td>${WORKBENCH_DATA.performance.region_leaders.find(l=>l.name===r.leader)?.member_count || '-'}人</td>
+            <td><strong>${r.flow_total.toLocaleString()}</strong></td>
+            <td style="color:${flowStatus==='green'?'#16a34a':flowStatus==='yellow'?'#d97706':'#dc2626'}">${r.flow_completion || Math.round(r.flow_total/(r.flow_total/1.2))}%</td>
+            <td style="color:${settleStatus==='green'?'#16a34a':settleStatus==='yellow'?'#d97706':'#dc2626'}">${r.settle_avg || '-'}%</td>
+            <td>${r.user_pool}人</td>
+            <td><span class="status-badge status-${overallStatus==='达标'?'green':overallStatus==='风险'?'yellow':'red'}">${overallStatus}</span></td>
+        </tr>`;
+    });
+    document.getElementById('regionTableBody').innerHTML = tbody;
+    
+    // 流量趋势图
+    renderFlowTrend();
+    
+    // 区域排名图
+    renderRegionRank(regions);
+}
+
+function renderFlowTrend() {
+    const ctx = document.getElementById('flowTrendChart').getContext('2d');
+    if (window.flowTrendChartInstance) window.flowTrendChartInstance.destroy();
+    
+    // 模拟多月数据（当前只有7月真实数据，预留接口）
+    window.flowTrendChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['3月', '4月', '5月', '6月', '7月'],
+            datasets: [{
+                label: '总流量(万)',
+                data: [8500, 9200, 9800, 10500, 12196],
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37,99,235,0.1)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }, {
+                label: '陈宝华',
+                data: [280, 310, 330, 350, 368],
+                borderColor: '#ef4444',
+                tension: 0.3,
+                hidden: true
+            }, {
+                label: '周滨',
+                data: [1400, 1500, 1600, 1700, 1872],
+                borderColor: '#f97316',
+                tension: 0.3,
+                hidden: true
+            }, {
+                label: '高欢庆',
+                data: [1200, 1350, 1450, 1550, 1631],
+                borderColor: '#eab308',
+                tension: 0.3,
+                hidden: true
+            }, {
+                label: '田晓燕',
+                data: [3800, 4200, 4500, 4800, 5002],
+                borderColor: '#22c55e',
+                tension: 0.3,
+                hidden: true
+            }, {
+                label: '刘金玲',
+                data: [2000, 2200, 2400, 2550, 2671],
+                borderColor: '#06b6d4',
+                tension: 0.3,
+                hidden: true
+            }, {
+                label: '张璟',
+                data: [500, 550, 580, 620, 653],
+                borderColor: '#8b5cf6',
+                tension: 0.3,
+                hidden: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: '月度流量趋势（可勾选各区域查看详情）', font: {size:14} },
+                legend: { position: 'bottom' }
             },
-            regions: [
-                { leader: '陈宝华', region_name: '广东福建', member_count: 4, project_count: 4, schools: ['南方医科大学','华南理工大学','广州中医药大学','广州大学'], members: ['陈宝华','卢婉炫','黄乐怡','孙嘉睿'], user_pool: 110, touch_count: 748, train_count: 17, campus_count: 6, total_flow: 367.5, flow_completion: 120, avg_settle: 47.5, status: 'red' },
-                { leader: '周滨', region_name: '北京', member_count: 6, project_count: 9, schools: ['中国农业大学','北京师范大学','清华大学','药物所','北京工商大学','北京中医药大学','北京林业大学','北京化工大学','北京科技大学'], members: ['代斯航','周滨','王春光/亚娟','郭芮影','徐颖','张亚娟'], user_pool: 33, touch_count: 161, train_count: 20, campus_count: 4, total_flow: 1872.4, flow_completion: 120, avg_settle: 42.6, status: 'red' },
-                { leader: '高欢庆', region_name: '东北西北', member_count: 5, project_count: 10, schools: ['西安交通大学','西北工业大学','中国医科大学第一附属医院','大连理工大学','中国医科大学（新）','中国医科大学（老）','哈尔滨工业大学','哈尔滨师范大学','东北大学','河北工业大学'], members: ['王书妍','王琛','郭旺','王桐桐','曹振华'], user_pool: 136, touch_count: 190, train_count: 14, campus_count: 1, total_flow: 1630.7, flow_completion: 120, avg_settle: 57.6, status: 'red' },
-                { leader: '田晓燕', region_name: '江浙沪', member_count: 4, project_count: 8, schools: ['南京农业大学','南京中医药大学','南京工业大学','苏州大学','浙江大学','上海交医','同济大学','华师'], members: ['郝丽娟','田晓燕','周雨','刘笑含'], user_pool: 60, touch_count: 254, train_count: 5, campus_count: 2, total_flow: 5001.6, flow_completion: 120, avg_settle: 30.5, status: 'red' },
-                { leader: '刘金玲', region_name: '天津', member_count: 3, project_count: 3, schools: ['南开大学','天津医科大学','天大化学品'], members: ['郝倩','刘金玲','李笑天'], user_pool: 4, touch_count: 15, train_count: 5, campus_count: 5, total_flow: 2670.8, flow_completion: 120, avg_settle: 67.5, status: 'yellow' },
-                { leader: '张璟', region_name: '西南海南湖北', member_count: 4, project_count: 4, schools: ['华中科技大学','海南大学','四川大学','重庆大学'], members: ['郭婷婷','吴海源','曾巧','张璟'], user_pool: 79, touch_count: 411, train_count: 26, campus_count: 4, total_flow: 653.4, flow_completion: 110.3, avg_settle: 49.1, status: 'red' },
-            ],
-            // 月度数据（当前只有7月真实数据，其他月份为模拟）
-            monthlyData: [
-                { month: '3月', flow: 8520.3, mom: null, yoy: 95.2, users: 380, touch: 1520, training: 62, campus: 15, settleRate: 58.3, status: 'warning' },
-                { month: '4月', flow: 9234.5, mom: 8.4, yoy: 102.1, users: 395, touch: 1645, training: 71, campus: 18, settleRate: 61.2, status: 'warning' },
-                { month: '5月', flow: 9876.2, mom: 7.0, yoy: 115.6, users: 408, touch: 1720, training: 78, campus: 20, settleRate: 63.5, status: 'success' },
-                { month: '6月', flow: 10543.8, mom: 6.7, yoy: 128.3, users: 415, touch: 1756, training: 82, campus: 19, settleRate: 52.8, status: 'warning' },
-                { month: '7月', flow: 12196.4, mom: 15.7, yoy: 186.3, users: 422, touch: 1779, training: 87, campus: 22, settleRate: 54.5, status: 'danger' },
-            ],
-            // 用户池模拟数据（等待导入真实数据）
-            userPool: [],
-            // 营销活动模拟数据
-            marketingActivities: [
-                { id: 1, name: '开学季推广活动', school: '广州中医药大学', owner: '黄乐怡', planDate: '2026-09-01~09-30', progress: 80, status: '进行中' },
-                { id: 2, name: '试剂耗材促销季', school: '广州大学', owner: '孙嘉睿', planDate: '2026-09-01~09-30', progress: 60, status: '进行中' },
-                { id: 3, name: '新生入学宣讲', school: '西安交通大学', owner: '王书妍', planDate: '2026-08-25~09-10', progress: 100, status: '已完成' },
-                { id: 4, name: '实验室安全培训', school: '南开大学', owner: '郝倩', planDate: '2026-09-15~09-20', progress: 0, status: '未启动' },
-                { id: 5, name: '科研平台体验日', school: '清华大学', owner: '王春光/亚娟', planDate: '2026-10-10~10-15', progress: 45, status: '进行中' },
-            ],
-            // 校园行模式
-            campusModes: [
-                { id: 1, name: '新生入学宣讲', desc: '面向新生的平台介绍与注册引导', difficulty: '⭐⭐', effect: '高', supplier: '自执行' },
-                { id: 2, name: '实验室安全培训', desc: '联合设备处开展危化品管理培训', difficulty: '⭐⭐⭐', effect: '极高', supplier: '外部讲师' },
-                { id: 3, name: '科研平台体验日', desc: '邀请师生现场体验系统功能', difficulty: '⭐⭐⭐', effect: '高', supplier: '自执行' },
-                { id: 4, name: '学术沙龙/讲座', desc: '结合学科热点举办小型讲座', difficulty: '⭐⭐', effect: '中', supplier: '合作方' },
-                { id: 5, name: '供应商联合推广', desc: '携手品牌商开展产品试用', difficulty: '⭐⭐⭐⭐', effect: '极高', supplier: '品牌商' },
-                { id: 6, name: '问卷调查有奖', desc: '填写需求问卷送小礼品', difficulty: '⭐', effect: '中', supplier: '自执行' },
-                { id: 7, name: '公众号/社群运营', desc: '线上内容推送+私域转化', difficulty: '⭐⭐', effect: '中', supplier: '自执行' },
-                { id: 8, name: '院系拜访', desc: '一对一拜访课题组PI', difficulty: '⭐⭐⭐⭐', effect: '极高', supplier: '自执行' },
-                { id: 9, name: '展会/会议参展', desc: '参加学术年会或行业展会', difficulty: '⭐⭐⭐', effect: '高', supplier: '主办方' },
-                { id: 10, name: '案例分享会', desc: '成功案例校内巡讲', difficulty: '⭐⭐', effect: '高', supplier: '自执行' },
-                { id: 11, name: '节日主题活动', desc: '教师节/校庆等节点营销', difficulty: '⭐⭐', effect: '中', supplier: '自执行' },
-            ],
-            campusPlan: [],
-            campusHistory: [],
-        };
-
-        // ============================================================
-        // 时间筛选状态
-        // ============================================================
-        let currentTimeFilter = 'month';
-        let currentMonth = 7;
-
-        function setTimeFilter(filter) {
-            currentTimeFilter = filter;
-            document.querySelectorAll('.time-filter-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-
-            const monthPicker = document.getElementById('monthPicker');
-            if (filter === 'month') {
-                monthPicker.style.display = 'flex';
-            } else {
-                monthPicker.style.display = 'none';
-            }
-
-            updateFilterDisplay();
-            refreshAllData();
+            scales: { y: { beginAtZero: false } }
         }
+    });
+}
 
-        function selectMonth(month) {
-            currentMonth = month;
-            document.querySelectorAll('.month-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.classList.add('active');
-            updateFilterDisplay();
-            refreshAllData();
+function renderRegionRank(regions) {
+    const ctx = document.getElementById('regionRankChart').getContext('2d');
+    if (window.regionRankChartInstance) window.regionRankChartInstance.destroy();
+    
+    window.regionRankChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: regions.map(r => r.leader),
+            datasets: [{
+                label: '月流量(万)',
+                data: regions.map(r => r.flow_total),
+                backgroundColor: regions.map(r => {
+                    const s = WORKBENCH_DATA.performance.region_leaders.find(l=>l.name===r.leader);
+                    return s?.metrics?.flow_completion >= 100 ? '#ef4444' : 
+                           s?.metrics?.flow_completion >= 80 ? '#eab308' : '#ef4444';
+                }),
+                borderRadius: 6
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: `🏆 ${currentMonth}区域业绩排名（按流量）`, font: {size:14} },
+                legend: { display: false }
+            },
+            scales: { x: { beginAtZero: true } }
         }
+    });
+}
 
-        function updateFilterDisplay() {
-            const filterNames = { month: '单月', quarter: '季度汇总', ytd: '年初至今', all: '全部数据' };
-            let display = '';
-            if (currentTimeFilter === 'month') {
-                display = `${currentMonth}月 (${filterNames[currentTimeFilter]})`;
-            } else {
-                display = filterNames[currentTimeFilter];
-            }
-            document.getElementById('currentFilterDisplay').textContent = display;
-        }
 
-        function refreshAllData() {
-            initDashboard();
-            initDataCollect();
-        }
+// ============================================================
+// 模块2: 绩效评估
+// ============================================================
+function initPerformance() {
+    // 渲染区域主管表格
+    let leadersHtml = '';
+    WORKBENCH_DATA.performance.region_leaders.forEach((l, i) => {
+        leadersHtml += `<tr>
+            <td><strong>${l.name}</strong></td>
+            <td>${l.region}</td>
+            <td>${l.project_count}个</td>
+            <td>${l.metrics.flow_score}分</td>
+            <td>${l.metrics.settle_score}分</td>
+            <td><strong>${l.objective_score}</strong>分</td>
+            <td><input type="number" min="0" max="40" placeholder="待主管填写" style="width:90px;"
+                onchange="updateSubjectiveScore('leader','${l.name}',this.value)"></td>
+            <td id="total-leader-${i}">-</td>
+            <td id="grade-leader-${i}">-</td>
+        </tr>`;
+    });
+    document.getElementById('leadersBody').innerHTML = leadersHtml;
+    
+    // 渲染项目营销负责人表格
+    let mgrHtml = '';
+    WORKBENCH_DATA.performance.project_managers.forEach((m, i) => {
+        mgrHtml += `<tr>
+            <td><strong>${m.name}</strong></td>
+            <td>${m.school}</td>
+            <td>${m.scores.flow.score}<br><small>${m.scores.flow.completion}%</small></td>
+            <td>${m.scores.settle.score}<br><small>${m.scores.settle.completion}%</small></td>
+            <td>${m.scores.campus.score}<br><small>${m.scores.campus.completion}%</small></td>
+            <td>${m.scores.train.score}<br><small>${m.scores.train.completion}%</small></td>
+            <td>${m.scores.pool.score}<br><small>${m.scores.pool.completion}%</small></td>
+            <td>${m.scores.touch.score}<br><small>${m.scores.touch.completion}%</small></td>
+            <td><strong>${m.objective_score}</strong></td>
+            <td><input type="number" min="0" max="15" placeholder="待主管填写" style="width:80px;"
+                onchange="updateSubjectiveScore('manager','${m.name}',this.value)"></td>
+            <td id="total-manager-${i}">-</td>
+        </tr>`;
+    });
+    document.getElementById('managersBody').innerHTML = mgrHtml;
+    
+    // 渲染运营专员表格（只显示前10个，其余可滚动查看）
+    let opHtml = '';
+    WORKBENCH_DATA.performance.operators.slice(0, 10).forEach((o, i) => {
+        opHtml += `<tr>
+            <td><strong>${o.name}</strong></td>
+            <td>${o.region_leader}</td>
+            <td>${o.school}</td>
+            <td>${o.scores.campus.score}<br><small>${o.scores.campus.completion}%</small></td>
+            <td>${o.scores.train.score}<br><small>${o.scores.train.completion}%</small></td>
+            <td>${o.scores.pool.score}<br><small>${o.scores.pool.completion}%</small></td>
+            <td>${o.scores.touch.score}<br><small>${o.scores.touch.completion}%</small></td>
+            <td>${o.scores.flow.score}<br><small>${o.scores.flow.completion}%</small></td>
+            <td>${o.scores.settle.score}<br><small>${o.scores.settle.completion}%</small></td>
+            <td><strong>${o.objective_score}</strong></td>
+            <td><input type="number" min="0" max="15" placeholder="待主管填写" style="width:75px;"
+                onchange="updateSubjectiveScore('operator','${o.name}',this.value)"></td>
+            <td id="total-op-${i}">-</td>
+        </tr>`;
+    });
+    document.getElementById('operatorsBody').innerHTML = opHtml + 
+        `<tr><td colspan="12" style="text-align:center;color:var(--gray-500);">
+            ... 共${WORKBENCH_DATA.performance.operators.length}名运营专员，完整列表可导出查看 ...
+        </td></tr>`;
+    
+    // 渲染区域主管绩效图
+    renderLeaderScoreChart();
+    
+    // 渲染全员汇总图
+    renderAllScoreChart();
+}
 
-        // ============================================================
-        // 初始化
-        // ============================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            updateTime();
-            setInterval(updateTime, 1000);
+function switchPerfTab(tab) {
+    document.querySelectorAll('#performance .tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#performance .tab-content').forEach(c => c.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('perf-' + tab).classList.add('active');
+    
+    if (tab === 'summary') renderAllScoreChart();
+}
 
-            initDashboard();
-            initUserPool();
-            initDataCollect();
-            initMarketing();
-            initCampus();
-        });
+function updateSubjectiveScore(type, name, value) {
+    const key = `${type}-${name}`;
+    subjectiveScores[key] = parseFloat(value) || 0;
+    
+    // 计算总分
+    let objScore = 0;
+    if (type === 'leader') {
+        objScore = WORKBENCH_DATA.performance.region_leaders.find(l=>l.name===name)?.objective_score || 0;
+    } else if (type === 'manager') {
+        objScore = WORKBENCH_DATA.performance.project_managers.find(m=>m.name===name)?.objective_score || 0;
+    } else {
+        objScore = WORKBENCH_DATA.performance.operators.find(o=>o.name===name)?.objective_score || 0;
+    }
+    
+    const total = objScore + subjectiveScores[key];
+    const grade = getGrade(total);
+    
+    // 更新显示
+    const idx = Array.from(document.querySelectorAll(`#${type === 'op' ? 'operators' : type + 's'}Body tr`)).findIndex(
+        row => row.textContent.includes(name)
+    );
+    const totalCell = document.getElementById(`total-${type === 'operator' ? 'op' : type}-${idx}`);
+    const gradeCell = document.getElementById(`grade-${type === 'operator' ? 'op' : type}-${idx}`);
+    if (totalCell) totalCell.textContent = total.toFixed(1) + '分';
+    if (gradeCell) gradeCell.innerHTML = `<span class="grade-${grade.toLowerCase()}">${grade}</span>`;
+}
 
-        function updateTime() {
-            const now = new Date();
-            const opts = { year: 'numeric', month: 'long', day: 'numeric', weekday: 'long' };
-            document.getElementById('currentTime').textContent = now.toLocaleDateString('zh-CN', opts);
-        }
+function getGrade(score) {
+    if (score >= 90) return 'S';
+    if (score >= 80) return 'A';
+    if (score >= 60) return 'B';
+    if (score >= 40) return 'C';
+    return 'D';
+}
 
-        // ============================================================
-        // Tab切换
-        // ============================================================
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-nav .tab-btn').forEach(btn => btn.classList.remove('active'));
+function saveSubjectiveScores() {
+    alert('主观分已保存！（演示版：实际应保存到后端数据库）');
+}
 
-            document.getElementById('tab-' + tabId).classList.add('active');
-            event.target.classList.add('active');
-        }
-
-        function switchCampusSubTab(subId) {
-            document.querySelectorAll('.campus-subtab').forEach(el => el.style.display = 'none');
-            document.querySelectorAll('#tab-campus .tab-nav .tab-btn').forEach(btn => btn.classList.remove('active'));
-
-            document.getElementById('campus-' + subId).style.display = 'block';
-            event.target.classList.add('active');
-        }
-
-        // ============================================================
-        // Dashboard 初始化（使用真实数据）
-        // ============================================================
-        function initDashboard() {
-            renderTrafficLight();
-            renderKPICards();
-            renderRegionTable();
-            renderFlowTrendChart();
-            renderRegionRankChart();
-        }
-
-        function renderTrafficLight() {
-            const regions = RealData.regions;
-            let greenCount = 0, yellowCount = 0, redCount = 0;
-
-            regions.forEach(r => {
-                if (r.status === 'green') greenCount++;
-                else if (r.status === 'yellow') yellowCount++;
-                else redCount++;
-            });
-
-            // 根据整体指标调整
-            const summary = RealData.summary;
-            if (summary.avg_settle >= 85 && summary.overall_flow_completion >= 100) {
-                greenCount += 2;
-            } else if (summary.avg_settle >= 60 && summary.overall_flow_completion >= 80) {
-                yellowCount += 2;
-            } else {
-                redCount += 2;
-            }
-
-            document.getElementById('trafficLight').innerHTML = `
-                <div class="light-item">
-                    <div class="light-circle light-green">${greenCount}</div>
-                    <div style="font-weight: 600;">达标项</div>
-                    <div style="font-size: 12px; color: var(--gray-600);">流量/培训等</div>
-                </div>
-                <div class="light-item">
-                    <div class="light-circle light-yellow">${yellowCount}</div>
-                    <div style="font-weight: 600;">风险项</div>
-                    <div style="font-size: 12px; color: var(--gray-600);">结算率/触达</div>
-                </div>
-                <div class="light-item">
-                    <div class="light-circle light-red">${redCount}</div>
-                    <div style="font-weight: 600;">滞后项</div>
-                    <div style="font-size: 12px; color: var(--gray-600);">需重点关注</div>
-                </div>
-            `;
-        }
-
-        function renderKPICards() {
-            const s = RealData.summary;
-            const flowM = (s.total_flow / 100).toFixed(1);
-
-            document.getElementById('kpiGrid').innerHTML = `
-                <div class="kpi-card success">
-                    <div class="kpi-status status-green"></div>
-                    <div class="kpi-label">📈 月度总流量</div>
-                    <div class="kpi-value">${flowM}M</div>
-                    <div class="kpi-trend trend-up">↑ ${s.overall_flow_completion}% vs 同期</div>
-                </div>
-                <div class="kpi-card danger">
-                    <div class="kpi-status status-red"></div>
-                    <div class="kpi-label">💰 平均结算率</div>
-                    <div class="kpi-value">${s.avg_settle}%</div>
-                    <div class="kpi-trend trend-down">↓ 目标≥85%</div>
-                </div>
-                <div class="kpi-card info">
-                    <div class="kpi-status status-green"></div>
-                    <div class="kpi-label">👥 用户池总量</div>
-                    <div class="kpi-value">${s.total_user_pool.toLocaleString()}</div>
-                    <div class="kpi-trend trend-up">↑ 覆盖${s.total_projects}个项目</div>
-                </div>
-                <div class="kpi-card warning">
-                    <div class="kpi-status status-yellow"></div>
-                    <div class="kpi-label">🎯 有效触达</div>
-                    <div class="kpi-value">${s.total_touch.toLocaleString()}</div>
-                    <div class="kpi-trend trend-up">↑ 月度累计</div>
-                </div>
-                <div class="kpi-card info">
-                    <div class="kpi-status status-green"></div>
-                    <div class="kpi-label">🏫 校园行场次</div>
-                    <div class="kpi-value">${s.total_campus}</div>
-                    <div class="kpi-trend trend-up">↑ 年累计</div>
-                </div>
-                <div class="kpi-card success">
-                    <div class="kpi-status status-green"></div>
-                    <div class="kpi-label">📚 培训场次</div>
-                    <div class="kpi-value">${s.total_train}</div>
-                    <div class="kpi-trend trend-up">↑ 目标达成${Math.round(s.total_train/70*100)}%</div>
-                </div>
-            `;
-        }
-
-        function renderRegionTable() {
-            const tbody = document.getElementById('regionTableBody');
-            tbody.innerHTML = RealData.regions.map(r => `
-                <tr>
-                    <td><strong>${r.leader}</strong></td>
-                    <td>${r.region_name}</td>
-                    <td>${r.project_count}所</td>
-                    <td>${r.member_count}人</td>
-                    <td><strong>${r.total_flow.toLocaleString()}</strong></td>
-                    <td><span class="${r.flow_completion >= 100 ? 'text-success' : 'text-danger'}">${r.flow_completion}%</span></td>
-                    <td><span class="${r.avg_settle >= 85 ? 'text-success' : r.avg_settle >= 60 ? 'text-warning' : 'text-danger'}">${r.avg_settle}%</span></td>
-                    <td>${r.user_pool}人</td>
-                    <td><span class="badge badge-${r.status === 'green' ? 'success' : r.status === 'yellow' ? 'warning' : 'danger'}">${r.status === 'green' ? '达标' : r.status === 'yellow' ? '风险' : '滞后'}</span></td>
-                </tr>
-            `).join('');
-        }
-
-        function renderFlowTrendChart() {
-            const ctx = document.getElementById('flowTrendChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: RealData.monthlyData.map(m => m.month),
-                    datasets: [{
-                        label: '月度流量(万)',
-                        data: RealData.monthlyData.map(m => m.flow),
-                        borderColor: '#2563eb',
-                        backgroundColor: 'rgba(37,99,235,0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 5,
-                        pointHoverRadius: 8,
-                    }]
+function renderLeaderScoreChart() {
+    const ctx = document.getElementById('leaderScoreChart').getContext('2d');
+    if (window.leaderScoreChartInstance) window.leaderScoreChartInstance.destroy();
+    
+    const leaders = WORKBENCH_DATA.performance.region_leaders;
+    window.leaderScoreChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: leaders.map(l => l.name),
+            datasets: [
+                {
+                    label: '客观分',
+                    data: leaders.map(l => l.objective_score),
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 4
                 },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { position: 'top' } },
-                    scales: { y: { beginAtZero: false } }
+                {
+                    label: '主观分上限(满)',
+                    data: leaders.map(l => 40),
+                    backgroundColor: 'rgba(156,163,175,0.3)',
+                    borderRadius: 4
                 }
-            });
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: `${currentMonth}区域主管绩效对比`, font: {size:14} },
+                legend: { position: 'bottom' }
+            },
+            scales: { y: { beginAtZero: true, max: 100 } }
         }
+    });
+}
 
-        function renderRegionRankChart() {
-            const ctx = document.getElementById('regionRankChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: RealData.regions.map(r => r.leader),
-                    datasets: [{
-                        label: '流量完成率(%)',
-                        data: RealData.regions.map(r => r.flow_completion),
-                        backgroundColor: RealData.regions.map(r =>
-                            r.status === 'green' ? '#22c55e' : r.status === 'yellow' ? '#eab308' : '#ef4444'
-                        ),
-                        borderRadius: 6,
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: { x: { max: 200 } }
-                }
-            });
-        }
-
-        // ============================================================
-        // 用户池初始化
-        // ============================================================
-        function initUserPool() {
-            const s = RealData.summary;
-            document.getElementById('userPoolKPIs').innerHTML = `
-                <div class="kpi-card info">
-                    <div class="kpi-label">总用户数</div>
-                    <div class="kpi-value" id="totalUsers">${s.total_user_pool.toLocaleString()}</div>
-                </div>
-                <div class="kpi-card success">
-                    <div class="kpi-label grade-s">S级 (核心)</div>
-                    <div class="kpi-value" id="countS">-</div>
-                </div>
-                <div class="kpi-card info">
-                    <div class="kpi-label grade-a">A级 (重要)</div>
-                    <div class="kpi-value" id="countA">-</div>
-                </div>
-                <div class="kpi-card warning">
-                    <div class="kpi-label grade-b">B级 (一般)</div>
-                    <div class="kpi-value" id="countB">-</div>
-                </div>
-                <div class="kpi-card danger">
-                    <div class="kpi-label grade-c">C级 (待激活)</div>
-                    <div class="kpi-value" id="countC">-</div>
-                </div>
-            `;
-
-            // 生成模拟用户池数据（基于真实学校列表）
-            const allSchools = [];
-            RealData.regions.forEach(r => allSchools.push(...r.schools));
-            const grades = ['S', 'A', 'B', 'C'];
-            const depts = ['化学学院', '生命科学学院', '药学院', '材料学院', '环境学院', '医学院', '物理学院'];
-
-            for (let i = 0; i < Math.min(s.total_user_pool, 100); i++) {
-                RealData.userPool.push({
-                    id: i + 1,
-                    name: `用户${i + 1}`,
-                    school: allSchools[i % allSchools.length],
-                    dept: depts[i % depts.length],
-                    grade: grades[Math.floor(Math.random() * 4)],
-                    contact: `138****${String(1000 + i).padStart(4, '0')}`,
-                    lastActive: `${Math.floor(Math.random() * 30) + 1}天前`,
-                    remark: ''
-                });
-            }
-
-            renderUserPoolTable(RealData.userPool);
-            updateSchoolFilter(allSchools);
-        }
-
-        function renderUserPoolTable(data) {
-            const tbody = document.getElementById('userPoolTableBody');
-            tbody.innerHTML = data.slice(0, 100).map(u => `
-                <tr>
-                    <td>${u.id}</td>
-                    <td><strong>${u.name}</strong></td>
-                    <td>${u.school}</td>
-                    <td>${u.dept}</td>
-                    <td><span class="badge grade-${u.grade.toLowerCase()}">${u.grade}级</span></td>
-                    <td>${u.contact}</td>
-                    <td>${u.lastActive}</td>
-                    <td>${u.remark || '-'}</td>
-                </tr>
-            `).join('');
-        }
-
-        function filterUserPool(keyword) {
-            const filtered = RealData.userPool.filter(u =>
-                u.name.includes(keyword) || u.school.includes(keyword) || u.dept.includes(keyword)
-            );
-            renderUserPoolTable(filtered);
-        }
-
-        function filterByGrade(grade) {
-            if (!grade) return renderUserPoolTable(RealData.userPool);
-            const filtered = RealData.userPool.filter(u => u.grade === grade);
-            renderUserPoolTable(filtered);
-        }
-
-        function filterBySchool(school) {
-            if (!school) return renderUserPoolTable(RealData.userPool);
-            const filtered = RealData.userPool.filter(u => u.school === school);
-            renderUserPoolTable(filtered);
-        }
-
-        function updateSchoolFilter(schools) {
-            const select = document.getElementById('schoolFilter');
-            schools.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s;
-                opt.textContent = s;
-                select.appendChild(opt);
-            });
-        }
-
-        // ============================================================
-        // 数据收集初始化
-        // ============================================================
-        function initDataCollect() {
-            const tbody = document.getElementById('monthlyDataTableBody');
-            tbody.innerHTML = RealData.monthlyData.map(m => `
-                <tr>
-                    <td><strong>${m.month}</strong></td>
-                    <td>${(m.flow/100).toFixed(1)}M</td>
-                    <td class="${m.mom > 0 ? 'trend-up' : ''}">${m.mom ? (m.mom > 0 ? '+' : '') + m.mom + '%' : '-'}</td>
-                    <td class="${m.yoy > 100 ? 'trend-up' : 'trend-down'}">${m.yoy}%</td>
-                    <td>${m.users}人</td>
-                    <td>${m.touch}</td>
-                    <td>${m.training}场</td>
-                    <td>${m.campus}场</td>
-                    <td class="${m.settleRate >= 85 ? 'text-success' : 'text-warning'}">${m.settleRate}%</td>
-                    <td><span class="badge badge-${m.status}">${m.status === 'success' ? '达标' : m.status === 'warning' ? '风险' : '滞后'}</span></td>
-                </tr>
-            `).join('');
-
-            // 月度指标趋势图
-            const ctx = document.getElementById('monthlyMetricsChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: RealData.monthlyData.map(m => m.month),
-                    datasets: [
-                        { label: '流量(万)', data: RealData.monthlyData.map(m => m.flow), borderColor: '#2563eb', yAxisID: 'y' },
-                        { label: '用户池', data: RealData.monthlyData.map(m => m.users), borderColor: '#16a34a', yAxisID: 'y1' },
-                        { label: '培训场次', data: RealData.monthlyData.map(m => m.training), borderColor: '#d97706', yAxisID: 'y1' },
+function renderAllScoreChart() {
+    const ctx = document.getElementById('allScoreChart').getContext('2d');
+    if (window.allScoreChartInstance) window.allScoreChartInstance.destroy();
+    
+    // 合并所有人
+    const allPeople = [
+        ...WORKBENCH_DATA.performance.region_leaders.map(l => ({...l, roleType:'区域主管'})),
+        ...WORKBENCH_DATA.performance.project_managers.map(m => ({...m, roleType:'项目负责人'})),
+        ...WORKBENCH_DATA.performance.operators.map(o => ({...o, roleType:'运营专员'}))
+    ];
+    
+    // 按分数排序
+    allPeople.sort((a,b) => b.objective_score - a.objective_score);
+    
+    window.allScoreChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: allPeople.map(p => p.name),
+            datasets: [{
+                label: '客观分',
+                data: allPeople.map(p => p.objective_score),
+                backgroundColor: allPeople.map(p => {
+                    if (p.roleType === '区域主管') return '#3b82f6';
+                    if (p.roleType === '项目负责人') return '#22c55e';
+                    return '#f59e0b';
+                }),
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: `${currentMonth}全员绩效排名（客观分）`, font: {size:14} },
+                legend: { labels: {
+                    generateLabels: () => [
+                        {fillStyle:'#3b82f6', text:'区域主管'},
+                        {fillStyle:'#22c55e', text:'项目负责人'},
+                        {fillStyle:'#f59e0b', text:'运营专员'}
                     ]
+                }}
+            },
+            scales: { x: { beginAtZero: true, max: 100 } }
+        }
+    });
+}
+
+function updatePerformanceCharts() {
+    renderLeaderScoreChart();
+    if (document.getElementById('perf-summary').classList.contains('active')) {
+        renderAllScoreChart();
+    }
+}
+
+function exportPerformance() {
+    alert('导出功能：生成Excel格式的完整评分表（含主观分填写栏）');
+}
+
+
+// ============================================================
+// 模块3: 运营动作分析
+// ============================================================
+function initActionAnalysis() {
+    renderPersonActionChart();
+    renderRegionActionChart();
+}
+
+function switchActionTab(tab) {
+    document.querySelectorAll('#actionAnalysis .tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#actionAnalysis .tab-content').forEach(c => c.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('action-' + tab).classList.add('active');
+}
+
+function renderPersonActionChart() {
+    const ctx = document.getElementById('personActionChart').getContext('2d');
+    if (window.personActionChartInstance) window.personActionChartInstance.destroy();
+    
+    // 合并项目营销负责人和运营专员
+    const people = [
+        ...WORKBENCH_DATA.performance.project_managers.map(m => ({
+            name: m.name + '(' + m.school.substring(0,2) + ')',
+            userPool: m.metrics.user_pool,
+            touch: m.metrics.touch,
+            train: m.metrics.train,
+            campus: m.metrics.campus,
+            flowRate: m.scores.flow.completion
+        })),
+        ...WORKBENCH_DATA.performance.operators.slice(0, 8).map(o => ({
+            name: o.name + '(' + o.school.substring(0,2) + ')',
+            userPool: o.metrics.user_pool,
+            touch: o.metrics.touch,
+            train: o.metrics.train,
+            campus: o.metrics.campus,
+            flowRate: o.scores.flow.completion
+        }))
+    ];
+    
+    window.personActionChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: people.map(p => p.name),
+            datasets: [
+                {
+                    type: 'bar',
+                    label: '用户池(人)',
+                    data: people.map(p => p.userPool),
+                    backgroundColor: 'rgba(59,130,246,0.7)',
+                    yAxisID: 'y'
                 },
-                options: {
-                    responsive: true,
-                    interaction: { mode: 'index', intersect: false },
-                    scales: {
-                        y: { type: 'linear', display: true, position: 'left' },
-                        y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } }
-                    }
+                {
+                    type: 'bar',
+                    label: '有效触达(次)',
+                    data: people.map(p => p.touch),
+                    backgroundColor: 'rgba(34,197,94,0.7)',
+                    yAxisID: 'y'
+                },
+                {
+                    type: 'bar',
+                    label: '培训场次',
+                    data: people.map(p => p.train),
+                    backgroundColor: 'rgba(245,158,11,0.7)',
+                    yAxisID: 'y'
+                },
+                {
+                    type: 'bar',
+                    label: '校园行场次',
+                    data: people.map(p => p.campus),
+                    backgroundColor: 'rgba(168,85,247,0.7)',
+                    yAxisID: 'y'
+                },
+                {
+                    type: 'line',
+                    label: '流量完成率(%)',
+                    data: people.map(p => p.flowRate),
+                    borderColor: '#dc2626',
+                    backgroundColor: 'transparent',
+                    yAxisID: 'y1',
+                    tension: 0.3,
+                    pointRadius: 4
                 }
-            });
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                title: { display: true, text: `${currentMonth}个人运营动作与流量关系`, font: {size:14} },
+                legend: { position: 'bottom' }
+            },
+            scales: {
+                y: { type: 'linear', position: 'left', beginAtZero: true, title: { display: true, text: '数量' }},
+                y1: { type: 'linear', position: 'right', beginAtZero: true, max: 150, title: { display: true, text: '完成率%' }}
+            }
+        }
+    });
+}
 
-            // 雷达图
-            const radarCtx = document.getElementById('metricsRadarChart').getContext('2d');
-            const latestMonth = RealData.monthlyData[RealData.monthlyData.length - 1];
-            new Chart(radarCtx, {
-                type: 'radar',
-                data: {
-                    labels: ['流量增长', '用户增长', '培训达标', '校园行', '结算率', '有效触达'],
-                    datasets: [{
-                        label: latestMonth.month + '完成率',
-                        data: [latestMonth.yoy, 95, (latestMonth.training/70)*100, (latestMonth.campus/20)*100, (latestMonth.settleRate/85)*100, 85],
-                        backgroundColor: 'rgba(37,99,235,0.2)',
-                        borderColor: '#2563eb',
-                        pointBackgroundColor: '#2563eb',
-                    }]
+function renderRegionActionChart() {
+    const ctx = document.getElementById('regionActionChart').getContext('2d');
+    if (window.regionActionChartInstance) window.regionActionChartInstance.destroy();
+    
+    const regions = WORKBENCH_DATA.monthly_summary;
+    
+    window.regionActionChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: regions.map(r => r.leader + '(' + r.region + ')'),
+            datasets: [
+                {
+                    type: 'bar',
+                    label: '用户池(人)',
+                    data: regions.map(r => r.user_pool),
+                    backgroundColor: 'rgba(59,130,246,0.7)'
                 },
-                options: { responsive: true, scales: { r: { min: 0, max: 200 } } }
-            });
+                {
+                    type: 'bar',
+                    label: '有效触达(次)',
+                    data: regions.map(r => r.touch_count),
+                    backgroundColor: 'rgba(34,197,94,0.7)'
+                },
+                {
+                    type: 'bar',
+                    label: '培训场次',
+                    data: regions.map(r => r.train_count),
+                    backgroundColor: 'rgba(245,158,11,0.7)'
+                },
+                {
+                    type: 'bar',
+                    label: '校园行场次',
+                    data: regions.map(r => r.campus_count),
+                    backgroundColor: 'rgba(168,85,247,0.7)'
+                },
+                {
+                    type: 'line',
+                    label: '流量(万)',
+                    data: regions.map(r => r.flow_total),
+                    borderColor: '#dc2626',
+                    backgroundColor: 'transparent',
+                    yAxisID: 'y1',
+                    tension: 0.3,
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: { display: true, text: `${currentMonth}各区域运营动作与流量关系`, font: {size:14} },
+                legend: { position: 'bottom' }
+            },
+            scales: {
+                y: { type: 'linear', position: 'left', beginAtZero: true, title: { display: true, text: '数量' }},
+                y1: { type: 'linear', position: 'right', beginAtZero: true, title: { display: true, text: '流量(万)' }}
+            }
         }
+    });
+}
 
-        // ============================================================
-        // 营销活动初始化
-        // ============================================================
-        function initMarketing() {
-            renderMarketingTable(RealData.marketingActivities);
-        }
+function updateActionCharts() {
+    renderPersonActionChart();
+    renderRegionActionChart();
+}
 
-        function renderMarketingTable(data) {
-            const tbody = document.getElementById('marketingTableBody');
-            tbody.innerHTML = data.map(a => `
-                <tr>
-                    <td>${a.id}</td>
-                    <td><strong>${a.name}</strong></td>
-                    <td>${a.school}</td>
-                    <td>${a.owner}</td>
-                    <td>${a.planDate}</td>
-                    <td>
-                        <div class="progress-bar" style="width: 120px;">
-                            <div class="progress-fill ${a.progress >= 80 ? 'success' : a.progress >= 30 ? 'warning' : 'danger'}" style="width: ${a.progress}%"></div>
-                        </div>
-                        <small>${a.progress}%</small>
-                    </td>
-                    <td><span class="badge badge-${a.status === '已完成' ? 'success' : a.status === '进行中' ? 'warning' : 'danger'}">${a.status}</span></td>
-                    <td>-</td>
-                </tr>
-            `).join('');
-        }
 
-        function filterMarketing(keyword) {
-            const filtered = RealData.marketingActivities.filter(a =>
-                a.name.includes(keyword) || a.school.includes(keyword)
-            );
-            renderMarketingTable(filtered);
-        }
+// ============================================================
+// 模块4: 用户池管理
+// ============================================================
+function loadDemoUserData() {
+    const demoUsers = [
+        {school:'南方医科大学',leader:'陈宝华',operator:'陈宝华',level:'S',name:'张教授',contact:'138****1234',dept:'药学院',count:15,updateTime:'2026-07-15'},
+        {school:'华南理工大学',leader:'陈宝华',operator:'卢婉炫',level:'A',name:'李老师',contact:'139****5678',dept:'化学学院',count:12,updateTime:'2026-07-20'},
+        {school:'广州中医药大学',leader:'陈宝华',operator:'黄乐怡',level:'S',name:'王主任',contact:'137****9012',dept:'中药学院',count:25,updateTime:'2026-07-22'},
+        {school:'清华大学',leader:'周滨',operator:'王春光/亚娟',level:'S',name:'刘教授',contact:'136****3456',dept:'化工系',count:8,updateTime:'2026-07-18'},
+        {school:'北京大学医学部',leader:'周滨',operator:'周滨',level:'A',name:'赵老师',contact:'135****7890',dept:'药学院',count:10,updateTime:'2026-07-25'}
+    ];
+    
+    let html = '';
+    demoUsers.forEach((u, i) => {
+        html += `<tr>
+            <td>${i+1}</td><td>${u.school}</td><td>${u.leader}</td><td>${u.operator}</td>
+            <td><span class="status-badge status-${u.level==='S'?'green':u.level==='A'?'blue':'yellow'}">${u.level}</span></td>
+            <td>${u.name}</td><td>${u.contact}</td><td>${u.dept}</td>
+            <td>${u.count}人</td><td>${u.updateTime}</td>
+        </tr>`;
+    });
+    document.getElementById('userPoolBody').innerHTML = html;
+    
+    document.getElementById('userPoolStats').innerHTML = `
+        <div class="kpi-card"><div class="label">S级用户</div><div class="value" style="color:#166534;">2</div></div>
+        <div class="kpi-card"><div class="label">A级用户</div><div class="value" style="color:#2563eb;">2</div></div>
+        <div class="kpi-card"><div class="label">B/C级用户</div><div class="value" style="color:#d97706;">1</div></div>
+        <div class="kpi-card"><div class="label">总用户数</div><div class="value">70</div></div>
+    `;
+}
 
-        function filterByStatus(status) {
-            if (!status) return renderMarketingTable(RealData.marketingActivities);
-            const filtered = RealData.marketingActivities.filter(a => a.status === status);
-            renderMarketingTable(filtered);
-        }
+function searchUserPool(keyword) {
+    console.log('搜索:', keyword);
+    // 实际实现应过滤表格
+}
 
-        // ============================================================
-        // 校园行管理初始化
-        // ============================================================
-        function initCampus() {
-            const grid = document.getElementById('campusModesGrid');
-            grid.innerHTML = RealData.campusModes.map(m => `
-                <div style="border: 1px solid #e5e7eb; border-radius: 10px; padding: 16px; background: white;">
-                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
-                        <h4 style="font-size: 15px; margin: 0;">${m.name}</h4>
-                        <span style="background: #dbeafe; color: #1e40af; padding: 2px 8px; border-radius: 10px; font-size: 12px;">#${m.id}</span>
-                    </div>
-                    <p style="font-size: 13px; color: #6b7280; margin-bottom: 12px;">${m.desc}</p>
-                    <div style="display: flex; gap: 12px; font-size: 12px;">
-                        <span>难度: ${m.difficulty}</span>
-                        <span>效果: <strong class="${m.effect === '极高' ? 'text-success' : ''}">${m.effect}</strong></span>
-                        <span>执行: ${m.supplier}</span>
-                    </div>
-                </div>
-            `).join('');
-        }
+function filterByLevel(level) {
+    console.log('筛选级别:', level);
+}
 
-        // ============================================================
-        // Excel 文件上传处理
-        // ============================================================
-        function handleUserPoolUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const wb = XLSX.read(e.target.result, { type: 'binary' });
-                const ws = wb.Sheets[wb.SheetNames[0]];
-                const data = XLSX.utils.sheet_to_json(ws);
+function filterByRegion(region) {
+    console.log('筛选区域:', region);
+}
 
-                AppData.userPool = data.map((row, idx) => ({
-                    id: idx + 1,
-                    name: row['姓名'] || row['用户名'] || '-',
-                    school: row['学校'] || '-',
-                    dept: row['学院'] || row['部门'] || '-',
-                    grade: (row['等级'] || row['评级'] || 'B').toString().toUpperCase(),
-                    contact: row['手机'] || row['联系方式'] || '-',
-                    lastActive: row['最近活跃'] || '-',
-                    remark: row['备注'] || '',
-                }));
+function downloadUserPoolTemplate() {
+    alert('下载用户池导入模板（.xlsx格式）\n包含字段：学校、区域负责人、运营专员、用户级别、用户姓名、联系方式、专业/科室');
+}
 
-                renderUserPoolTable(AppData.userPool);
-                alert(`✅ 成功导入 ${AppData.userPool.length} 条用户数据！`);
-            };
-            reader.readAsBinaryString(file);
-        }
+function importUserPool(input) {
+    if (input.files.length > 0) {
+        alert('已选择文件: ' + input.files[0].name + '\n（演示版：实际应解析Excel并渲染到表格）');
+    }
+}
 
-        function handleDataCollectUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            alert('📊 月度数据导入功能已触发！\n（请提供包含月度指标的Excel文件）');
-        }
 
-        function handleMarketingUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            alert('🎯 营销活动数据导入功能已触发！');
-        }
+// ============================================================
+// 模块5: 营销活动
+// ============================================================
+function switchMarketingTab(tab) {
+    document.querySelectorAll('#marketing .tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#marketing .tab-content').forEach(c => c.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('marketing-' + tab).classList.add('active');
+}
 
-        function handleCampusPlanUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            alert('📅 校园行计划导入功能已触发！');
-        }
+function showAddHQTaskModal() {
+    alert('打开新增总部任务弹窗\n字段：活动名称、周期、目标区域、预计触达、预计新增活跃、预计流量提升、预计费用');
+}
 
-        function handleCampusHistoryUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            alert('✅ 校园行历史记录导入功能已触发！');
-        }
-    </script>
+function showAddRegionPlanModal() {
+    alert('打开新增区域计划弹窗\n字段：活动名称、负责学校、负责人、计划时间、预计目标、预计费用');
+}
+
+function downloadActivityTemplate() {
+    alert('下载营销活动计划模板（.xlsx格式）\n包含字段：序号、活动名称、负责学校、负责人、计划时间、预计触达、预计新增活跃、预计流量提升、预计费用');
+}
+
+function importActivity(input) {
+    if (input.files.length > 0) {
+        alert('已导入: ' + input.files[0].name);
+    }
+}
+
+function importRegionPlan() {
+    alert('导入区域执行计划（批量Excel上传）');
+}
+
+function showOutputModal(btn) {
+    const row = btn.closest('tr');
+    const activity = row.cells[1].textContent;
+    const school = row.cells[2].textContent;
+    document.getElementById('outActivity').value = activity;
+    document.getElementById('outSchool').value = school;
+    document.getElementById('outputModal').classList.add('show');
+}
+
+function closeOutputModal() {
+    document.getElementById('outputModal').classList.remove('show');
+}
+
+function submitOutput() {
+    const data = {
+        activity: document.getElementById('outActivity').value,
+        school: document.getElementById('outSchool').value,
+        touch: document.getElementById('outTouch').value,
+        active: document.getElementById('outActive').value,
+        pool: document.getElementById('outPool').value,
+        flow: document.getElementById('outFlow').value,
+        orderNo: document.getElementById('outOrderNo').value,
+        orderAmt: document.getElementById('outOrderAmt').value
+    };
+    
+    // 添加到产出表格
+    const tbody = document.getElementById('outputBody');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+        <td>${data.activity}</td><td>${data.school}</td><td>-</td>
+        <td>${data.touch}</td><td>${data.active}</td><td>${data.pool}</td>
+        <td>${data.flow}</td><td>${data.orderNo}</td><td>${data.orderAmt}</td>
+    `;
+    tbody.insertBefore(tr, tbody.firstChild);
+    
+    closeOutputModal();
+    alert('✅ 产出结果已提交！');
+    
+    // 自动切换到产出标签页
+    switchMarketingTab.call({target: document.querySelectorAll('#marketing .tab-btn')[2]}, 'output');
+}
+
+
+// ============================================================
+// 模块6: 校园行管理
+// ============================================================
+function initCampusModes() {
+    let html = '';
+    CAMPUS_MODES.forEach(m => {
+        html += `<div style="border:1px solid var(--gray-200);border-radius:10px;padding:16px;">
+            <h4 style="margin-bottom:8px;">${m.id}. ${m.name}</h4>
+            <p style="font-size:13px;color:var(--gray-500);margin-bottom:8px;">${m.desc}</p>
+            <div style="display:flex;gap:8px;font-size:12px;">
+                <span class="status-badge status-green">${m.supplier}</span>
+                <span class="status-badge status-yellow">成本:${m.cost}</span>
+            </div>
+        </div>`;
+    });
+    document.getElementById('modeCards').innerHTML = html;
+}
+
+function switchCampusTab(tab) {
+    document.querySelectorAll('#campus .tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#campus .tab-content').forEach(c => c.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('campus-' + tab).classList.add('active');
+}
+
+function downloadCampusTemplate() {
+    alert('下载校园行计划模板（.xlsx格式）\n包含字段：序号、活动模式、学校、计划时间、负责人、预算、状态');
+}
+
+function importCampusPlan() {
+    alert('导入校园行计划表（批量Excel上传）');
+}
+
+function showAddCampusPlanModal() {
+    alert('打开单个新增弹窗\n字段：活动模式（下拉选择）、学校、计划时间、负责人、预算');
+}
+
+function importCampusHistory() {
+    alert('批量导入历史实施记录（Excel上传）\n包含字段：日期、学校、活动模式、参与人数、效果评价、照片路径');
+}
+
+
+// ============================================================
+// 其他功能
+// ============================================================
+function exportOverview() {
+    alert('导出运营概览报表（PDF/Excel格式）');
+}
+
+</script>
+
 </body>
 </html>
