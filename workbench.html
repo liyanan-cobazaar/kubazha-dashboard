@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="version" content="v9.1-20260811-1315">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>运营管理工作台 v7</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -150,20 +149,67 @@ function fmt(n) {
   return isNaN(f) ? '-' : f.toFixed(1).replace(/\.0$/,'');
 }
 
-// 计算客观分 (满分70)
-function calcObjectiveScore(p) {
-  var s = 0;
-  // 触达 (0-20): 每5次1分，最高20分
-  s += Math.min(20, ((p.touch||0)/5));
-  // 培训 (0-15): 每3场1分，最高15分
-  s += Math.min(15, ((p.train||0)/3));
-  // 校园行 (0-15): 每1场1分，最高15分
-  s += Math.min(15, (p.campus||0));
-  // 用户池 (0-10): 每20人1分，最高10分
-  s += Math.min(10, ((p.user_pool||0)/20));
-  // 流量 (0-10): 每100万1分，最高10分
-  s += Math.min(10, ((p.flow||0)/100));
-  return Math.round(s * 10) / 10;
+// 计算单项得分: 完成率*权重, 保底30%, 上限120%
+function calcItemScore(actual, target, weight) {
+  if(target === 0 || !target) return 0;
+  var ratio = Math.max(0.3, Math.min(1.2, actual / target));
+  return Math.round(ratio * weight * 10) / 10;
+}
+
+// 按岗位计算客观分
+function calcObjectiveScore(p, role) {
+  role = role || p.role;
+  var s = 0, details = [];
+
+  if(role === "区域主管") {
+    // 满分75: 流量45 + 结算15 + 培训8 + 方案7
+    // 流量增长率(45%): 用区域总流量估算, 暂用个人flow占比
+    var flowScore = Math.min(54, ((p.flow||0)/50 * 45)); // 简化估算
+    s += flowScore; details.push({name:"流量增长", val:p.flow||0, score:flowScore, max:45});
+    // 结算率(15%): settle_rate转数字
+    var sr = parseFloat(p.settle_rate)||0.5;
+    var settleScore = Math.min(15, Math.max(4.5, sr/0.85*15));
+    s += settleScore; details.push({name:"结算率", val:(sr*100).toFixed(1)+"%", score:settleScore, max:15});
+    // 培训(8%, 目标4场)
+    var trainS = calcItemScore(p.train||0, 4, 8);
+    s += trainS; details.push({name:"培训", val:p.train||0, score:trainS, max:8, target:"4场"});
+    // 方案输出(7%): 默认B级4分(无数据时)
+    s += 4; details.push({name:"方案输出", val:"B", score:4, max:7});
+
+  } else if(role === "项目营销负责人") {
+    // 满分85: 流量30 + 结算15 + 校园行15 + 培训10 + 用户池8 + 触达7
+    var fScore = calcItemScore(p.flow||0, 50, 30);
+    s += fScore; details.push({name:"流量增长", val:(p.flow||0).toFixed(1)+"万", score:fScore, max:30});
+    var sr2 = parseFloat(p.settle_rate)||0.5;
+    var stScore = calcItemScore(sr2, 0.85, 15);
+    s += stScore; details.push({name:"结算率", val:(sr2*100).toFixed(1)+"%", score:stScore, max:15});
+    var campScore = calcItemScore(p.campus||0, 2, 15);
+    s += campScore; details.push({name:"校园行", val:p.campus||0, score:campScore, max:15, target:"2场"});
+    var trScore = calcItemScore(p.train||0, 4, 10);
+    s += trScore; details.push({name:"培训", val:p.train||0, score:trScore, max:10, target:"4场"});
+    var upScore = calcItemScore(p.user_pool||0, 30, 8);
+    s += upScore; details.push({name:"用户池", val:p.user_pool||0, score:upScore, max:8, target:"30人"});
+    var touchScore = calcItemScore(p.touch||0, 100, 7);
+    s += touchScore; details.push({name:"触达", val:p.touch||0, score:touchScore, max:7, target:"100次"});
+
+  } else {
+    // 运营专员: 满分85: 校园行20 + 培训15 + 用户池8 + 触达7 + 流量25 + 结算10
+    var cScore = calcItemScore(p.campus||0, 2, 20);
+    s += cScore; details.push({name:"校园行", val:p.campus||0, score:cScore, max:20, target:"2场"});
+    var tScore = calcItemScore(p.train||0, 4, 15);
+    s += tScore; details.push({name:"培训", val:p.train||0, score:tScore, max:15, target:"4场"});
+    var uScore = calcItemScore(p.user_pool||0, 30, 8);
+    s += uScore; details.push({name:"用户池", val:p.user_pool||0, score:uScore, max:8, target:"30人"});
+    var tcScore = calcItemScore(p.touch||0, 100, 7);
+    s += tcScore; details.push({name:"触达", val:p.touch||0, score:tcScore, max:7, target:"100次"});
+    var flScore = calcItemScore(p.flow||0, 30, 25);
+    s += flScore; details.push({name:"流量增长", val:(p.flow||0).toFixed(1)+"万", score:flScore, max:25});
+    var sr3 = parseFloat(p.settle_rate)||0.5;
+    var seScore = calcItemScore(sr3, 0.85, 10);
+    s += seScore; details.push({name:"结算率", val:(sr3*100).toFixed(1)+"%", score:seScore, max:10});
+  }
+
+  return {total: Math.round(s*10)/10, details: details};
 }
 
 function statusClass(v, target) {
@@ -268,18 +314,19 @@ function updatePerformanceContent() {
 
   var out = '<div class="score-grid">';
   filtered.forEach(function(p) {
-    var objScore = calcObjectiveScore(p);
+    var objResult = calcObjectiveScore(p, p.role);
+    var objScore = objResult.total;
+    var objMax = objResult.details.reduce(function(s,d){return s+d.max;},0);
     var roleFields = SUBJECTIVE_FIELDS[p.role] || [];
     out += '<div class="score-card">';
     out += '<h4>'+p.name+' <span class="sub-text">'+p.role+' · '+p.region+'</span></h4>';
-    
-    // 客观分明细
-    out += '<div class="score-item"><span>触达 ('+fmt(p.touch)+') → '+Math.min(20,Math.round((p.touch||0)/5*10)/10)+'分</span><span>/20</span></div>';
-    out += '<div class="score-item"><span>培训 ('+fmt(p.train)+') → '+Math.min(15,Math.round((p.train||0)/3*10)/10)+'分</span><span>/15</span></div>';
-    out += '<div class="score-item"><span>校园行 ('+fmt(p.campus)+') → '+Math.min(15,p.campus||0)+'分</span><span>/15</span></div>';
-    out += '<div class="score-item"><span>用户池 ('+fmt(p.user_pool)+') → '+Math.min(10,Math.round((p.user_pool||0)/20*10)/10)+'分</span><span>/10</span></div>';
-    out += '<div class="score-item"><span>流量 ('+fmt(p.flow)+') → '+Math.min(10,Math.round((p.flow||0)/100*10)/10)+'分</span><span>/10</span></div>';
-    out += '<div class="score-item" style="background:#f0f7ff;border-radius:6px;padding:8px;margin-top:6px"><span><strong>客观小计</strong></span><span><strong>'+objScore+'</strong>/70</span></div>';
+
+    // 客观分明细 - 按岗位显示不同指标
+    objResult.details.forEach(function(d) {
+      var targetStr = d.target ? ' (目标'+d.target+')' : '';
+      out += '<div class="score-item"><span>'+d.name+' ('+fmt(d.val)+')'+targetStr+' → '+d.score+'分</span><span>/'+d.max+'</span></div>';
+    });
+    out += '<div class="score-item" style="background:#f0f7ff;border-radius:6px;padding:8px;margin-top:6px"><span><strong>客观小计</strong></span><span><strong>'+objScore+'</strong>/'+objMax+'</span></div>';
     
     // 主观分字段
     roleFields.forEach(function(f) {
@@ -507,7 +554,8 @@ function initSummary() {
 
   // 计算每个人总分
   var scored = people.map(function(p) {
-    var obj = calcObjectiveScore(p);
+    var objResult = calcObjectiveScore(p, p.role);
+    var obj = objResult.total;
     var subj = calcSubjectiveTotal(p.name, p.role);
     return {
       name:p.name, role:p.role, region:p.region,
