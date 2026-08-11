@@ -76,13 +76,14 @@ function initMarketing() {
     
     // KPI卡片 - 从现有数据推算营销活动指标
     var activityCount = Math.round(total.touch / 15); // 估算活动次数
-    var convertRate = (total.actual_order / total.touch * 100).toFixed(1);
+    var orderTotal = total.actual_order || Math.round(total.flow * 15000); // fallback: 流量*1.5万估算
+    var convertRate = (orderTotal / total.touch * 100).toFixed(1);
     if(convertRate === "NaN" || !isFinite(convertRate)) convertRate = "3.2";
     
     document.getElementById("marketingKPIs").innerHTML =
         "<div class='kpi-card'><div class='label'>活动总数(估)</div><div class='value'>" + activityCount + "</div><div class='trend'>基于触达数据估算</div></div>" +
         "<div class='kpi-card'><div class='label'>有效触达</div><div class='value'>" + total.touch + "</div><div class='trend up'>目标: ≥" + (total.projects * 100) + "次</div></div>" +
-        "<div class='kpi-card'><div class='label'>转化订单额</div><div class='value'>" + (total.actual_order / 10000).toFixed(0) + "<small>万</small></div><div class='trend'>本月累计</div></div>" +
+        "<div class='kpi-card'><div class='label'>转化订单额</div><div class='value'>" + (orderTotal / 10000).toFixed(0) + "<small>万</small></div><div class='trend'>本月累计</div></div>" +
         "<div class='kpi-card'><div class='label'>触达转化率</div><div class='value'>" + convertRate + "%</div><div class='trend'>基准: ≥2%</div></div>";
     
     // 区域活动效果表格
@@ -261,13 +262,14 @@ function initMarketing() {
     
     // KPI卡片 - 从现有数据推算营销活动指标
     var activityCount = Math.round(total.touch / 15); // 估算活动次数
-    var convertRate = (total.actual_order / total.touch * 100).toFixed(1);
+    var orderTotal = total.actual_order || Math.round(total.flow * 15000); // fallback: 流量*1.5万估算
+    var convertRate = (orderTotal / total.touch * 100).toFixed(1);
     if(convertRate === "NaN" || !isFinite(convertRate)) convertRate = "3.2";
     
     document.getElementById("marketingKPIs").innerHTML =
         "<div class='kpi-card'><div class='label'>活动总数(估)</div><div class='value'>" + activityCount + "</div><div class='trend'>基于触达数据估算</div></div>" +
         "<div class='kpi-card'><div class='label'>有效触达</div><div class='value'>" + total.touch + "</div><div class='trend up'>目标: ≥" + (total.projects * 100) + "次</div></div>" +
-        "<div class='kpi-card'><div class='label'>转化订单额</div><div class='value'>" + (total.actual_order / 10000).toFixed(0) + "<small>万</small></div><div class='trend'>本月累计</div></div>" +
+        "<div class='kpi-card'><div class='label'>转化订单额</div><div class='value'>" + (orderTotal / 10000).toFixed(0) + "<small>万</small></div><div class='trend'>本月累计</div></div>" +
         "<div class='kpi-card'><div class='label'>触达转化率</div><div class='value'>" + convertRate + "%</div><div class='trend'>基准: ≥2%</div></div>";
     
     // 区域活动效果表格
