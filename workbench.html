@@ -307,16 +307,16 @@ function initOverview() {
   });
   $("overviewTable").innerHTML = tbody;
 
-  // 趋势图 - 各月 flow
+  // 趋势图 - 各月 flow (单位:万，需除以10000)
   var months = Object.keys(WORKBENCH_DATA.totals).sort();
-  var flowData = months.map(function(m){ return WORKBENCH_DATA.totals[m].flow || 0; });
+  var flowData = months.map(function(m){ return (WORKBENCH_DATA.totals[m].flow || 0) / 10000; });
   renderLineChart("overviewTrendChart", "月度总流量趋势(万)", months, flowData, "#1a73e8");
 
-  // 区域对比图 - 各区域 flow
+  // 区域对比图 - 各区域 flow (单位:万)
   var rNames = Object.keys(regions);
   renderBarChart("overviewRegionChart", "各区域当月流量(万)",
     rNames.map(function(k){ return regions[k].region; }),
-    rNames.map(function(k){ return regions[k].flow || 0; })
+    rNames.map(function(k){ return (regions[k].flow || 0) / 10000; })
   );
 }
 
@@ -448,12 +448,12 @@ function renderSummaryView(md) {
 
   $("perfContent").innerHTML = out;
 
-  // 渲染图表
+  // 渲染图表 (流量单位:万)
   if(leaders.length > 0) {
-    renderComboChart("perfSummaryLeaderChart", "区域主管-绩效vs区域流量",
+    renderComboChart("perfSummaryLeaderChart", "区域主管-绩效vs区域流量(万)",
       leaders.map(function(p){return p.name;}),
       leaders.map(function(p){return p.total;}),
-      leaders.map(function(p){return p.flow||0;}), "流量"
+      leaders.map(function(p){return (p.flow||0) / 10000;}), "流量(万)"
     );
   }
   var mgrs = scored.filter(function(p){ return p.role === "项目营销负责人"; }).sort(function(a,b){ return b.total-a.total; });
@@ -611,12 +611,12 @@ function initMarketing() {
   });
   $("marketingTable").innerHTML = tbody;
 
-  // 组合图: 触达 vs 流量
+  // 组合图: 触达 vs 流量(万)
   var rNames = Object.keys(regions);
   renderComboChart("marketingComboChart", "各区域触达-流量关系",
     rNames.map(function(k){return regions[k].region;}),
     rNames.map(function(k){return regions[k].touch||0;}),
-    rNames.map(function(k){return regions[k].flow||0;})
+    rNames.map(function(k){return (regions[k].flow||0) / 10000;})
   );
 
   // 饼图: 项目类型分布
@@ -666,26 +666,26 @@ function initCampus() {
 function renderLineChart(canvasId, title, labels, data, color) {
   if(allCharts[canvasId]) allCharts[canvasId].destroy();
   var ctx = $(canvasId); if(!ctx) return;
-  allCharts[canvasId] = new Chart(ctx, {type:'line', data:{labels:labels, datasets:[{label:title, data:data, borderColor:color, backgroundColor:color+'20', fill:true, tension:0.3}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:title}}, scales:{y:{beginAtZero:true}}} });
+  allCharts[canvasId] = new Chart(ctx, {type:'line', data:{labels:labels, datasets:[{label:title, data:data, borderColor:color, backgroundColor:color+'20', fill:true, tension:0.3}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:title,font:{size:13}},datalabels:{display:true,color:color,font:{size:9,weight:'bold'},align:'top',formatter:function(v){return v>0?(v>=10000?(v/10000).toFixed(0)+'万':v.toFixed(0)):'';} } }, scales:{y:{beginAtZero:true}}} });
 }
 
 function renderBarChart(canvasId, title, labels, data) {
   if(allCharts[canvasId]) allCharts[canvasId].destroy();
   var ctx = $(canvasId); if(!ctx) return;
-  allCharts[canvasId] = new Chart(ctx, {type:'bar', data:{labels:labels, datasets:[{label:title, data:data, backgroundColor:'#1a73e880', borderColor:'#1a73e8', borderWidth:1}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:title}}, scales:{y:{beginAtZero:true}}} });
+  allCharts[canvasId] = new Chart(ctx, {type:'bar', data:{labels:labels, datasets:[{label:title, data:data, backgroundColor:'#1a73e880', borderColor:'#1a73e8', borderWidth:1}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:title,font:{size:13}},datalabels:{display:function(c){return c.dataset.data[c.dataIndex]>0;},anchor:'end',align:'top',color:'#1a73e8',font:{size:9,weight:'bold'},offset:2,formatter:function(v){if(v===0)return ''; if(v>=10000)return (v/10000).toFixed(1)+'万'; return v.toFixed(0);} } }, scales:{y:{beginAtZero:true}}} });
 }
 
 function renderRadarChart(canvasId, title, labels, datasets) {
   if(allCharts[canvasId]) allCharts[canvasId].destroy(); var ctx = $(canvasId); if(!ctx) return;
   var colors = ['#1a73e8','#22c55e','#f59e0b','#ef4444','#8b5cf6'];
   var ds = datasets.map(function(d,i){ return {label:d.label, data:d.data, borderColor:colors[i], backgroundColor:colors[i]+'20'}; });
-  allCharts[canvasId] = new Chart(ctx, { type:'radar', data:{labels:labels, datasets:ds}, options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:title}}, scales:{r:{beginAtZero:true}}} });
+  allCharts[canvasId] = new Chart(ctx, { type:'radar', data:{labels:labels, datasets:ds}, options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:title,font:{size:13}}}, scales:{r:{beginAtZero:true}}} });
 }
 
 function renderGroupedBarChart(canvasId, title, labels, datasets) {
   if(allCharts[canvasId]) allCharts[canvasId].destroy(); var ctx = $(canvasId); if(!ctx) return;
   var ds = datasets.map(function(d){ return {label:d.label, data:d.data, backgroundColor:(d.color||'#1a73e8')+'80', borderColor:d.color||'#1a73e8', borderWidth:1}; });
-  allCharts[canvasId] = new Chart(ctx, { type:'bar', data:{labels:labels, datasets:ds}, options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:title}}, scales:{y:{beginAtZero:true}}} });
+  allCharts[canvasId] = new Chart(ctx, { type:'bar', data:{labels:labels, datasets:ds}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:true,position:'top',labels:{boxWidth:12,font:{size:10}}},title:{display:true,text:title,font:{size:13}},datalabels:{display:function(c){return c.dataset.data[c.dataIndex]>0;},anchor:'end',align:'top',color:'#333',font:{size:8,weight:'bold'},offset:2,formatter:function(v){if(v===0)return ''; if(v>=10000)return (v/10000).toFixed(1)+'万'; return v.toFixed(0);} } }, scales:{y:{beginAtZero:true}}} });
 }
 
 function renderComboChart(canvasId, title, labels, lineData, barData, barUnit) {
@@ -698,8 +698,9 @@ function renderComboChart(canvasId, title, labels, lineData, barData, barUnit) {
       {type:'line', label:'绩效(线)', data:lineData, borderColor:'#ef4444', backgroundColor:'#ef444420', tension:0.3, yAxisID:'y1'}
     ] },
     options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ title:{display:true, text:title, font:{size:14, weight:'bold'}},
-        datalabels:{ display:function(c){return c.dataset.type!=='line';}, anchor:'end', align:'top', color:'#166534', font:{weight:'bold', size:10}, formatter:function(v){return v>0?v.toFixed(0):'';} } },
+      plugins:{ title:{display:true, text:title, font:{size:13, weight:'bold'}},
+        legend:{display:true,position:'top',labels:{boxWidth:12,font:{size:10}}},
+        datalabels:{ display:function(c){return c.dataset.type!=='line' && c.dataset.data[c.dataIndex]>0;}, anchor:'end', align:'top', color:'#166534', font:{size:9,weight:'bold'}, offset:2, formatter:function(v){if(v===0)return ''; if(v>=10000)return (v/10000).toFixed(1)+'万'; return v.toFixed(0);} } },
       scales:{ y:{ beginAtZero:true, position:'left', title:{display:true, text:unit, font:{size:11}} },
         y1:{ beginAtZero:true, position:'right', grid:{drawOnChartArea:false}, title:{display:true, text:'绩效分', font:{size:11}} } }
     }
@@ -716,8 +717,9 @@ function renderMultiComboChart(canvasId, title, labels, lineData, barDatasets, b
     type:'bar',
     data:{ labels:labels, datasets:ds },
     options:{ responsive:true, maintainAspectRatio:false,
-      plugins:{ title:{display:true, text:title, font:{size:14, weight:'bold'}},
-        datalabels:{ display:function(c){return c.dataset.type!=='line';}, anchor:'end', align:'top', color:'#333', font:{weight:'bold', size:9}, formatter:function(v){return v>0?v.toFixed(0):'';} } },
+      plugins:{ title:{display:true, text:title, font:{size:13, weight:'bold'}},
+        legend:{display:true,position:'top',labels:{boxWidth:12,font:{size:10}}},
+        datalabels:{ display:function(c){return c.dataset.type!=='line' && c.dataset.data[c.dataIndex]>0;}, anchor:'end', align:'top', color:'#333', font:{size:8,weight:'bold'}, offset:2, formatter:function(v){if(v===0)return ''; if(v>=10000)return (v/10000).toFixed(1)+'万'; return v.toFixed(0);} } },
       scales:{ y:{ beginAtZero:true, position:'left', stacked:false, title:{display:true, text:unit, font:{size:11}} },
         y1:{ beginAtZero:true, position:'right', grid:{drawOnChartArea:false}, title:{display:true, text:'绩效分', font:{size:11}} } }
     }
@@ -727,7 +729,7 @@ function renderMultiComboChart(canvasId, title, labels, lineData, barDatasets, b
 function renderPieChart(canvasId, title, labels, data) {
   if(allCharts[canvasId]) allCharts[canvasId].destroy(); var ctx = $(canvasId); if(!ctx) return;
   var colors = ['#1a73e8','#22c55e','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
-  allCharts[canvasId] = new Chart(ctx, { type:'doughnut', data:{labels:labels, datasets:[{data:data, backgroundColor:colors.slice(0,data.length)}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:title}}} });
+  allCharts[canvasId] = new Chart(ctx, { type:'doughnut', data:{labels:labels, datasets:[{data:data, backgroundColor:colors.slice(0,data.length)}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:title,font:{size:13}},datalabels:{display:true,color:'#fff',font:{size:10,weight:'bold'},formatter:function(v){var t=data.reduce(function(a,b){return a+b;},0);return t>0?((v/t*100).toFixed(1)+'%'):v;}} }} });
 }
 
 
