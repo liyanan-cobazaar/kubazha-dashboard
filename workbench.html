@@ -254,7 +254,7 @@ function renderMonthBtns() {
       currentMonth = m;
       document.querySelectorAll(".month-btn").forEach(function(b){ b.classList.remove("active"); });
       btn.classList.add("active");
-      refreshAllData();
+      refreshCurrentModule();
     };
     container.appendChild(btn);
   });
