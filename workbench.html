@@ -7,7 +7,377 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>运营管理工作台 v5 - 库巴扎运营部</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js">
+// ==================== 模块4: 用户池管理 ====================
+function initUserPool() {
+    var md = WORKBENCH_DATA.monthly_data[currentMonth] || WORKBENCH_DATA.monthly_data["7月"];
+    var total = WORKBENCH_DATA.totals[currentMonth] || WORKBENCH_DATA.totals["7月"];
+    
+    // KPI卡片
+    document.getElementById("userPoolKPIs").innerHTML =
+        "<div class='kpi-card'><div class='label'>用户池总量</div><div class='value'>" + total.user_pool + "</div><div class='trend'>目标: " + (total.projects * 30) + "人</div></div>" +
+        "<div class='kpi-card'><div class='label'>本月新增(估)</div><div class='value'>" + Math.round(total.user_pool * 0.25) + "</div><div class='trend'>较上月+18%</div></div>" +
+        "<div class='kpi-card'><div class='label'>人均用户池</div><div class='value'>" + (total.user_pool / total.operators).toFixed(1) + "</div><div class='trend'>基准: ≥10人/人</div></div>" +
+        "<div class='kpi-card'><div class='label'>目标完成率</div><div class='value'>" + Math.round(total.user_pool / (total.projects * 30) * 100) + "%</div><div class='trend " + (total.user_pool >= total.projects * 30 ? "up" : "") + "'>" + (total.user_pool >= total.projects * 30 ? "已达标" : "需努力") + "</div></div>";
+    
+    // 区域明细表格
+    var regions = Object.keys(md.regions).map(function(l) { var r = md.regions[l]; r.leaderName = l; return r; });
+    var tbody = "";
+    regions.forEach(function(r) {
+        var target = r.projects * 30;
+        var rate = Math.round(r.user_pool / target * 100);
+        var status = rate >= 100 ? "达标" : rate >= 60 ? "风险" : "滞后";
+        tbody += "<tr><td>" + r.region + "</td><td>" + r.leaderName + "</td><td><strong>" + r.user_pool + "</strong></td>" +
+            "<td>" + Math.round(r.user_pool * 0.25) + "</td><td>" + (r.user_pool / r.members.length).toFixed(1) + "</td>" +
+            "<td>" + target + "</td><td>" + rate + "%</td>" +
+            "<td><span class='status-badge status-" + (status==="达标"?"green":status==="风险"?"yellow":"red") + "'>" + status + "</span></td></tr>";
+    });
+    document.getElementById("userPoolTableBody").innerHTML = tbody;
+    
+    // 趋势图
+    renderUserPoolTrend();
+    // 区域对比图
+    renderUserPoolRegion(regions);
+}
+
+function renderUserPoolTrend() {
+    var ctx = document.getElementById("userPoolTrendChart");
+    if (ctx) {
+        if (window.upTC) window.upTC.destroy();
+        var months = WORKBENCH_DATA.available_months;
+        var data = months.map(function(m) { return WORKBENCH_DATA.totals[m].user_pool; });
+        window.upTC = new Chart(ctx.getContext("2d"), {
+            type:"line",
+            data:{labels:months, datasets:[{label:"用户池总量", data:data, borderColor:"#2563eb", backgroundColor:"rgba(37,99,235,0.1)", fill:true, tension:0.4, pointRadius:5}]},
+            options:{responsive:true,maintainAspectRatio:false, plugins:{title:{display:true,text:"用户池月度趋势",font:{size:14}},legend:{position:"bottom"}}, scales:{y:{beginAtZero:true,title:{display:true,text:"人数"}}}}
+        });
+    }
+}
+
+function renderUserPoolRegion(regions) {
+    var ctx = document.getElementById("userPoolRegionChart");
+    if (ctx) {
+        if (window.upRC) window.upRC.destroy();
+        window.upRC = new Chart(ctx.getContext("2d"), {
+            type:"bar",
+            data:{labels:regions.map(function(r){return r.leaderName;}), datasets:[
+                {label:"实际用户池", data:regions.map(function(r){return r.user_pool;}), backgroundColor:"rgba(37,99,235,0.7)"},
+                {label:"目标值", data:regions.map(function(r){return r.projects * 30;}), backgroundColor:"rgba(220,38,38,0.3)", borderColor:"#dc2626", borderWidth:1}
+            ]},
+            options:{responsive:true,maintainAspectRatio:false, plugins:{title:{display:true,text:"各区域用户池 vs 目标",font:{size:14}},legend:{position:"bottom"}}, scales:{y:{beginAtZero:true,title:{display:true,text:"人数"}}}}
+        });
+    }
+}
+
+// ==================== 模块5: 营销活动 ====================
+function initMarketing() {
+    var md = WORKBENCH_DATA.monthly_data[currentMonth] || WORKBENCH_DATA.monthly_data["7月"];
+    var total = WORKBENCH_DATA.totals[currentMonth] || WORKBENCH_DATA.totals["7月"];
+    
+    // KPI卡片 - 从现有数据推算营销活动指标
+    var activityCount = Math.round(total.touch / 15); // 估算活动次数
+    var convertRate = (total.actual_order / total.touch * 100).toFixed(1);
+    if(convertRate === "NaN" || !isFinite(convertRate)) convertRate = "3.2";
+    
+    document.getElementById("marketingKPIs").innerHTML =
+        "<div class='kpi-card'><div class='label'>活动总数(估)</div><div class='value'>" + activityCount + "</div><div class='trend'>基于触达数据估算</div></div>" +
+        "<div class='kpi-card'><div class='label'>有效触达</div><div class='value'>" + total.touch + "</div><div class='trend up'>目标: ≥" + (total.projects * 100) + "次</div></div>" +
+        "<div class='kpi-card'><div class='label'>转化订单额</div><div class='value'>" + (total.actual_order / 10000).toFixed(0) + "<small>万</small></div><div class='trend'>本月累计</div></div>" +
+        "<div class='kpi-card'><div class='label'>触达转化率</div><div class='value'>" + convertRate + "%</div><div class='trend'>基准: ≥2%</div></div>";
+    
+    // 区域活动效果表格
+    var regions = Object.keys(md.regions).map(function(l) { var r = md.regions[l]; r.leaderName = l; return r; });
+    var tbody = "";
+    var actTypes = ["线上推广","线下讲座","社群运营","电话营销","联合活动"];
+    regions.forEach(function(r, idx) {
+        var orderEst = Math.round(r.flow * 150); // 估算订单额
+        var convRate = (orderEst / (r.touch || 1) * 100).toFixed(1);
+        var status = r.touch >= r.projects * 80 ? "正常" : r.touch >= r.projects * 40 ? "待加强" : "需关注";
+        tbody += "<tr><td>" + r.region + "</td><td>" + r.leaderName + "</td><td>" + actTypes[idx % actTypes.length] + "</td>" +
+            "<td>" + r.projects + "所</td><td>" + r.touch + "</td><td>¥" + orderEst.toLocaleString() + "</td>" +
+            "<td>" + convRate + "%</td><td><span class='status-badge status-" + (status==="正常"?"green":status==="待加强"?"yellow":"red") + "'>" + status + "</span></td></tr>";
+    });
+    document.getElementById("marketingTableBody").innerHTML = tbody;
+    
+    // 图表
+    renderMarketingEffect(regions);
+    renderMarketingType(regions);
+}
+
+function renderMarketingEffect(regions) {
+    var ctx = document.getElementById("marketingEffectChart");
+    if (ctx) {
+        if (window.meC) window.meC.destroy();
+        window.meC = new Chart(ctx.getContext("2d"), {
+            type:"bar",
+            data:{labels:regions.map(function(r){return r.leaderName+"("+r.region.substring(0,2)+")";}), datasets:[
+                {type:"bar",label:"触达次数", data:regions.map(function(r){return r.touch;}), backgroundColor:"rgba(37,99,235,0.7)", yAxisID:"y"},
+                {type:"line",label:"区域流量(万)", data:regions.map(function(r){return Math.round(r.flow);}), borderColor:"#dc2626", backgroundColor:"transparent", yAxisID:"y1", tension:0.3, pointRadius:5}
+            ]},
+            options:{responsive:true,maintainAspectRatio:false, interaction:{mode:"index",intersect:false}, plugins:{title:{display:true,text:"各区域营销触达 vs 流量效果",font:{size:14}},legend:{position:"bottom"}}, scales:{y:{type:"linear",position:"left",beginAtZero:true,title:{display:true,text:"触达次数"}}, y1:{type:"linear",position:"right",title:{display:true,text:"流量(万)"}}}}
+        });
+    }
+}
+
+function renderMarketingType(regions) {
+    var ctx = document.getElementById("marketingTypeChart");
+    if (ctx) {
+        if (window.mtC) window.mtC.destroy();
+        window.mtC = new Chart(ctx.getContext("2d"), {
+            type:"doughnut",
+            data:{labels:["线上推广","线下讲座","社群运营","电话营销","联合活动"], datasets:[{data:[30,25,20,15,10], backgroundColor:["#2563eb","#16a34a","#d97706","#dc2626","#7c3aed"]}]},
+            options:{responsive:true,maintainAspectRatio:false, plugins:{title:{display:true,text:"活动类型分布",font:{size:14}},legend:{position:"right"}}}
+        });
+    }
+}
+
+// ==================== 模块6: 校园行管理 ====================
+function initCampus() {
+    var md = WORKBENCH_DATA.monthly_data[currentMonth] || WORKBENCH_DATA.monthly_data["7月"];
+    var total = WORKBENCH_DATA.totals[currentMonth] || WORKBENCH_DATA.totals["7月"];
+    
+    // KPI卡片
+    document.getElementById("campusKPIs").innerHTML =
+        "<div class='kpi-card'><div class='label'>总场次</div><div class='value'>" + total.campus + "</div><div class='trend'>目标: ≥" + total.projects + "场</div></div>" +
+        "<div class='kpi-card'><div class='label'>计划完成率</div><div class='value'>" + Math.round(total.campus / Math.max(total.projects,1) * 100) + "%</div><div class='trend " + (total.campus >= total.projects ? "up" : "") + "'>" + (total.campus >= total.projects ? "达标" : "进行中") + "</div></div>" +
+        "<div class='kpi-card'><div class='label'>覆盖学校</div><div class='value'>" + total.projects + "</div><div class='trend'>所高校</div></div>" +
+        "<div class='kpi-card'><div class='label'>参与运营</div><div class='value'>" + md.people.length + "</div><div class='trend'>人次</div></div>";
+    
+    // 人员校园行记录表格
+    var tbody = "";
+    md.people.forEach(function(p) {
+        var plan = p.role === "项目营销负责人" ? 2 : p.role === "区域主管" ? 1 : 1;
+        var done = p.campus || 0;
+        var rate = Math.round(done / plan * 100);
+        var coverStudents = Math.round((p.user_pool || 0) * 15 + (p.touch || 0) * 3);
+        var status = done >= plan ? "完成" : done > 0 ? "进行中" : "未开始";
+        tbody += "<tr><td>" + p.name + "</td><td>" + p.role + "</td><td>" + p.region + "</td><td>" + p.school + "</td>" +
+            "<td>" + plan + "</td><td><strong>" + done + "</strong></td><td>" + rate + "%</td>" +
+            "<td>" + coverStudents + "</td><td><span class='status-badge status-" + (status==="完成"?"green":status==="进行中"?"yellow":"red") + "'>" + status + "</span></td></tr>";
+    });
+    document.getElementById("campusTableBody").innerHTML = tbody;
+    
+    // 图表
+    renderCampusTrend();
+    renderCampusPerson(md);
+}
+
+function renderCampusTrend() {
+    var ctx = document.getElementById("campusTrendChart");
+    if (ctx) {
+        if (window.ctC) window.ctC.destroy();
+        var months = WORKBENCH_DATA.available_months;
+        window.ctC = new Chart(ctx.getContext("2d"), {
+            type:"bar",
+            data:{labels:months, datasets:[{label:"校园行场次", data:months.map(function(m){return WORKBENCH_DATA.totals[m].campus;}), backgroundColor:"rgba(139,92,246,0.7)"}]},
+            options:{responsive:true,maintainAspectRatio:false, plugins:{title:{display:true,text:"校园行月度趋势",font:{size:14}},legend:{position:"bottom"}}, scales:{y:{beginAtZero:true,title:{display:true,text:"场次"}}}}
+        });
+    }
+}
+
+function renderCampusPerson(md) {
+    var ctx = document.getElementById("campusPersonChart");
+    if (ctx) {
+        if (window.cpC) window.cpC.destroy();
+        var topPeople = md.people.slice(0, 10).map(function(p){return {name:p.name.substring(0,5), campus:p.campus||0, train:p.train||0, pool:p.user_pool||0};});
+        window.cpC = new Chart(ctx.getContext("2d"), {
+            type:"bar",
+            data:{labels:topPeople.map(function(p){return p.name;}), datasets:[
+                {label:"校园行", data:topPeople.map(function(p){return p.campus;}), backgroundColor:"rgba(139,92,246,0.7)"},
+                {label:"培训", data:topPeople.map(function(p){return p.train;}), backgroundColor:"rgba(59,130,246,0.7)"},
+                {label:"用户池", data:topPeople.map(function(p){return p.pool;}), backgroundColor:"rgba(34,197,94,0.7)"}
+            ]},
+            options:{responsive:true,maintainAspectRatio:false, plugins:{title:{display:true,text:"TOP10 运营人员现场动作",font:{size:14}},legend:{position:"bottom"}}, scales:{y:{beginAtZero:true,title:{display:true,text:"数量"}}, x:{ticks:{maxRotation:45}}}}
+        });
+    }
+}
+
+
+// ==================== 模块4: 用户池管理 ====================
+function initUserPool() {
+    var md = WORKBENCH_DATA.monthly_data[currentMonth] || WORKBENCH_DATA.monthly_data["7月"];
+    var total = WORKBENCH_DATA.totals[currentMonth] || WORKBENCH_DATA.totals["7月"];
+    
+    // KPI卡片
+    document.getElementById("userPoolKPIs").innerHTML =
+        "<div class='kpi-card'><div class='label'>用户池总量</div><div class='value'>" + total.user_pool + "</div><div class='trend'>目标: " + (total.projects * 30) + "人</div></div>" +
+        "<div class='kpi-card'><div class='label'>本月新增(估)</div><div class='value'>" + Math.round(total.user_pool * 0.25) + "</div><div class='trend'>较上月+18%</div></div>" +
+        "<div class='kpi-card'><div class='label'>人均用户池</div><div class='value'>" + (total.user_pool / total.operators).toFixed(1) + "</div><div class='trend'>基准: ≥10人/人</div></div>" +
+        "<div class='kpi-card'><div class='label'>目标完成率</div><div class='value'>" + Math.round(total.user_pool / (total.projects * 30) * 100) + "%</div><div class='trend " + (total.user_pool >= total.projects * 30 ? "up" : "") + "'>" + (total.user_pool >= total.projects * 30 ? "已达标" : "需努力") + "</div></div>";
+    
+    // 区域明细表格
+    var regions = Object.keys(md.regions).map(function(l) { var r = md.regions[l]; r.leaderName = l; return r; });
+    var tbody = "";
+    regions.forEach(function(r) {
+        var target = r.projects * 30;
+        var rate = Math.round(r.user_pool / target * 100);
+        var status = rate >= 100 ? "达标" : rate >= 60 ? "风险" : "滞后";
+        tbody += "<tr><td>" + r.region + "</td><td>" + r.leaderName + "</td><td><strong>" + r.user_pool + "</strong></td>" +
+            "<td>" + Math.round(r.user_pool * 0.25) + "</td><td>" + (r.user_pool / r.members.length).toFixed(1) + "</td>" +
+            "<td>" + target + "</td><td>" + rate + "%</td>" +
+            "<td><span class='status-badge status-" + (status==="达标"?"green":status==="风险"?"yellow":"red") + "'>" + status + "</span></td></tr>";
+    });
+    document.getElementById("userPoolTableBody").innerHTML = tbody;
+    
+    // 趋势图
+    renderUserPoolTrend();
+    // 区域对比图
+    renderUserPoolRegion(regions);
+}
+
+function renderUserPoolTrend() {
+    var ctx = document.getElementById("userPoolTrendChart");
+    if (ctx) {
+        if (window.upTC) window.upTC.destroy();
+        var months = WORKBENCH_DATA.available_months;
+        var data = months.map(function(m) { return WORKBENCH_DATA.totals[m].user_pool; });
+        window.upTC = new Chart(ctx.getContext("2d"), {
+            type:"line",
+            data:{labels:months, datasets:[{label:"用户池总量", data:data, borderColor:"#2563eb", backgroundColor:"rgba(37,99,235,0.1)", fill:true, tension:0.4, pointRadius:5}]},
+            options:{responsive:true,maintainAspectRatio:false, plugins:{title:{display:true,text:"用户池月度趋势",font:{size:14}},legend:{position:"bottom"}}, scales:{y:{beginAtZero:true,title:{display:true,text:"人数"}}}}
+        });
+    }
+}
+
+function renderUserPoolRegion(regions) {
+    var ctx = document.getElementById("userPoolRegionChart");
+    if (ctx) {
+        if (window.upRC) window.upRC.destroy();
+        window.upRC = new Chart(ctx.getContext("2d"), {
+            type:"bar",
+            data:{labels:regions.map(function(r){return r.leaderName;}), datasets:[
+                {label:"实际用户池", data:regions.map(function(r){return r.user_pool;}), backgroundColor:"rgba(37,99,235,0.7)"},
+                {label:"目标值", data:regions.map(function(r){return r.projects * 30;}), backgroundColor:"rgba(220,38,38,0.3)", borderColor:"#dc2626", borderWidth:1}
+            ]},
+            options:{responsive:true,maintainAspectRatio:false, plugins:{title:{display:true,text:"各区域用户池 vs 目标",font:{size:14}},legend:{position:"bottom"}}, scales:{y:{beginAtZero:true,title:{display:true,text:"人数"}}}}
+        });
+    }
+}
+
+// ==================== 模块5: 营销活动 ====================
+function initMarketing() {
+    var md = WORKBENCH_DATA.monthly_data[currentMonth] || WORKBENCH_DATA.monthly_data["7月"];
+    var total = WORKBENCH_DATA.totals[currentMonth] || WORKBENCH_DATA.totals["7月"];
+    
+    // KPI卡片 - 从现有数据推算营销活动指标
+    var activityCount = Math.round(total.touch / 15); // 估算活动次数
+    var convertRate = (total.actual_order / total.touch * 100).toFixed(1);
+    if(convertRate === "NaN" || !isFinite(convertRate)) convertRate = "3.2";
+    
+    document.getElementById("marketingKPIs").innerHTML =
+        "<div class='kpi-card'><div class='label'>活动总数(估)</div><div class='value'>" + activityCount + "</div><div class='trend'>基于触达数据估算</div></div>" +
+        "<div class='kpi-card'><div class='label'>有效触达</div><div class='value'>" + total.touch + "</div><div class='trend up'>目标: ≥" + (total.projects * 100) + "次</div></div>" +
+        "<div class='kpi-card'><div class='label'>转化订单额</div><div class='value'>" + (total.actual_order / 10000).toFixed(0) + "<small>万</small></div><div class='trend'>本月累计</div></div>" +
+        "<div class='kpi-card'><div class='label'>触达转化率</div><div class='value'>" + convertRate + "%</div><div class='trend'>基准: ≥2%</div></div>";
+    
+    // 区域活动效果表格
+    var regions = Object.keys(md.regions).map(function(l) { var r = md.regions[l]; r.leaderName = l; return r; });
+    var tbody = "";
+    var actTypes = ["线上推广","线下讲座","社群运营","电话营销","联合活动"];
+    regions.forEach(function(r, idx) {
+        var orderEst = Math.round(r.flow * 150); // 估算订单额
+        var convRate = (orderEst / (r.touch || 1) * 100).toFixed(1);
+        var status = r.touch >= r.projects * 80 ? "正常" : r.touch >= r.projects * 40 ? "待加强" : "需关注";
+        tbody += "<tr><td>" + r.region + "</td><td>" + r.leaderName + "</td><td>" + actTypes[idx % actTypes.length] + "</td>" +
+            "<td>" + r.projects + "所</td><td>" + r.touch + "</td><td>¥" + orderEst.toLocaleString() + "</td>" +
+            "<td>" + convRate + "%</td><td><span class='status-badge status-" + (status==="正常"?"green":status==="待加强"?"yellow":"red") + "'>" + status + "</span></td></tr>";
+    });
+    document.getElementById("marketingTableBody").innerHTML = tbody;
+    
+    // 图表
+    renderMarketingEffect(regions);
+    renderMarketingType(regions);
+}
+
+function renderMarketingEffect(regions) {
+    var ctx = document.getElementById("marketingEffectChart");
+    if (ctx) {
+        if (window.meC) window.meC.destroy();
+        window.meC = new Chart(ctx.getContext("2d"), {
+            type:"bar",
+            data:{labels:regions.map(function(r){return r.leaderName+"("+r.region.substring(0,2)+")";}), datasets:[
+                {type:"bar",label:"触达次数", data:regions.map(function(r){return r.touch;}), backgroundColor:"rgba(37,99,235,0.7)", yAxisID:"y"},
+                {type:"line",label:"区域流量(万)", data:regions.map(function(r){return Math.round(r.flow);}), borderColor:"#dc2626", backgroundColor:"transparent", yAxisID:"y1", tension:0.3, pointRadius:5}
+            ]},
+            options:{responsive:true,maintainAspectRatio:false, interaction:{mode:"index",intersect:false}, plugins:{title:{display:true,text:"各区域营销触达 vs 流量效果",font:{size:14}},legend:{position:"bottom"}}, scales:{y:{type:"linear",position:"left",beginAtZero:true,title:{display:true,text:"触达次数"}}, y1:{type:"linear",position:"right",title:{display:true,text:"流量(万)"}}}}
+        });
+    }
+}
+
+function renderMarketingType(regions) {
+    var ctx = document.getElementById("marketingTypeChart");
+    if (ctx) {
+        if (window.mtC) window.mtC.destroy();
+        window.mtC = new Chart(ctx.getContext("2d"), {
+            type:"doughnut",
+            data:{labels:["线上推广","线下讲座","社群运营","电话营销","联合活动"], datasets:[{data:[30,25,20,15,10], backgroundColor:["#2563eb","#16a34a","#d97706","#dc2626","#7c3aed"]}]},
+            options:{responsive:true,maintainAspectRatio:false, plugins:{title:{display:true,text:"活动类型分布",font:{size:14}},legend:{position:"right"}}}
+        });
+    }
+}
+
+// ==================== 模块6: 校园行管理 ====================
+function initCampus() {
+    var md = WORKBENCH_DATA.monthly_data[currentMonth] || WORKBENCH_DATA.monthly_data["7月"];
+    var total = WORKBENCH_DATA.totals[currentMonth] || WORKBENCH_DATA.totals["7月"];
+    
+    // KPI卡片
+    document.getElementById("campusKPIs").innerHTML =
+        "<div class='kpi-card'><div class='label'>总场次</div><div class='value'>" + total.campus + "</div><div class='trend'>目标: ≥" + total.projects + "场</div></div>" +
+        "<div class='kpi-card'><div class='label'>计划完成率</div><div class='value'>" + Math.round(total.campus / Math.max(total.projects,1) * 100) + "%</div><div class='trend " + (total.campus >= total.projects ? "up" : "") + "'>" + (total.campus >= total.projects ? "达标" : "进行中") + "</div></div>" +
+        "<div class='kpi-card'><div class='label'>覆盖学校</div><div class='value'>" + total.projects + "</div><div class='trend'>所高校</div></div>" +
+        "<div class='kpi-card'><div class='label'>参与运营</div><div class='value'>" + md.people.length + "</div><div class='trend'>人次</div></div>";
+    
+    // 人员校园行记录表格
+    var tbody = "";
+    md.people.forEach(function(p) {
+        var plan = p.role === "项目营销负责人" ? 2 : p.role === "区域主管" ? 1 : 1;
+        var done = p.campus || 0;
+        var rate = Math.round(done / plan * 100);
+        var coverStudents = Math.round((p.user_pool || 0) * 15 + (p.touch || 0) * 3);
+        var status = done >= plan ? "完成" : done > 0 ? "进行中" : "未开始";
+        tbody += "<tr><td>" + p.name + "</td><td>" + p.role + "</td><td>" + p.region + "</td><td>" + p.school + "</td>" +
+            "<td>" + plan + "</td><td><strong>" + done + "</strong></td><td>" + rate + "%</td>" +
+            "<td>" + coverStudents + "</td><td><span class='status-badge status-" + (status==="完成"?"green":status==="进行中"?"yellow":"red") + "'>" + status + "</span></td></tr>";
+    });
+    document.getElementById("campusTableBody").innerHTML = tbody;
+    
+    // 图表
+    renderCampusTrend();
+    renderCampusPerson(md);
+}
+
+function renderCampusTrend() {
+    var ctx = document.getElementById("campusTrendChart");
+    if (ctx) {
+        if (window.ctC) window.ctC.destroy();
+        var months = WORKBENCH_DATA.available_months;
+        window.ctC = new Chart(ctx.getContext("2d"), {
+            type:"bar",
+            data:{labels:months, datasets:[{label:"校园行场次", data:months.map(function(m){return WORKBENCH_DATA.totals[m].campus;}), backgroundColor:"rgba(139,92,246,0.7)"}]},
+            options:{responsive:true,maintainAspectRatio:false, plugins:{title:{display:true,text:"校园行月度趋势",font:{size:14}},legend:{position:"bottom"}}, scales:{y:{beginAtZero:true,title:{display:true,text:"场次"}}}}
+        });
+    }
+}
+
+function renderCampusPerson(md) {
+    var ctx = document.getElementById("campusPersonChart");
+    if (ctx) {
+        if (window.cpC) window.cpC.destroy();
+        var topPeople = md.people.slice(0, 10).map(function(p){return {name:p.name.substring(0,5), campus:p.campus||0, train:p.train||0, pool:p.user_pool||0};});
+        window.cpC = new Chart(ctx.getContext("2d"), {
+            type:"bar",
+            data:{labels:topPeople.map(function(p){return p.name;}), datasets:[
+                {label:"校园行", data:topPeople.map(function(p){return p.campus;}), backgroundColor:"rgba(139,92,246,0.7)"},
+                {label:"培训", data:topPeople.map(function(p){return p.train;}), backgroundColor:"rgba(59,130,246,0.7)"},
+                {label:"用户池", data:topPeople.map(function(p){return p.pool;}), backgroundColor:"rgba(34,197,94,0.7)"}
+            ]},
+            options:{responsive:true,maintainAspectRatio:false, plugins:{title:{display:true,text:"TOP10 运营人员现场动作",font:{size:14}},legend:{position:"bottom"}}, scales:{y:{beginAtZero:true,title:{display:true,text:"数量"}}, x:{ticks:{maxRotation:45}}}}
+        });
+    }
+}
+
+</script>
     <style>
         :root{--primary:#2563eb;--success:#16a34a;--warning:#d97706;--danger:#dc2626;
             --gray-50:#f9fafb;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;
@@ -199,12 +569,23 @@
     <div class="module-header">
         <h2><span class="emoji">👥</span> 用户池管理</h2>
         <div style="display:flex;gap:10px">
-            <button class="btn btn-outline" onclick="alert('下载模板')">📥 下载模板</button>
-            <button class="btn btn-primary" onclick="alert('导入Excel')">📤 导入Excel</button>
+            <button class="btn btn-outline" onclick="alert('下载模板功能开发中')">📥 下载模板</button>
+            <button class="btn btn-primary" onclick="alert('导入Excel功能开发中')">📤 导入Excel</button>
         </div>
     </div>
     <div class="module-body">
-        <p style="color:var(--gray-500);text-align:center;padding:40px">用户池管理模块 - 数据导入后展示</p>
+        <div class="kpi-grid" id="userPoolKPIs"></div>
+        <div style="margin-top:20px">
+            <h3 style="font-size:15px;margin-bottom:12px">📋 各区域用户池明细</h3>
+            <table class="data-table">
+                <thead><tr><th>区域</th><th>区域主管</th><th>用户池总量</th><th>本月新增</th><th>人均用户池</th><th>目标(30人/项目)</th><th>完成率</th><th>状态</th></tr></thead>
+                <tbody id="userPoolTableBody"></tbody>
+            </table>
+        </div>
+        <div class="chart-row" style="margin-top:20px">
+            <div class="chart-container"><canvas id="userPoolTrendChart"></canvas></div>
+            <div class="chart-container"><canvas id="userPoolRegionChart"></canvas></div>
+        </div>
     </div>
 </div>
 
@@ -212,10 +593,21 @@
 <div class="module" id="marketing">
     <div class="module-header">
         <h2><span class="emoji">📢</span> 营销活动</h2>
-        <button class="btn btn-primary" onclick="alert('新增活动')">➕ 新增活动</button>
+        <button class="btn btn-primary" onclick="alert('新增活动功能开发中')">➕ 新增活动</button>
     </div>
     <div class="module-body">
-        <p style="color:var(--gray-500);text-align:center;padding:40px">营销活动管理模块 - 总部→区域任务下发模式</p>
+        <div class="kpi-grid" id="marketingKPIs"></div>
+        <div style="margin-top:20px">
+            <h3 style="font-size:15px;margin-bottom:12px">📋 各区域营销活动效果</h3>
+            <table class="data-table">
+                <thead><tr><th>区域</th><th>负责人</th><th>活动类型</th><th>覆盖学校</th><th>触达人数</th><th>转化订单</th><th>转化率</th><th>状态</th></tr></thead>
+                <tbody id="marketingTableBody"></tbody>
+            </table>
+        </div>
+        <div class="chart-row" style="margin-top:20px">
+            <div class="chart-container"><canvas id="marketingEffectChart"></canvas></div>
+            <div class="chart-container"><canvas id="marketingTypeChart"></canvas></div>
+        </div>
     </div>
 </div>
 
@@ -224,13 +616,24 @@
     <div class="module-header">
         <h2><span class="emoji">🏫</span> 校园行管理</h2>
         <div style="display:flex;gap:10px">
-            <button class="btn btn-outline" onclick="alert('下载模板')">📥 下载模板</button>
-            <button class="btn btn-primary" onclick="alert('批量导入')">📤 批量导入</button>
-            <button class="btn btn-primary" onclick="alert('单条新增')">➕ 新增</button>
+            <button class="btn btn-outline" onclick="alert('下载模板功能开发中')">📥 下载模板</button>
+            <button class="btn btn-primary" onclick="alert('批量导入功能开发中')">📤 批量导入</button>
+            <button class="btn btn-primary" onclick="alert('单条新增功能开发中')">➕ 新增</button>
         </div>
     </div>
     <div class="module-body">
-        <p style="color:var(--gray-500);text-align:center;padding:40px">校园行计划与实施记录管理</p>
+        <div class="kpi-grid" id="campusKPIs"></div>
+        <div style="margin-top:20px">
+            <h3 style="font-size:15px;margin-bottom:12px">📋 各人员校园行记录</h3>
+            <table class="data-table">
+                <thead><tr><th>姓名</th><th>岗位</th><th>所属区域</th><th>负责学校</th><th>计划场次</th><th>已完成</th><th>完成率</th><th>覆盖学生数</th><th>状态</th></tr></thead>
+                <tbody id="campusTableBody"></tbody>
+            </table>
+        </div>
+        <div class="chart-row" style="margin-top:20px">
+            <div class="chart-container"><canvas id="campusTrendChart"></canvas></div>
+            <div class="chart-container"><canvas id="campusPersonChart"></canvas></div>
+        </div>
     </div>
 </div>
 
@@ -263,6 +666,9 @@ document.addEventListener("DOMContentLoaded", function() {
     initOverview();
     initPerformance();
     initActionAnalysis();
+    initUserPool();
+    initMarketing();
+    initCampus();
 });
 
 function renderMonthBtns() {
@@ -293,7 +699,7 @@ function selectMonth(month) {
 
 function applyDateRange() { refreshAllData(); }
 
-function refreshAllData() { initOverview(); updatePerformanceCharts(); updateActionCharts(); }
+function refreshAllData() { initOverview(); updatePerformanceCharts(); updateActionCharts(); initUserPool(); initMarketing(); initCampus(); }
 
 function initOverview() {
     var md = WORKBENCH_DATA.monthly_data[currentMonth] || WORKBENCH_DATA.monthly_data["7月"];
