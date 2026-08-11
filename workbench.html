@@ -34,13 +34,13 @@ tr:hover td{background:#f8fafc}
 .tab-bar{display:flex;gap:0;border-bottom:2px solid #e2e8f0;margin-bottom:16px}
 .tab-btn{padding:8px 20px;cursor:pointer;border:none;background:none;font-size:14px;color:#666;border-bottom:2px solid transparent;margin-bottom:-2px}
 .tab-btn.active{color:#1a73e8;border-bottom-color:#1a73e8;font-weight:600}
-.score-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;margin-top:12px}
-.score-card{border:1px solid #e2e8f0;border-radius:10px;padding:16px}
-.score-card h4{font-size:14px;margin-bottom:10px;color:#444}
-.score-item{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px dashed #eee}
+.score-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;margin-top:12px}
+.score-card{border:1px solid #e2e8f0;border-radius:10px;padding:12px}
+.score-card h4{font-size:12px;margin-bottom:8px;color:#444}
+.score-item{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px dashed #eee;font-size:11px}
 .score-item:last-child{border-bottom:none}
-.score-input{width:60px;padding:4px 6px;border:1px solid #ddd;border-radius:4px;text-align:center;font-size:13px}
-.hint-text{font-size:11px;color:#888;margin-top:4px}
+.score-input{width:50px;padding:3px 4px;border:1px solid #ddd;border-radius:4px;text-align:center;font-size:11px}
+.hint-text{font-size:10px;color:#888;margin-top:2px}
 .rank-list{list-style:none}
 .rank-item{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid #f1f5f9}
 .rank-num{width:28px;height:28px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;margin-right:12px}
@@ -164,11 +164,11 @@ function calcObjectiveScore(p, role) {
   if(role === "区域主管") {
     // 满分75: 流量45 + 结算15 + 培训8 + 方案7
     // 流量增长率(45%): 用区域总流量估算, 暂用个人flow占比
-    var flowScore = Math.min(54, ((p.flow||0)/50 * 45)); // 简化估算
+    var flowScore = Math.round(Math.min(54, ((p.flow||0)/50 * 45)) * 10) / 10;
     s += flowScore; details.push({name:"流量增长", val:p.flow||0, score:flowScore, max:45});
     // 结算率(15%): settle_rate转数字
     var sr = parseFloat(p.settle_rate)||0.5;
-    var settleScore = Math.min(15, Math.max(4.5, sr/0.85*15));
+    var settleScore = Math.round(Math.min(15, Math.max(4.5, sr/0.85*15)) * 10) / 10;
     s += settleScore; details.push({name:"结算率", val:(sr*100).toFixed(1)+"%", score:settleScore, max:15});
     // 培训(8%, 目标4场)
     var trainS = calcItemScore(p.train||0, 4, 8);
@@ -324,7 +324,7 @@ function updatePerformanceContent() {
     // 客观分明细 - 按岗位显示不同指标
     objResult.details.forEach(function(d) {
       var targetStr = d.target ? ' (目标'+d.target+')' : '';
-      out += '<div class="score-item"><span>'+d.name+' ('+fmt(d.val)+')'+targetStr+' → '+d.score+'分</span><span>/'+d.max+'</span></div>';
+      out += '<div class="score-item"><span>'+d.name+' ('+fmt(d.val)+')'+targetStr+' → '+d.score.toFixed(1)+'分</span><span>/'+d.max+'</span></div>';
     });
     out += '<div class="score-item" style="background:#f0f7ff;border-radius:6px;padding:8px;margin-top:6px"><span><strong>客观小计</strong></span><span><strong>'+objScore+'</strong>/'+objMax+'</span></div>';
     
