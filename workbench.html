@@ -312,11 +312,12 @@ function initOverview() {
   var flowData = months.map(function(m){ return (WORKBENCH_DATA.totals[m].flow || 0) / 10000; });
   renderLineChart("overviewTrendChart", "月度总流量趋势(万)", months, flowData, "#1a73e8");
 
-  // 区域对比图 - 各区域 flow (单位:万)
+  // 区域流量饼图 - 各区域 flow (单位:万)
   var rNames = Object.keys(regions);
-  renderBarChart("overviewRegionChart", "各区域当月流量(万)",
+  var regionFlowData = rNames.map(function(k){ return (regions[k].flow || 0) / 10000; });
+  renderPieChart("overviewRegionChart", "各区域当月流量(万)",
     rNames.map(function(k){ return regions[k].region; }),
-    rNames.map(function(k){ return (regions[k].flow || 0) / 10000; })
+    regionFlowData
   );
 }
 
@@ -666,7 +667,7 @@ function initCampus() {
 function renderLineChart(canvasId, title, labels, data, color) {
   if(allCharts[canvasId]) allCharts[canvasId].destroy();
   var ctx = $(canvasId); if(!ctx) return;
-  allCharts[canvasId] = new Chart(ctx, {type:'line', data:{labels:labels, datasets:[{label:title, data:data, borderColor:color, backgroundColor:color+'20', fill:true, tension:0.3}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:title,font:{size:13}},datalabels:{display:true,color:color,font:{size:9,weight:'bold'},align:'top',formatter:function(v){return v>0?(v>=10000?(v/10000).toFixed(0)+'万':v.toFixed(0)):'';} } }, scales:{y:{beginAtZero:true}}} });
+  allCharts[canvasId] = new Chart(ctx, {type:'line', data:{labels:labels, datasets:[{label:title, data:data, borderColor:color, backgroundColor:color+'20', fill:true, tension:0.3}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:title,font:{size:13}},datalabels:{display:true,color:color,font:{size:9,weight:'bold'},align:'top',formatter:function(v){return v>0?v.toFixed(1):'';} } }, scales:{y:{beginAtZero:true}}} });
 }
 
 function renderBarChart(canvasId, title, labels, data) {
