@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<title>运营管理工作台 v6</title>
+<title>运营管理工作台 v7</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -22,8 +22,7 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
 .kpi-card .value{font-size:26px;font-weight:700;color:#1a73e8}
 .kpi-card .value small{font-size:13px;font-weight:400}
 .kpi-card .trend{font-size:11px;color:#888;margin-top:4px}
-.kpi-card .trend.up{color:#22c55e}
-.kpi-card .trend.down{color:#ef4444}
+.kpi-card .trend.up{color:#22c55e}.kpi-card .trend.down{color:#ef4444}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{background:#f1f5f9;padding:10px 8px;text-align:left;font-weight:600;color:#555;border-bottom:2px solid #e2e8f0}
 td{padding:8px;border-bottom:1px solid #f1f5f9}
@@ -84,7 +83,7 @@ tr:hover td{background:#f8fafc}
 <div class="module" id="modUserPool">
   <div class="module-title">👥 用户池管理</div>
   <div class="kpi-row" id="userPoolKPIs"></div>
-  <table><thead><tr><th>区域</th><th>用户池总量</th><th>本月新增</th><th>人均用户池</th><th>目标完成率</th><th>状态</th></tr></thead><tbody id="userPoolTable"></tbody></table>
+  <table><thead><tr><th>区域</th><th>用户池总量</th><th>本月新增(估)</th><th>人均用户池</th><th>目标完成率</th><th>状态</th></tr></thead><tbody id="userPoolTable"></tbody></table>
   <div class="chart-row"><div class="chart-container"><canvas id="userPoolTrendChart"></canvas></div><div class="chart-container"><canvas id="userPoolRegionChart"></canvas></div></div>
 </div>
 
@@ -92,7 +91,7 @@ tr:hover td{background:#f8fafc}
 <div class="module" id="modMarketing">
   <div class="module-title">📢 营销活动</div>
   <div class="kpi-row" id="marketingKPIs"></div>
-  <table><thead><tr><th>区域</th><th>活动数(估)</th><th>有效触达</th><th>转化订单额(万)</th><th>转化率</th><th>状态</th></tr></thead><tbody id="marketingTable"></tbody></table>
+  <table><thead><tr><th>区域</th><th>项目数</th><th>有效触达</th><th>订单额(万)</th><th>结算率</th><th>状态</th></tr></thead><tbody id="marketingTable"></tbody></table>
   <div class="chart-row"><div class="chart-container"><canvas id="marketingComboChart"></canvas></div><div class="chart-container"><canvas id="marketingPieChart"></canvas></div></div>
 </div>
 
@@ -100,7 +99,7 @@ tr:hover td{background:#f8fafc}
 <div class="module" id="modCampus">
   <div class="module-title">🏫 校园行管理</div>
   <div class="kpi-row" id="campusKPIs"></div>
-  <table><thead><tr><th>姓名</th><th>岗位</th><th>所属区域</th><th>计划场次</th><th>已完成</th><th>完成率</th><th>状态</th></tr></thead><tbody id="campusTable"></tbody></table>
+  <table><thead><tr><th>姓名</th><th>岗位</th><th>所属区域</th><th>学校</th><th>校园行场次</th><th>培训场次</th><th>触达次数</th><th>状态</th></tr></thead><tbody id="campusTable"></tbody></table>
   <div class="chart-row"><div class="chart-container"><canvas id="campusTrendChart"></canvas></div><div class="chart-container"><canvas id="campusTopChart"></canvas></div></div>
 </div>
 
@@ -140,24 +139,42 @@ var SUBJECTIVE_FIELDS = {
 var currentMonth = "7月";
 var currentViewMode = "all";
 var subjectiveScores = {};
-var currentScoringPerson = null;
 var allCharts = {};
 
 
 function $(id) { return document.getElementById(id); }
-function fmt(n) { if(n==null||n==='') return '-'; const f=parseFloat(n); return isNaN(f)?'-':f.toFixed(1).replace(/\.0$/,''); }
-function fmtW(n) { if(n==null||n==='') return '-'; const f=parseFloat(n); return isNaN(f)?'-':(f/10000).toFixed(1)+'万'; }
+function fmt(n) {
+  if(n==null||n==='') return '-';
+  var f = parseFloat(n);
+  return isNaN(f) ? '-' : f.toFixed(1).replace(/\.0$/,'');
+}
+
+// 计算客观分 (满分70)
+function calcObjectiveScore(p) {
+  var s = 0;
+  // 触达 (0-20): 每5次1分，最高20分
+  s += Math.min(20, ((p.touch||0)/5));
+  // 培训 (0-15): 每3场1分，最高15分
+  s += Math.min(15, ((p.train||0)/3));
+  // 校园行 (0-15): 每1场1分，最高15分
+  s += Math.min(15, (p.campus||0));
+  // 用户池 (0-10): 每20人1分，最高10分
+  s += Math.min(10, ((p.user_pool||0)/20));
+  // 流量 (0-10): 每100万1分，最高10分
+  s += Math.min(10, ((p.flow||0)/100));
+  return Math.round(s * 10) / 10;
+}
+
 function statusClass(v, target) {
   if(v==null) return '';
-  const p = parseFloat(v);
-  const t = parseFloat(target);
-  if(isNaN(p)||isNaN(t)) return 'status-warn';
+  var p = parseFloat(v), t = parseFloat(target);
+  if(isNaN(p)||isNaN(t)||t===0) return 'warn';
   var ratio = p / t;
-  if(ratio >= 1) return 'status-ok';
-  if(ratio >= 0.7) return 'status-warn';
-  return 'status-bad';
+  if(ratio >= 1) return 'ok';
+  if(ratio >= 0.7) return 'warn';
+  return 'bad';
 }
-function statusDot(cls) { return '<span class="status-dot '+cls+'"></span>'; }
+function statusDot(cls) { return '<span class="status-dot status-'+cls+'"></span>'; }
 
 
 function renderMonthBtns() {
@@ -180,7 +197,7 @@ function renderMonthBtns() {
 
 function refreshAllData() {
   initOverview();
-  updatePerformanceCharts();
+  updatePerformanceContent();
   initActionAnalysis();
   initUserPool();
   initMarketing();
@@ -194,36 +211,37 @@ function initOverview() {
   if(!md) return;
   var total = WORKBENCH_DATA.totals[currentMonth] || {};
   
-  // KPI卡片
+  // KPI卡片 - 用正确的字段名: flow, touch, train, campus
   $("overviewKPIs").innerHTML =
-    '<div class="kpi-card"><div class="label">当月总流量(万)</div><div class="value">'+fmt(total.last_month_flow)+'</div><div class="trend up">上月同期: '+fmt(total.same_period_flow)+'</div></div>' +
+    '<div class="kpi-card"><div class="label">当月总流量(万)</div><div class="value">'+fmt(total.flow)+'</div><div class="trend up">本月累计</div></div>' +
     '<div class="kpi-card"><div class="label">有效触达</div><div class="value">'+fmt(total.touch)+'</div><div class="trend">目标: ≥'+(total.projects * 100 || 3800)+'次</div></div>' +
-    '<div class="kpi-card"><div class="label">培训场次</div><div class="value">'+fmt(total.training_count)+'</div><div class="trend up">累计覆盖</div></div>' +
-    '<div class="kpi-card"><div class="label">校园行场次</div><div class="value">'+fmt(total.campus_count)+'</div><div class="trend up">活跃学校</div></div>';
+    '<div class="kpi-card"><div class="label">培训场次</div><div class="value">'+fmt(total.train)+'</div><div class="trend up">累计覆盖</div></div>' +
+    '<div class="kpi-card"><div class="label">校园行场次</div><div class="value">'+fmt(total.campus)+'</div><div class="trend up">活跃学校</div></div>';
 
-  // 表格
+  // 表格 - 正确字段: region(不是region_name), projects, members.length, user_pool, touch, train, campus
   var regions = md.regions || {};
   var tbody = "";
   Object.keys(regions).forEach(function(name) {
     var r = regions[name];
-    tbody += "<tr><td>"+r.region_name+"</td><td>"+name+"</td><td>"+r.project_count+"</td><td>"+r.member_count+"</td><td>"+fmt(r.user_pool)+"</td><td>"+fmt(r.touch)+"</td><td>"+fmt(r.training_count)+"</td><td>"+fmt(r.campus_count)+"</td></tr>";
+    tbody += "<tr><td>"+r.region+"</td><td>"+name+"</td><td>"+r.projects+"</td><td>"+r.members.length+"</td><td>"+fmt(r.user_pool)+"</td><td>"+fmt(r.touch)+"</td><td>"+fmt(r.train)+"</td><td>"+fmt(r.campus)+"</td></tr>";
   });
   $("overviewTable").innerHTML = tbody;
 
-  // 趋势图 - 各月总流量
+  // 趋势图 - 各月 flow
   var months = Object.keys(WORKBENCH_DATA.totals).sort();
-  var flowData = months.map(function(m){ return WORKBENCH_DATA.totals[m].last_month_flow || 0; });
-  renderLineChart("overviewTrendChart", "月度总流量趋势", months, flowData, "#1a73e8");
+  var flowData = months.map(function(m){ return WORKBENCH_DATA.totals[m].flow || 0; });
+  renderLineChart("overviewTrendChart", "月度总流量趋势(万)", months, flowData, "#1a73e8");
 
-  // 区域对比图
-  var regionNames = Object.keys(regions).map(function(k){ return regions[k].region_name; });
-  var flowByRegion = Object.keys(regions).map(function(k){ return regions[k].last_month_flow || 0; });
-  renderBarChart("overviewRegionChart", "各区域当月流量", regionNames, flowByRegion);
+  // 区域对比图 - 各区域 flow
+  var rNames = Object.keys(regions);
+  renderBarChart("overviewRegionChart", "各区域当月流量(万)",
+    rNames.map(function(k){ return regions[k].region; }),
+    rNames.map(function(k){ return regions[k].flow || 0; })
+  );
 }
 
 
 function initPerformance() {
-  // Tab栏
   var tabs = [{"id":"all","name":"全部"},{"id":"leaders","name":"区域主管"},{"id":"managers","name":"营销负责人"},{"id":"staff","name":"运营专员"}];
   $("perfTabs").innerHTML = tabs.map(function(t){
     return '<button class="tab-btn'+(t.id===currentViewMode?' active':'')+'" data-tab="'+t.id+'" onclick="switchPerfTab(this.dataset.tab)">'+t.name+'</button>';
@@ -247,33 +265,39 @@ function updatePerformanceContent() {
   else if(currentViewMode === "managers") filtered = people.filter(function(p){ return p.role === "项目营销负责人"; });
   else if(currentViewMode === "staff") filtered = people.filter(function(p){ return p.role === "运营专员"; });
 
-  var html = '<div class="score-grid">';
+  var out = '<div class="score-grid">';
   filtered.forEach(function(p) {
+    var objScore = calcObjectiveScore(p);
     var roleFields = SUBJECTIVE_FIELDS[p.role] || [];
-    html += '<div class="score-card">';
-    html += '<h4>'+p.name+' <span class="sub-text">'+p.role+'</span></h4>';
+    out += '<div class="score-card">';
+    out += '<h4>'+p.name+' <span class="sub-text">'+p.role+' · '+p.region+'</span></h4>';
     
-    // 客观分
-    html += '<div class="score-item"><span>客观分 (70%)</span><span><strong>'+fmt(p.objective_score)+'</strong>/70</span></div>';
+    // 客观分明细
+    out += '<div class="score-item"><span>触达 ('+fmt(p.touch)+') → '+Math.min(20,Math.round((p.touch||0)/5*10)/10)+'分</span><span>/20</span></div>';
+    out += '<div class="score-item"><span>培训 ('+fmt(p.train)+') → '+Math.min(15,Math.round((p.train||0)/3*10)/10)+'分</span><span>/15</span></div>';
+    out += '<div class="score-item"><span>校园行 ('+fmt(p.campus)+') → '+Math.min(15,p.campus||0)+'分</span><span>/15</span></div>';
+    out += '<div class="score-item"><span>用户池 ('+fmt(p.user_pool)+') → '+Math.min(10,Math.round((p.user_pool||0)/20*10)/10)+'分</span><span>/10</span></div>';
+    out += '<div class="score-item"><span>流量 ('+fmt(p.flow)+') → '+Math.min(10,Math.round((p.flow||0)/100*10)/10)+'分</span><span>/10</span></div>';
+    out += '<div class="score-item" style="background:#f0f7ff;border-radius:6px;padding:8px;margin-top:6px"><span><strong>客观小计</strong></span><span><strong>'+objScore+'</strong>/70</span></div>';
     
     // 主观分字段
     roleFields.forEach(function(f) {
       var val = subjectiveScores[p.name+"_"+f.key] || "";
-      html += '<div class="score-item">';
-      html += '<span>'+f.name+' ('+f.weight+')</span>';
-      html += '<input class="score-input" type="number" min="0" max="'+parseInt(f.weight)*10+'" value="'+val+'" data-pname="'+p.name+'" data-fkey="'+f.key+'" onchange="updateScore(this.dataset.pname,this.dataset.fkey,this.value)">';
-      html += '</div>';
-      html += '<div class="hint-text">评分标准: '+f.hint+'</div>';
+      out += '<div class="score-item">';
+      out += '<span>'+f.name+' ('+f.weight+')</span>';
+      out += '<input class="score-input" type="number" min="0" max="'+parseInt(f.weight)*10+'" value="'+val+'" data-pname="'+p.name+'" data-fkey="'+f.key+'" onchange="updateScore(this.dataset.pname,this.dataset.fkey,this.value)">';
+      out += '</div>';
+      out += '<div class="hint-text">评分标准: '+f.hint+'</div>';
     });
     
     // 总分
     var subjTotal = calcSubjectiveTotal(p.name, p.role);
-    var totalScore = (parseFloat(p.objective_score)||0) + subjTotal;
-    html += '<div class="score-item" style="background:#f0f7ff;border-radius:6px;padding:10px 8px;margin-top:8px"><span><strong>总分</strong></span><span style="font-size:20px;color:#1a73e8;font-weight:700">'+fmt(totalScore)+'</span></div>';
-    html += '</div>';
+    var totalScore = objScore + subjTotal;
+    out += '<div class="score-item" style="background:#e8f5e9;border-radius:6px;padding:10px 8px;margin-top:8px"><span><strong>总分</strong></span><span style="font-size:22px;color:#1a73e8;font-weight:700">'+fmt(totalScore)+'</span></div>';
+    out += '</div>';
   });
-  html += '</div>';
-  $("perfContent").innerHTML = html;
+  out += '</div>';
+  $("perfContent").innerHTML = out;
 }
 
 function updateScore(person, fieldKey, value) {
@@ -291,29 +315,26 @@ function calcSubjectiveTotal(person, role) {
   return total;
 }
 
-function updatePerformanceCharts() {
-  updatePerformanceContent();
-}
-
 
 function initActionAnalysis() {
   var md = WORKBENCH_DATA.monthly_data[currentMonth];
   if(!md) return;
   var total = WORKBENCH_DATA.totals[currentMonth] || {};
+  var opCount = total.operators || 1;
 
   $("actionKPIs").innerHTML =
-    '<div class="kpi-card"><div class="label">人均触达</div><div class="value">'+fmt((total.touch||0)/(total.people_count||1))+'</div><div class="trend">次/人</div></div>' +
-    '<div class="kpi-card"><div class="label">人均校园行</div><div class="value">'+fmt((total.campus_count||0)/(total.people_count||1))+'</div><div class="trend">场/人</div></div>' +
-    '<div class="kpi-card"><div class="label">人均培训</div><div class="value">'+fmt((total.training_count||0)/(total.people_count||1))+'</div><div class="trend">场/人</div></div>' +
-    '<div class="kpi-card"><div class="label">结算率</div><div class="value">'+fmt(total.settlement_rate)+'%</div><div class="trend">基准: ≥90%</div></div>';
+    '<div class="kpi-card"><div class="label">人均触达</div><div class="value">'+fmt((total.touch||0)/opCount)+'</div><div class="trend">次/人</div></div>' +
+    '<div class="kpi-card"><div class="label">人均校园行</div><div class="value">'+fmt((total.campus||0)/opCount)+'</div><div class="trend">场/人</div></div>' +
+    '<div class="kpi-card"><div class="label">人均培训</div><div class="value">'+fmt((total.train||0)/opCount)+'</div><div class="trend">场/人</div></div>' +
+    '<div class="kpi-card"><div class="label">平均结算率</div><div class="value">'+calcAvgSettle(md.people)+'%</div><div class="trend">基准: ≥90%</div></div>';
 
-  // 雷达图 - TOP5人员
+  // 雷达图 - TOP5按触达排序
   var people = (md.people || []).slice().sort(function(a,b){ return (b.touch||0)-(a.touch||0); }).slice(0,5);
-  renderRadarChart("actionRadarChart", "TOP5运营人员能力雷达", 
+  renderRadarChart("actionRadarChart", "TOP5运营人员能力雷达",
     people.map(function(p){return p.name;}),
     [{label:"有效触达",data:people.map(function(p){return p.touch||0;})},
-     {label:"校园行",data:people.map(function(p){return p.campus_count||0;})},
-     {label:"培训",data:people.map(function(p){return p.training_count||0;})},
+     {label:"校园行",data:people.map(function(p){return p.campus||0;})},
+     {label:"培训",data:people.map(function(p){return p.train||0;})},
      {label:"用户池",data:people.map(function(p){return p.user_pool||0;})}]
   );
 
@@ -321,11 +342,21 @@ function initActionAnalysis() {
   var regions = md.regions || {};
   var rNames = Object.keys(regions);
   renderGroupedBarChart("actionBarChart", "各区域核心指标对比",
-    rNames.map(function(k){return regions[k].region_name;}),
+    rNames.map(function(k){return regions[k].region;}),
     [{label:"触达",data:rNames.map(function(k){return regions[k].touch||0;}),color:"#1a73e8"},
-     {label:"校园行",data:rNames.map(function(k){return regions[k].campus_count||0;}),color:"#22c55e"},
-     {label:"培训",data:rNames.map(function(k){return regions[k].training_count||0;}),color:"#f59e0b"}]
+     {label:"校园行",data:rNames.map(function(k){return regions[k].campus||0;}),color:"#22c55e"},
+     {label:"培训",data:rNames.map(function(k){return regions[k].train||0;}),color:"#f59e0b"}]
   );
+}
+
+function calcAvgSettle(people) {
+  if(!people || !people.length) return "0.0";
+  var sum = 0, cnt = 0;
+  people.forEach(function(p) {
+    var sr = parseFloat(p.settle_rate);
+    if(!isNaN(sr)) { sum += sr * 100; cnt++; }
+  });
+  return cnt > 0 ? (sum/cnt).toFixed(1) : "0.0";
 }
 
 
@@ -336,12 +367,12 @@ function initUserPool() {
   var regions = md.regions || {};
 
   // KPI
-  var poolTotal = Object.keys(regions).reduce(function(s,k){ return s + (regions[k].user_pool||0); }, 0);
+  var poolTotal = total.user_pool || 0;
   var targetPool = (total.projects || 38) * 500;
   $("userPoolKPIs").innerHTML =
     '<div class="kpi-card"><div class="label">用户池总量</div><div class="value">'+fmt(poolTotal)+'</div><div class="trend">目标: ≥'+targetPool+'</div></div>' +
     '<div class="kpi-card"><div class="label">本月新增(估)</div><div class="value">'+fmt(poolTotal*0.15)+'</div><div class="trend up">约15%增长率</div></div>' +
-    '<div class="kpi-card"><div class="label">人均用户池</div><div class="value">'+fmt(poolTotal/(total.people_count||1))+'</div><div class="trend">人/池</div></div>' +
+    '<div class="kpi-card"><div class="label">人均用户池</div><div class="value">'+fmt(poolTotal/(total.operators||1))+'</div><div class="trend">人/池</div></div>' +
     '<div class="kpi-card"><div class="label">目标完成率</div><div class="value">'+fmt((poolTotal/targetPool)*100)+'%</div><div class="trend '+(poolTotal>=targetPool?'up':'down')+'">'+(poolTotal>=targetPool?'已达标':'需努力')+'</div></div>';
 
   // 表格
@@ -349,11 +380,11 @@ function initUserPool() {
   Object.keys(regions).forEach(function(name) {
     var r = regions[name];
     var pool = r.user_pool || 0;
-    var perPerson = r.member_count > 0 ? pool / r.member_count : 0;
-    var regionTarget = r.project_count * 500;
+    var perPerson = r.members.length > 0 ? pool / r.members.length : 0;
+    var regionTarget = r.projects * 500;
     var rate = regionTarget > 0 ? (pool / regionTarget * 100) : 0;
-    var cls = rate >= 100 ? "ok" : (rate >= 70 ? "warn" : "bad");
-    tbody += "<tr><td>"+r.region_name+"</td><td>"+fmt(pool)+"</td><td>"+fmt(pool*0.15)+"</td><td>"+fmt(perPerson)+"</td><td>"+fmt(rate)+"%</td><td>"+statusDot("status-"+cls)+(rate>=100?"达标":(rate>=70?"接近":"待提升"))+"</td></tr>";
+    var cls = statusClass(rate, 100);
+    tbody += "<tr><td>"+r.region+"</td><td>"+fmt(pool)+"</td><td>"+fmt(pool*0.15)+"</td><td>"+fmt(perPerson)+"</td><td>"+fmt(rate)+"%</td><td>"+statusDot(cls)+(rate>=100?"达标":(rate>=70?"接近":"待提升"))+"</td></tr>";
   });
   $("userPoolTable").innerHTML = tbody;
 
@@ -361,15 +392,17 @@ function initUserPool() {
   var months = Object.keys(WORKBENCH_DATA.totals).sort();
   var poolTrend = months.map(function(m) {
     var rgn = WORKBENCH_DATA.monthly_data[m].regions || {};
-    return Object.keys(rgn).reduce(function(s,k){ return s + (rgn[k].user_pool||0); }, 0);
+    var t = WORKBENCH_DATA.totals[m];
+    return t.user_pool || 0;
   });
   renderLineChart("userPoolTrendChart", "用户池月度趋势", months, poolTrend, "#22c55e");
 
   // 区域对比
   var rNames = Object.keys(regions);
-  renderBarChart("userPoolRegionChart", "各区域用户池 vs 目标",
-    rNames.map(function(k){return regions[k].region_name;}),
-    rNames.map(function(k){return regions[k].user_pool||0;}));
+  renderBarChart("userPoolRegionChart", "各区域用户池",
+    rNames.map(function(k){return regions[k].region;}),
+    rNames.map(function(k){return regions[k].user_pool||0;})
+  );
 }
 
 
@@ -379,39 +412,53 @@ function initMarketing() {
   var total = WORKBENCH_DATA.totals[currentMonth] || {};
   var regions = md.regions || {};
 
-  var activityCount = total.projects || 38;
-  var touch = total.touch || 0;
-  var orderVal = touch * 180; // 估算订单额
-  var convertRate = touch > 0 ? (activityCount / touch * 100).toFixed(1) : "0.0";
+  // 从people计算订单总额和平均结算率
+  var people = md.people || [];
+  var orderTotal = 0, settleSum = 0, settleCnt = 0;
+  people.forEach(function(p) {
+    orderTotal += p.actual_order || 0;
+    var sr = parseFloat(p.settle_rate);
+    if(!isNaN(sr)) { settleSum += sr; settleCnt++; }
+  });
 
   $("marketingKPIs").innerHTML =
-    '<div class="kpi-card"><div class="label">活动总数(估)</div><div class="value">'+activityCount+'</div><div class="trend">基于项目数估算</div></div>' +
-    '<div class="kpi-card"><div class="label">有效触达</div><div class="value">'+fmt(touch)+'</div><div class="trend">目标: ≥'+(activityCount * 100)+'次</div></div>' +
-    '<div class="kpi-card"><div class="label">转化订单额(估)</div><div class="value">'+fmt(orderVal/10000)+'<small>万</small></div><div class="trend up">估算值</div></div>' +
-    '<div class="kpi-card"><div class="label">触达转化率</div><div class="value">'+convertRate+'%</div><div class="trend">基准: ≥2%</div></div>';
+    '<div class="kpi-card"><div class="label">项目总数</div><div class="value">'+(total.projects||0)+'</div><div class="trend">在运营项目</div></div>' +
+    '<div class="kpi-card"><div class="label">有效触达</div><div class="value">'+fmt(total.touch)+'</div><div class="trend">全平台累计</div></div>' +
+    '<div class="kpi-card"><div class="label">订单总额(万)</div><div class="value">'+fmt(orderTotal/10000)+'</div><div class="trend up">本月累计</div></div>' +
+    '<div class="kpi-card"><div class="label">平均结算率</div><div class="value">'+(settleCnt>0?fmt(settleSum/settleCnt*100):'0.0')+'%</div><div class="trend">基准: ≥90%</div></div>';
 
   // 表格
   var tbody = "";
   Object.keys(regions).forEach(function(name) {
     var r = regions[name];
     var t = r.touch || 0;
-    var cr = t > 0 ? ((r.project_count||0)/t*100).toFixed(1) : "0.0";
-    var cls = parseFloat(cr) >= 2 ? "ok" : (parseFloat(cr) >= 1 ? "warn" : "bad");
-    tbody += "<tr><td>"+r.region_name+"</td><td>"+(r.project_count||0)+"</td><td>"+fmt(t)+"</td><td>"+fmt(t*180/10000)+"</td><td>"+cr+"%</td><td>"+statusDot("status-"+cls)+(parseFloat(cr)>=2?"达标":"待提升")+"</td></tr>";
+    // 该区域人员的订单额和结算率
+    var rPeople = people.filter(function(p){ return p.leader === name; });
+    var rOrder = 0, rSettle = 0, rSCnt = 0;
+    rPeople.forEach(function(p) {
+      rOrder += p.actual_order || 0;
+      var sr = parseFloat(p.settle_rate);
+      if(!isNaN(sr)) { rSettle += sr; rSCnt++; }
+    });
+    var avgSR = rSCnt > 0 ? (rSettle/rSCnt*100).toFixed(1) : "0.0";
+    var cls = parseFloat(avgSR) >= 90 ? "ok" : (parseFloat(avgSR) >= 70 ? "warn" : "bad");
+    tbody += "<tr><td>"+r.region+"</td><td>"+r.projects+"</td><td>"+fmt(t)+"</td><td>"+fmt(rOrder/10000)+"</td><td>"+avgSR+"%</td><td>"+statusDot(cls)+(parseFloat(avgSR)>=90?"达标":"待提升")+"</td></tr>";
   });
   $("marketingTable").innerHTML = tbody;
 
   // 组合图: 触达 vs 流量
   var rNames = Object.keys(regions);
   renderComboChart("marketingComboChart", "各区域触达-流量关系",
-    rNames.map(function(k){return regions[k].region_name;}),
+    rNames.map(function(k){return regions[k].region;}),
     rNames.map(function(k){return regions[k].touch||0;}),
-    rNames.map(function(k){return regions[k].last_month_flow||0;})
+    rNames.map(function(k){return regions[k].flow||0;})
   );
 
-  // 饼图: 活动类型分布
-  renderPieChart("marketingPieChart", "活动类型分布", ["校园推广","线上营销","培训活动","社群运营"],
-    [Math.round(activityCount*0.4), Math.round(activityCount*0.25), Math.round(activityCount*0.2), Math.round(activityCount*0.15)]);
+  // 饼图: 项目类型分布
+  renderPieChart("marketingPieChart", "区域项目数分布",
+    rNames.map(function(k){return regions[k].region;}),
+    rNames.map(function(k){return regions[k].projects||0;})
+  );
 }
 
 
@@ -421,46 +468,34 @@ function initCampus() {
   var total = WORKBENCH_DATA.totals[currentMonth] || {};
   var people = md.people || [];
 
-  var campusTotal = people.reduce(function(s,p){ return s + (p.campus_count||0); }, 0);
-  var planTotal = people.length * 4; // 每人每月4场计划
+  var campusTotal = total.campus || 0;
+  var trainTotal = total.train || 0;
 
   $("campusKPIs").innerHTML =
-    '<div class="kpi-card"><div class="label">总场次</div><div class="value">'+fmt(campusTotal)+'</div><div class="trend up">本月累计</div></div>' +
-    '<div class="kpi-card"><div class="label">计划完成率</div><div class="value">'+fmt(campusTotal/planTotal*100)+'%</div><div class="trend '+(campusTotal>=planTotal?'up':'down')+'">'+(campusTotal>=planTotal?'超额':'进行中')+'</div></div>' +
-    '<div class="kpi-card"><div class="label">覆盖学校(估)</div><div class="value">'+Math.round(campusTotal*0.6)+'</div><div class="trend">约60%不重复</div></div>' +
-    '<div class="kpi-card"><div class="label">参与运营</div><div class="value">'+people.length+'</div><div class="trend">人</div></div>';
+    '<div class="kpi-card"><div class="label">校园行总场次</div><div class="value">'+fmt(campusTotal)+'</div><div class="trend up">本月累计</div></div>' +
+    '<div class="kpi-card"><div class="label">培训总场次</div><div class="value">'+fmt(trainTotal)+'</div><div class="trend up">本月累计</div></div>' +
+    '<div class="kpi-card"><div class="label">参与运营人数</div><div class="value">'+people.length+'</div><div class="trend">人</div></div>' +
+    '<div class="kpi-card"><div class="label">有校园行人数</div><div class="value">'+people.filter(function(p){return (p.campus||0)>0}).length+'</div><div class="trend up">活跃人员</div></div>';
 
-  // 表格
+  // 表格 - 显示每个人详情
   var tbody = "";
   people.forEach(function(p) {
-    var done = p.campus_count || 0;
-    var plan = 4;
-    var rate = plan > 0 ? done/plan*100 : 0;
-    var cls = rate >= 100 ? "ok" : (rate >= 50 ? "warn" : "bad");
-    var regionName = "";
-    var regionMap = WORKBENCH_DATA.region_map || {};
-    Object.keys(regionMap).forEach(function(l) {
-      if(regionMap[l].members && regionMap[l].members.indexOf(p.name) >= 0) {
-        regionName = regionMap[l].region_name;
-      }
-    });
-    tbody += "<tr><td>"+p.name+"</td><td>"+p.role+"</td><td>"+regionName+"</td><td>"+plan+"</td><td>"+done+"</td><td>"+fmt(rate)+"%</td><td>"+statusDot("status-"+cls)+(rate>=100?"完成":(rate>=50?"进行中":"待开展"))+"</td></tr>";
+    var cls = (p.campus||0) >= 2 ? "ok" : ((p.campus||0) > 0 ? "warn" : "bad");
+    tbody += "<tr><td>"+p.name+"</td><td>"+p.role+"</td><td>"+p.region+"</td><td>"+p.school+"</td><td>"+(p.campus||0)+"</td><td>"+(p.train||0)+"</td><td>"+(p.touch||0)+"</td><td>"+statusDot(cls)+((p.campus||0)>=2?"积极":((p.campus||0)>0?"参与中":"待开展"))+"</td></tr>";
   });
   $("campusTable").innerHTML = tbody;
 
   // 趋势图
   var months = Object.keys(WORKBENCH_DATA.totals).sort();
-  var campusTrend = months.map(function(m) {
-    var ppl = WORKBENCH_DATA.monthly_data[m].people || [];
-    return ppl.reduce(function(s,p){ return s + (p.campus_count||0); }, 0);
-  });
+  var campusTrend = months.map(function(m){ return (WORKBENCH_DATA.totals[m].campus||0); });
   renderLineChart("campusTrendChart", "校园行月度趋势", months, campusTrend, "#f59e0b");
 
-  // TOP10
-  var topPeople = people.slice().sort(function(a,b){ return (b.campus_count||0)-(a.campus_count||0); }).slice(0,10);
+  // TOP10 按校园行排序
+  var topPeople = people.slice().sort(function(a,b){ return (b.campus||0)-(a.campus||0); }).slice(0,10);
   renderBarChart("campusTopChart", "校园行TOP10",
     topPeople.map(function(p){return p.name;}),
-    topPeople.map(function(p){return p.campus_count||0;}));
+    topPeople.map(function(p){return p.campus||0;})
+  );
 }
 
 
@@ -471,11 +506,15 @@ function initSummary() {
 
   // 计算每个人总分
   var scored = people.map(function(p) {
-    var obj = parseFloat(p.objective_score) || 0;
+    var obj = calcObjectiveScore(p);
     var subj = calcSubjectiveTotal(p.name, p.role);
-    return {name:p.name, role:p.role, region:p.region, total: obj+subj, objective: obj, subjective: subj,
-            user_pool:p.user_pool, touch:p.touch, campus_count:p.campus_count, training_count:p.training_count,
-            last_month_flow:p.last_month_flow};
+    return {
+      name:p.name, role:p.role, region:p.region,
+      total: obj + subj, objective: obj, subjective: subj,
+      user_pool:p.user_pool, touch:p.touch,
+      campus:p.campus, train:p.train, flow:p.flow,
+      actual_order:p.actual_order, settle_rate:p.settle_rate
+    };
   });
 
   // 区域主管排行
@@ -490,19 +529,19 @@ function initSummary() {
     return '<li class="rank-item"><span class="rank-num'+(i<3?' top3':'')+'">'+(i+1)+'</span><span class="rank-name">'+p.name+' <span class="sub-text">'+p.role+'</span></span><span class="rank-score">'+fmt(p.total)+'</span></li>';
   }).join("") : '<li class="rank-item"><span style="color:#999">暂无数据</span></li>';
 
-  // 关系图1: 区域主管绩效 vs 流量
+  // 关系图1: 区域主管绩效 vs 区域流量
   if(leaders.length > 0) {
-    renderComboChart("summaryLeaderChart", "区域主管-绩效vs流量",
+    renderComboChart("summaryLeaderChart", "区域主管-绩效vs区域流量",
       leaders.map(function(p){return p.name;}),
       leaders.map(function(p){return p.total;}),
-      leaders.map(function(p){return p.last_month_flow||0;})
+      leaders.map(function(p){return p.flow||0;})
     );
   }
 
-  // 关系图2: 营销负责人绩效 vs 项目流量
+  // 关系图2: 营销负责人绩效 vs 触达
   var mgrs = scored.filter(function(p){ return p.role === "项目营销负责人"; }).sort(function(a,b){ return b.total-a.total; });
   if(mgrs.length > 0) {
-    renderComboChart("summaryMarketingChart", "营销负责人-绩效vs流量",
+    renderComboChart("summaryMarketingChart", "营销负责人-绩效vs触达",
       mgrs.map(function(p){return p.name;}),
       mgrs.map(function(p){return p.total;}),
       mgrs.map(function(p){return p.touch||0;})
@@ -515,8 +554,8 @@ function initSummary() {
     renderMultiComboChart("summaryStaffChart", "运营专员-绩效vs多指标",
       stf.map(function(p){return p.name;}),
       stf.map(function(p){return p.total;}),
-      [stf.map(function(p){return p.campus_count||0;}),
-       stf.map(function(p){return p.training_count||0;}),
+      [stf.map(function(p){return p.campus||0;}),
+       stf.map(function(p){return p.train||0;}),
        stf.map(function(p){return p.user_pool||0;}),
        stf.map(function(p){return p.touch||0;})],
       ["校园行","培训","用户池","触达"]
@@ -527,53 +566,62 @@ function initSummary() {
 
 function renderLineChart(canvasId, title, labels, data, color) {
   if(allCharts[canvasId]) allCharts[canvasId].destroy();
-  var ctx = document.getElementById(canvasId);
+  var ctx = $(canvasId);
   if(!ctx) return;
   allCharts[canvasId] = new Chart(ctx, {
-    type:'line', data:{labels:labels, datasets:[{label:title, data:data, borderColor:color, backgroundColor:color+'20', fill:true, tension:0.3}]},
+    type:'line',
+    data:{labels:labels, datasets:[{label:title, data:data, borderColor:color, backgroundColor:color+'20', fill:true, tension:0.3}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:title}}, scales:{y:{beginAtZero:true}}}
   });
 }
 
 function renderBarChart(canvasId, title, labels, data) {
   if(allCharts[canvasId]) allCharts[canvasId].destroy();
-  var ctx = document.getElementById(canvasId);
+  var ctx = $(canvasId);
   if(!ctx) return;
   allCharts[canvasId] = new Chart(ctx, {
-    type:'bar', data:{labels:labels, datasets:[{label:title, data:data, backgroundColor:'#1a73e880', borderColor:'#1a73e8', borderWidth:1}]},
+    type:'bar',
+    data:{labels:labels, datasets:[{label:title, data:data, backgroundColor:'#1a73e880', borderColor:'#1a73e8', borderWidth:1}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},title:{display:true,text:title}}, scales:{y:{beginAtZero:true}}}
   });
 }
 
 function renderRadarChart(canvasId, title, labels, datasets) {
   if(allCharts[canvasId]) allCharts[canvasId].destroy();
-  var ctx = document.getElementById(canvasId);
+  var ctx = $(canvasId);
   if(!ctx) return;
   var colors = ['#1a73e8','#22c55e','#f59e0b','#ef4444','#8b5cf6'];
-  var ds = datasets.map(function(d,i){ return {label:d.label, data:d.data, borderColor:colors[i], backgroundColor:colors[i]+'20'}; });
+  var ds = datasets.map(function(d,i){
+    return {label:d.label, data:d.data, borderColor:colors[i], backgroundColor:colors[i]+'20'};
+  });
   allCharts[canvasId] = new Chart(ctx, {
-    type:'radar', data:{labels:labels, datasets:ds},
+    type:'radar',
+    data:{labels:labels, datasets:ds},
     options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:title}}, scales:{r:{beginAtZero:true}}}
   });
 }
 
 function renderGroupedBarChart(canvasId, title, labels, datasets) {
   if(allCharts[canvasId]) allCharts[canvasId].destroy();
-  var ctx = document.getElementById(canvasId);
+  var ctx = $(canvasId);
   if(!ctx) return;
-  var ds = datasets.map(function(d){ return {label:d.label, data:d.data, backgroundColor:(d.color||'#1a73e8')+'80', borderColor:d.color||'#1a73e8', borderWidth:1}; });
+  var ds = datasets.map(function(d){
+    return {label:d.label, data:d.data, backgroundColor:(d.color||'#1a73e8')+'80', borderColor:d.color||'#1a73e8', borderWidth:1};
+  });
   allCharts[canvasId] = new Chart(ctx, {
-    type:'bar', data:{labels:labels, datasets:ds},
+    type:'bar',
+    data:{labels:labels, datasets:ds},
     options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:title}}, scales:{y:{beginAtZero:true}}}
   });
 }
 
 function renderComboChart(canvasId, title, labels, lineData, barData) {
   if(allCharts[canvasId]) allCharts[canvasId].destroy();
-  var ctx = document.getElementById(canvasId);
+  var ctx = $(canvasId);
   if(!ctx) return;
   allCharts[canvasId] = new Chart(ctx, {
-    type:'bar', data:{
+    type:'bar',
+    data:{
       labels:labels,
       datasets:[
         {label:'指标(柱)', data:barData, backgroundColor:'#22c55e80', borderColor:'#22c55e', borderWidth:1, yAxisID:'y'},
@@ -587,7 +635,7 @@ function renderComboChart(canvasId, title, labels, lineData, barData) {
 
 function renderMultiComboChart(canvasId, title, labels, lineData, barDatasets, barLabels) {
   if(allCharts[canvasId]) allCharts[canvasId].destroy();
-  var ctx = document.getElementById(canvasId);
+  var ctx = $(canvasId);
   if(!ctx) return;
   var barColors = ['#22c55e80','#f59e0b80','#8b5cf680','#1a73e880'];
   var ds = [{type:'line', label:'绩效(线)', data:lineData, borderColor:'#ef4444', backgroundColor:'#ef444420', tension:0.3, yAxisID:'y1'}];
@@ -595,7 +643,8 @@ function renderMultiComboChart(canvasId, title, labels, lineData, barDatasets, b
     ds.push({label:barLabels[i], data:d, backgroundColor:barColors[i], borderWidth:0, yAxisID:'y'});
   });
   allCharts[canvasId] = new Chart(ctx, {
-    type:'bar', data:{labels:labels, datasets:ds},
+    type:'bar',
+    data:{labels:labels, datasets:ds},
     options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:title}},
       scales:{y:{beginAtZero:true,position:'left'}, y1:{beginAtZero:true,position:'right',grid:{drawOnChartArea:false}}}}
   });
@@ -603,11 +652,12 @@ function renderMultiComboChart(canvasId, title, labels, lineData, barDatasets, b
 
 function renderPieChart(canvasId, title, labels, data) {
   if(allCharts[canvasId]) allCharts[canvasId].destroy();
-  var ctx = document.getElementById(canvasId);
+  var ctx = $(canvasId);
   if(!ctx) return;
-  var colors = ['#1a73e8','#22c55e','#f59e0b','#ef4444','#8b5cf6','#ec4899'];
+  var colors = ['#1a73e8','#22c55e','#f59e0b','#ef4444','#8b5cf6','#ec4899','#06b6d4','#84cc16'];
   allCharts[canvasId] = new Chart(ctx, {
-    type:'doughnut', data:{labels:labels, datasets:[{data:data, backgroundColor:colors}]},
+    type:'doughnut',
+    data:{labels:labels, datasets:[{data:data, backgroundColor:colors.slice(0,data.length)}]},
     options:{responsive:true,maintainAspectRatio:false,plugins:{title:{display:true,text:title}}}
   });
 }
