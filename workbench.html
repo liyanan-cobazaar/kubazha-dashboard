@@ -1581,24 +1581,39 @@ function renderMultiComboChart(canvasId, title, labels, lineData, barDatasets, b
   if (!ctx) return;
   var unit = barUnit || '\u6570\u91cf';
   var barColors = ['#22c55e80','#f59e0b80','#8b5cf680','#1a73e880'];
+  // 关键修复：0值替换为0.1使柱子可点击，同时保存原始值供tooltip使用
   var ds = [{ type: 'line', label: '\u7ee9\u6548(\u7ebf)', data: lineData, borderColor: '#ef4444', backgroundColor: '#ef444420', tension: 0.3, yAxisID: 'y1' }];
-  barDatasets.forEach(function(d, i) { ds.push({ label: barLabels[i], data: d, backgroundColor: barColors[i], borderWidth: 0, yAxisID: 'y' }); });
+  barDatasets.forEach(function(d, i) {
+    var originalData = d.slice();
+    var displayData = d.map(function(v) { return v === 0 ? 0.1 : v; });
+    ds.push({ label: barLabels[i], data: displayData, _original: originalData, backgroundColor: barColors[i], borderWidth: 0, yAxisID: 'y' });
+  });
   allCharts[canvasId] = new Chart(ctx, {
     type: 'bar',
     data: { labels: labels, datasets: ds },
     options: { responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: { title: { display: true, text: title, font: { size: 13, weight: 'bold' } },
         legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { size: 10 } } },
-        datalabels: { display: function(c) { return c.dataset.type !== 'line' && c.dataset.data[c.dataIndex] > 0; }, anchor: 'end', align: 'top', color: '#333', font: { size: 8, weight: 'bold' }, offset: 2, formatter: function(v) { if (v === 0) return ''; if (v >= 10000) return (v / 10000).toFixed(1) + '\u4e07'; return v.toFixed(0); } },
+        datalabels: { display: function(c) {
+          var origVal = c.dataset._original ? c.dataset._original[c.dataIndex] : c.dataset.data[c.dataIndex];
+          return c.dataset.type !== 'line' && origVal > 0;
+        }, anchor: 'end', align: 'top', color: '#333', font: { size: 8, weight: 'bold' }, offset: 2,
+        formatter: function(v, c) {
+          var origVal = c.dataset._original ? c.dataset._original[c.dataIndex] : v;
+          if (origVal === 0) return '';
+          if (origVal >= 10000) return (origVal / 10000).toFixed(1) + '\u4e07';
+          return origVal.toFixed(0);
+        } },
         tooltip: {
-          filter: function() { return true; },
           callbacks: {
             title: function(items) { return items.length > 0 ? '👤 ' + items[0].label : ''; },
             label: function(context) {
-              var v = context.parsed.y !== undefined ? context.parsed.y : context.parsed.x;
+              // 使用原始值（0而不是0.1）
+              var origVal = context.dataset._original ? context.dataset._original[context.dataIndex] : context.parsed.y;
               var label = context.dataset.label || '';
-              if (v === 0) return '⚠️ ' + label + ': ' + v + ' (待提升)';
-              return '✓ ' + label + ': ' + v;
+              if (origVal === 0) return '⚠️ ' + label + ': ' + origVal + ' (待提升)';
+              return '✓ ' + label + ': ' + origVal;
             }
           }
         }
