@@ -128,7 +128,7 @@ tr:hover td{background:#f8fafc}
     <div class="module-panel active" id="modOverview">
       <div class="module-title">📈 运营概览</div>
       <div class="kpi-row" id="overviewKPIs"></div>
-      <table><thead><tr><th>区域</th><th>负责人</th><th>项目数</th><th>运营人数</th><th>用户池</th><th>有效触达</th><th>培训场次</th><th>校园行场次</th></tr></thead><tbody id="overviewTable"></tbody></table>
+      <table><thead><tr><th>区域</th><th>负责人</th><th>项目数</th><th>运营人数</th><th>用户池</th><th>有效触达</th><th>培训场次</th><th>校园行场次</th><th>流量(万)</th></tr></thead><tbody id="overviewTable"></tbody></table>
       <div class="chart-row" style="grid-template-columns:1fr"><div class="chart-container" style="height:320px"><canvas id="overviewTrendChart"></canvas></div></div>
       <div class="chart-row" style="grid-template-columns:1fr"><div class="chart-container" style="height:380px"><canvas id="overviewRegionChart"></canvas></div></div>
     </div>
@@ -626,7 +626,7 @@ function initOverview() {
   var tbody = "";
   regionNames.forEach(function(name) {
     var r = regions[name];
-    tbody += "<tr><td>"+r.region+"</td><td>"+name+"</td><td>"+r.projects+"</td><td>"+r.members.length+"</td><td>"+fmt(r.user_pool)+"</td><td>"+fmt(r.touch)+"</td><td>"+fmt(r.train)+"</td><td>"+fmt(r.campus)+"</td></tr>";
+    tbody += "<tr><td>"+r.region+"</td><td>"+name+"</td><td>"+r.projects+"</td><td>"+r.members.length+"</td><td>"+fmt(r.user_pool)+"</td><td>"+fmt(r.touch)+"</td><td>"+fmt(r.train)+"</td><td>"+fmt(r.campus)+"</td><td>"+fmt((r.flow||0)/10000)+"</td></tr>";
   });
   $("overviewTable").innerHTML = tbody;
 
