@@ -1515,6 +1515,8 @@ var CAMPUS_EVENTS = [];
   months4_7.forEach(function(m,mi){
     for(var i=0;i<eventsPerMonth[mi];i++){
       var schoolIdx = Math.floor(Math.random()*schools.length);
+      var touch = Math.floor(Math.random()*120)+20;
+      var orderUsers = Math.floor(touch * (Math.random()*0.25 + 0.05)); // 5%-30% 下单转化人数
       CAMPUS_EVENTS.push({
         id: CAMPUS_EVENTS.length+1,
         date: "2026-"+("0"+(mi+4)).slice(-2)+"-"+String(Math.floor(Math.random()*28)+1).padStart(2,'0'),
@@ -1522,9 +1524,10 @@ var CAMPUS_EVENTS = [];
         school: schools[schoolIdx],
         mode: modes[Math.floor(Math.random()*modes.length)],
         person: persons[Math.floor(Math.random()*persons.length)],
-        touch: Math.floor(Math.random()*120)+20,
+        touch: touch,
         userNew: Math.floor(Math.random()*40)+5,
         status: "done",
+        orderUsers: orderUsers,
         order7d: Math.floor(Math.random()*50000),
         region: regions[Math.floor(schoolIdx/4.5)]
       });
@@ -1550,7 +1553,7 @@ var CAMPUS_EVENTS = [];
     {date:"2026-11-10",month:"11月",school:"南方医科大学",mode:"入班宣讲",person:"黄乐怡",region:"广东福建"}
   ];
   plans.forEach(function(p,i){
-    CAMPUS_EVENTS.push({id:CAMPUS_EVENTS.length+1,date:p.date,month:p.month,school:p.school,mode:p.mode,person:p.person,touch:0,userNew:0,status:"pending",order7d:0,region:p.region});
+    CAMPUS_EVENTS.push({id:CAMPUS_EVENTS.length+1,date:p.date,month:p.month,school:p.school,mode:p.mode,person:p.person,touch:0,userNew:0,status:"pending",orderUsers:0,order7d:0,region:p.region});
   });
 })();
 
@@ -1748,29 +1751,29 @@ function renderTracking() {
   var doneEvents = CAMPUS_EVENTS.filter(function(e){return e.status==="done";});
   var totalTouch = doneEvents.reduce(function(s,e){return s+(e.touch||0);},0);
   var totalUserNew = doneEvents.reduce(function(s,e){return s+(e.userNew||0);},0);
-  var totalOrder = doneEvents.reduce(function(s,e){return s+(e.order7d||0);},0);
-  var avgConvert = totalTouch > 0 ? ((totalOrder/totalTouch)*100).toFixed(1) : "0";
+  var totalOrderUsers = doneEvents.reduce(function(s,e){return s+(e.orderUsers||0);},0);
+  var avgConvert = totalTouch > 0 ? ((totalOrderUsers/totalTouch)*100).toFixed(1) : "0";
 
   $("trackKPIs").innerHTML =
     '<div class="kpi-card"><div class="label">已完成场次</div><div class="value">'+doneEvents.length+'</div><div class="trend up">场</div></div>' +
     '<div class="kpi-card"><div class="label">总触达数</div><div class="value">'+totalTouch+'</div><div class="trend">人次</div></div>' +
     '<div class="kpi-card"><div class="label">用户池新增</div><div class="value">'+totalUserNew+'</div><div class="trend up">人</div></div>' +
-    '<div class="kpi-card"><div class="label">平均转化率</div><div class="value">'+avgConvert+'%</div><div class="trend">下单/触达</div></div>';
+    '<div class="kpi-card"><div class="label">平均转化率</div><div class="value">'+avgConvert+'%</div><div class="trend">下单人数/触达</div></div>';
 
   var tbody = "";
   doneEvents.sort(function(a,b){return(b.order7d||0)-(a.order7d||0);}).slice(0,30).forEach(function(e){
-    var cr = e.touch > 0 ? ((e.order7d/e.touch)*100).toFixed(1) : "0";
+    var cr = e.touch > 0 ? ((e.orderUsers/e.touch)*100).toFixed(1) : "0";
     tbody += "<tr><td>#"+e.id+"</td><td>"+e.school+"</td><td>"+e.date+"</td><td>"+e.touch+"</td><td>"+e.userNew+"</td><td>¥"+(e.order7d/10000).toFixed(2)+"万</td><td>"+cr+"%</td><td>"+e.person+"</td></tr>";
   });
   $("trackTable").innerHTML = tbody;
 
-  // 趋势图 - 按月份汇总
+  // 趋势图 - 按月份汇总（转化率 = 下单人数/触达数）
   var months = ["4月","5月","6月","7月"];
   var touchByMonth = months.map(function(m){ return CAMPUS_EVENTS.filter(function(e){return e.month===m&&e.status==="done";}).reduce(function(s,e){return s+(e.touch||0);},0); });
   var convertByMonth = months.map(function(m){
     var evts = CAMPUS_EVENTS.filter(function(e){return e.month===m&&e.status==="done";});
     var t = evts.reduce(function(s,e){return s+(e.touch||0);},0);
-    var o = evts.reduce(function(s,e){return s+(e.order7d||0);},0);
+    var o = evts.reduce(function(s,e){return s+(e.orderUsers||0);},0);
     return t > 0 ? +(o/t*100).toFixed(1) : 0;
   });
   if(allCharts.trackTrendChart) allCharts.trackTrendChart.destroy();
@@ -1786,15 +1789,15 @@ function renderTracking() {
     }
   });
 
-  // 各模式转化率对比
+  // 各模式转化率对比（转化率 = 下单人数/触达数）
   var modeConvert = {};
   doneEvents.forEach(function(e){
-    if(!modeConvert[e.mode]) modeConvert[e.mode]={touch:0,order:0};
+    if(!modeConvert[e.mode]) modeConvert[e.mode]={touch:0,orderUsers:0};
     modeConvert[e.mode].touch += e.touch||0;
-    modeConvert[e.mode].order += e.order7d||0;
+    modeConvert[e.mode].orderUsers += e.orderUsers||0;
   });
   var mcLabels = Object.keys(modeConvert);
-  var mcData = mcLabels.map(function(k){ var m=modeConvert[k]; return m.touch>0?+(m.order/m.touch*100).toFixed(1):0; });
+  var mcData = mcLabels.map(function(k){ var m=modeConvert[k]; return m.touch>0?+(m.orderUsers/m.touch*100).toFixed(1):0; });
   if(allCharts.trackConvertChart) allCharts.trackConvertChart.destroy();
   allCharts.trackConvertChart = new Chart($("trackConvertChart"),{
     type:'bar',
