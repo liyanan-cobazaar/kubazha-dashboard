@@ -446,11 +446,12 @@ function getBaseFlow(p) {
   return 0;
 }
 
-// 计算增量: 实际产生线上订单金额 - 基期流量
+// 计算增量: 实际订单金额 - 基期流量
+// 基期 = 同期流量(base_flow_yoy)；为0或缺失时用上月流量(prev_flow)；增量为负(下降)则保留负数
 function calcFlowIncrement(p) {
-  var actual = p.flow || 0;
-  var base = getBaseFlow(p);
-  return actual - base;
+  var actual = p.actual_order || 0;   // 实际订单金额
+  var base = getBaseFlow(p);           // 同期流量优先，为0/缺失则上月流量
+  return actual - base;                // 负数即下降
 }
 
 // 按岗位计算客观分（按运营部绩效考核标准）
@@ -1022,18 +1023,18 @@ function getPrevMonth(month) {
   return idx > 0 ? months[idx-1] : null;
 }
 
-// 计算某区域在某月的流量增量(万)：当月区域流量 - 上月区域流量；首月无基期则返回0
+// 计算某区域在某月的流量增量(万)：Σ(各项目 实际订单金额 - 基期流量)
+// 基期 = 同期流量(base_flow_yoy)，为0/缺失则用上月流量(prev_flow)；负数=下降
 function regionFlowIncrement(month, regionKey) {
   var md = WORKBENCH_DATA.monthly_data[month];
   if(!md) return 0;
-  var prevM = getPrevMonth(month);
-  if(!prevM) return 0; // 首月无环比基期
-  var cur = md.regions[regionKey];
-  var curFlow = cur ? (cur.flow||0) : 0;
-  var prevRegions = WORKBENCH_DATA.monthly_data[prevM].regions;
-  var prev = prevRegions[regionKey];
-  var prevFlow = prev ? (prev.flow||0) : 0;
-  return (curFlow - prevFlow) / 10000;
+  var sum = 0;
+  (md.people||[]).forEach(function(p){
+    if(p.leader === regionKey && p.role !== "区域主管") {
+      sum += calcFlowIncrement(p);
+    }
+  });
+  return sum / 10000;
 }
 
 
@@ -1079,8 +1080,8 @@ function renderWADrill(month) {
   if(scope !== "all") {
     people = people.filter(function(p){ return p.leader === scope; });
   }
-  // 按流量增量降序
-  people.sort(function(a,b){ return ((b.flow||0)-(b.prev_flow||0)) - ((a.flow||0)-(a.prev_flow||0)); });
+  // 按流量增量(实际订单金额 - 基期)降序
+  people.sort(function(a,b){ return calcFlowIncrement(b) - calcFlowIncrement(a); });
 
   var titleEl = $("waDrillTitle");
   if(scope === "all") titleEl.textContent = "全部区域（"+people.length+"个项目）";
@@ -1091,7 +1092,7 @@ function renderWADrill(month) {
 
   var tbody = "";
   people.forEach(function(p){
-    var increment = ((p.flow||0) - (p.prev_flow||0)) / 10000;
+    var increment = calcFlowIncrement(p) / 10000;
     var incColor = increment >= 0 ? '#16a34a' : '#dc2626';
     var incStr = (increment>=0?'+':'') + fmt(increment);
     tbody += "<tr><td>"+p.name+"</td><td>"+(p.region||"")+"</td><td>"+fmt(p.user_pool)+"</td><td>"+fmt(p.touch)+"</td><td>"+fmt(p.train)+"</td><td>"+fmt(p.campus)+"</td><td>"+fmt((p.flow||0)/10000)+"</td><td style='color:"+incColor+";font-weight:600'>"+incStr+"</td></tr>";
