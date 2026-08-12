@@ -465,6 +465,35 @@ function calcFlowIncrement(p) {
   return actual - base;                // 负数即下降
 }
 
+// 将 md.people(按项目拆分的记录) 聚合成"按人"的记录：
+// - 运营专员 / 项目营销负责人：同名(同岗位)合并，campus/train/touch/user_pool/actual_order 求和；_projects 保留各项目用于结算率/流量增长平均
+// - 区域主管：按"人名"去重，只保留一条（整区域汇总评估）
+function getPersonLevelPeople(md) {
+  var people = md.people || [];
+  var map = {};
+  people.forEach(function(p){
+    var key = p.role + "|" + p.name;
+    if(!map[key]) {
+      map[key] = {
+        name:p.name, role:p.role, region:p.region,
+        campus:0, train:0, touch:0, user_pool:0, actual_order:0, flow:0,
+        settle_rate:0, base_flow_yoy:0, prev_flow:0,
+        _projects:[], _schools:[]
+      };
+    }
+    var rec = map[key];
+    rec.campus += (p.campus||0);
+    rec.train += (p.train||0);
+    rec.touch += (p.touch||0);
+    rec.user_pool += (p.user_pool||0);
+    rec.actual_order += (p.actual_order||0);
+    rec.flow += (p.actual_order||0);
+    rec._projects.push(p);
+    if(p.school && rec._schools.indexOf(p.school) < 0) rec._schools.push(p.school);
+  });
+  return Object.keys(map).map(function(k){ return map[k]; });
+}
+
 // 按岗位计算客观分（按运营部绩效考核标准）
 function calcObjectiveScore(p, role) {
   role = role || p.role;
@@ -474,43 +503,32 @@ function calcObjectiveScore(p, role) {
 
   if(role === "区域主管") {
     // 满分75: 流量增长45 + 结算率15 + 培训8 + 方案输出7
-    // ---- 流量增长(45分): 目标=区域基期总流量×1.15, 完成率=当月实际/(基期×1.15) ----
-    var rKey = Object.keys(regions).find(function(k){ return regions[k].region === p.region || k === p.name; });
-    var regionData = rKey ? regions[rKey] : null;
-    var regionActualFlow = regionData ? (regionData.flow || 0) : (p.flow || 0);
-    
-    // 区域基期流量汇总：区域内所有项目（含区域主管亲自负责的项目）基期之和
-    var regionBaseFlow = 0;
-    if(md && md.people) {
-      md.people.forEach(function(pp){
-        if(pp.region === p.region) {
-          regionBaseFlow += getBaseFlow(pp);
-        }
-      });
-    }
+    // ---- 流量增长(45分): 目标=区域(该区域所有人)基期总流量×1.15, 完成率=当月实际/(基期×1.15) ----
+    var regionPeople = (md.people||[]).filter(function(pp){ return pp.region === p.region; });
+    var regionActualFlow = regionPeople.reduce(function(a,pp){ return a + (pp.actual_order||0); }, 0);
+    var regionBaseFlow = regionPeople.reduce(function(a,pp){ return a + getBaseFlow(pp); }, 0);
     if(regionBaseFlow <= 0) regionBaseFlow = regionActualFlow / 1.15; // 无基期则反推
-    
+
     var flowTarget = regionBaseFlow * 1.15; // 同比增长15%目标
     var flowResult = calcItemScore(regionActualFlow, flowTarget, 45);
-    // 增量 = 实际 - 基期
     var increment = regionActualFlow - regionBaseFlow;
     s += flowResult.score;
-    details.push({name:"流量增长", val:(increment/10000).toFixed(2)+"万", 
+    details.push({name:"流量增长", val:(increment/10000).toFixed(2)+"万",
       ratio:flowResult.ratio, score:flowResult.score, max:45,
       target:(flowTarget/10000).toFixed(2)+"万"});
 
-    // ---- 结算率(15分): 目标85%, 完成=结算率/85% ----
-    var sr = parseFloat(p.settle_rate)||0;
-    var srVal = sr; // 已经是比例形式如0.91
-    var settleResult = calcItemScore(srVal, 0.85, 15);
+    // ---- 结算率(15分): 目标85%, 完成=结算率/85% (取其名下各项目 settle_rate>0 的平均) ----
+    var rSrVals = (p._projects||[]).map(function(pr){ return parseFloat(pr.settle_rate)||0; }).filter(function(v){ return v>0; });
+    var srValR = rSrVals.length > 0 ? (rSrVals.reduce(function(a,b){return a+b;},0)/rSrVals.length) : (parseFloat(p.settle_rate)||0);
+    var settleResult = calcItemScore(srValR, 0.85, 15);
     s += settleResult.score;
-    details.push({name:"结算率", val:(srVal*100).toFixed(1)+"%", 
+    details.push({name:"结算率", val:(srValR*100).toFixed(1)+"%",
       ratio:settleResult.ratio, score:settleResult.score, max:15, target:"85%"});
 
-    // ---- 培训(8分): 目标4场/月 ----
+    // ---- 培训(8分): 目标4场/月 (取其名下各项目培训之和) ----
     var trainResult = calcItemScore(p.train||0, 4, 8);
     s += trainResult.score;
-    details.push({name:"培训", val:p.train||0, 
+    details.push({name:"培训", val:p.train||0,
       ratio:trainResult.ratio, score:trainResult.score, max:8, target:"4场"});
 
     // ---- 方案输出(7分): 默认B级4分 ----
@@ -519,159 +537,108 @@ function calcObjectiveScore(p, role) {
 
   } else if(role === "项目营销负责人") {
     // 满分85: 流量30 + 结算15 + 校园行15 + 培训10 + 用户池8 + 触达7
-    var projectFlows = p._project_flows || [];
-    var projectCount = Math.max(projectFlows.length, 1);
-    var isMultiProject = projectFlows.length > 1;
+    // 个人实际值 = 名下各项目求和；目标固定(不随项目数翻倍)
+    var projsM = p._projects && p._projects.length ? p._projects : [p];
 
-    // ---- 流量增长(30分): 多项目用平均完成率 ----
-    var pBaseFlow = getBaseFlow(p);
-    var pActualFlow = p.flow || 0;
-    if(isMultiProject && projectFlows.length > 0) {
-      // 多项目: 每个项目分别计算完成率, 取平均
-      var flowRatios = [];
-      for(var fi=0;fi<projectFlows.length;fi++) {
-        var pf = projectFlows[fi] || 0;
-        var pBase = (pBaseFlow / projectCount); // 假设基期均匀分布
-        var pTarget = pBase > 0 ? pBase * 1.15 : pf;
-        flowRatios.push(pTarget > 0 ? pf / pTarget : 1);
-      }
-      var avgFlowRatio = flowRatios.reduce(function(a,b){return a+b;},0) / flowRatios.length;
-      var fResult = calcItemScoreByRatio(avgFlowRatio, 30);
-      var pIncrement = pActualFlow - pBaseFlow;
-      s += fResult.score;
-      details.push({name:"流量增长", val:(pIncrement/10000).toFixed(2)+"万("+projectCount+"项目均)",
-        ratio:(avgFlowRatio*100).toFixed(0), score:fResult.score, max:30,
-        target:"各项目基期×115%"});
+    // ---- 流量增长(30分): 各项目(实际订单/(基期×115%))的算术平均；基期为0的项目视为达标100% ----
+    var flowRatiosM = projsM.map(function(pr){
+      var base = getBaseFlow(pr);
+      if(base <= 0) return 1.0;
+      var tgt = base * 1.15;
+      return pr.actual_order > 0 ? (pr.actual_order / tgt) : 0;
+    });
+    var avgFlowM = flowRatiosM.reduce(function(a,b){return a+b;},0) / flowRatiosM.length;
+    var fResultM = calcItemScoreByRatio(avgFlowM, 30);
+    var pActualM = p.actual_order || 0;
+    var pBaseM = projsM.reduce(function(a,pr){return a+getBaseFlow(pr);},0);
+    s += fResultM.score;
+    details.push({name:"流量增长", val:((pActualM-pBaseM)/10000).toFixed(2)+"万("+projsM.length+"项目均)",
+      ratio:fResultM.ratio, score:fResultM.score, max:30, target:"各项目基期×115%平均"});
+
+    // ---- 结算率(15分): 各项目 settle_rate>0 的算术平均；全为0记为"无结算数据"给0分 ----
+    var srValsM = projsM.map(function(pr){return parseFloat(pr.settle_rate)||0;}).filter(function(v){return v>0;});
+    if(srValsM.length > 0) {
+      var avgSrM = srValsM.reduce(function(a,b){return a+b;},0)/srValsM.length;
+      var stResultM = calcItemScore(avgSrM, 0.85, 15);
+      s += stResultM.score;
+      details.push({name:"结算率", val:(avgSrM*100).toFixed(1)+"%("+srValsM.length+"项目均)",
+        ratio:stResultM.ratio, score:stResultM.score, max:15, target:"85%"});
     } else {
-      var pFlowTarget = pBaseFlow > 0 ? pBaseFlow * 1.15 : pActualFlow;
-      var fResult = calcItemScore(pActualFlow, pFlowTarget, 30);
-      var pIncrement = pActualFlow - pBaseFlow;
-      s += fResult.score;
-      details.push({name:"流量增长", val:(pIncrement/10000).toFixed(2)+"万",
-        ratio:fResult.ratio, score:fResult.score, max:30,
-        target:(pFlowTarget/10000).toFixed(2)+"万"});
+      s += 0;
+      details.push({name:"结算率", val:"无结算数据", ratio:0, score:0, max:15, target:"85%"});
     }
 
-    // ---- 结算率(15分): 多项目用平均结算率 ----
-    var settleRates = p._settle_rates || [];
-    if(isMultiProject && settleRates.length > 0) {
-      var srSum = 0, srCnt = 0;
-      for(var si=0;si<settleRates.length;si++) {
-        var sv = parseFloat(settleRates[si]) || 0;
-        if(sv > 0) { srSum += sv; srCnt++; }
-      }
-      var avgSr = srCnt > 0 ? srSum / srCnt : 0;
-      var stResult = calcItemScore(avgSr, 0.85, 15);
-      s += stResult.score;
-      details.push({name:"结算率", val:(avgSr*100).toFixed(1)+"%("+srCnt+"项目均)",
-        ratio:stResult.ratio, score:stResult.score, max:15, target:"85%"});
-    } else {
-      var sr2 = parseFloat(p.settle_rate)||0;
-      var stResult = calcItemScore(sr2, 0.85, 15);
-      s += stResult.score;
-      details.push({name:"结算率", val:(sr2*100).toFixed(1)+"%",
-        ratio:stResult.ratio, score:stResult.score, max:15, target:"85%"});
-    }
-
-    // ---- 校园行(15分): 目标2场/月 ----
-    var campResult = calcItemScore(p.campus||0, 2, 15);
-    s += campResult.score;
-    details.push({name:"校园行", val:p.campus||0, 
-      ratio:campResult.ratio, score:campResult.score, max:15, target:"2场"});
+    // ---- 校园行(15分): 目标2场/月 (个人求和对比固定目标) ----
+    var campResultM = calcItemScore(p.campus||0, 2, 15);
+    s += campResultM.score;
+    details.push({name:"校园行", val:p.campus||0, ratio:campResultM.ratio, score:campResultM.score, max:15, target:"2场"});
 
     // ---- 培训(10分): 目标4场/月 ----
-    var trResult = calcItemScore(p.train||0, 4, 10);
-    s += trResult.score;
-    details.push({name:"培训", val:p.train||0, 
-      ratio:trResult.ratio, score:trResult.score, max:10, target:"4场"});
+    var trResultM = calcItemScore(p.train||0, 4, 10);
+    s += trResultM.score;
+    details.push({name:"培训", val:p.train||0, ratio:trResultM.ratio, score:trResultM.score, max:10, target:"4场"});
 
     // ---- 用户池(8分): 目标30人/月 ----
-    var upResult = calcItemScore(p.user_pool||0, 30, 8);
-    s += upResult.score;
-    details.push({name:"用户池", val:p.user_pool||0, 
-      ratio:upResult.ratio, score:upResult.score, max:8, target:"30人"});
+    var upResultM = calcItemScore(p.user_pool||0, 30, 8);
+    s += upResultM.score;
+    details.push({name:"用户池", val:p.user_pool||0, ratio:upResultM.ratio, score:upResultM.score, max:8, target:"30人"});
 
     // ---- 触达(7分): 目标100次/月 ----
-    var touchResult = calcItemScore(p.touch||0, 100, 7);
-    s += touchResult.score;
-    details.push({name:"触达", val:p.touch||0, 
-      ratio:touchResult.ratio, score:touchResult.score, max:7, target:"100次"});
+    var touchResultM = calcItemScore(p.touch||0, 100, 7);
+    s += touchResultM.score;
+    details.push({name:"触达", val:p.touch||0, ratio:touchResultM.ratio, score:touchResultM.score, max:7, target:"100次"});
 
   } else {
     // 运营专员: 满分85: 校园行20 + 培训15 + 用户池8 + 触达7 + 流量25 + 结算10
-    // ---- 校园行(20分): 目标2场/月 ----
+    // 个人实际值 = 名下各项目求和；目标固定(不随项目数翻倍)
+    var projsS = p._projects && p._projects.length ? p._projects : [p];
+
+    // ---- 校园行(20分): 目标2场/月 (个人求和对比固定目标) ----
     var cResult = calcItemScore(p.campus||0, 2, 20);
     s += cResult.score;
-    details.push({name:"校园行", val:p.campus||0, 
-      ratio:cResult.ratio, score:cResult.score, max:20, target:"2场"});
+    details.push({name:"校园行", val:p.campus||0, ratio:cResult.ratio, score:cResult.score, max:20, target:"2场"});
 
     // ---- 培训(15分): 目标4场/月 ----
     var tResult = calcItemScore(p.train||0, 4, 15);
     s += tResult.score;
-    details.push({name:"培训", val:p.train||0, 
-      ratio:tResult.ratio, score:tResult.score, max:15, target:"4场"});
+    details.push({name:"培训", val:p.train||0, ratio:tResult.ratio, score:tResult.score, max:15, target:"4场"});
 
     // ---- 用户池(8分): 目标30人/月 ----
     var uResult = calcItemScore(p.user_pool||0, 30, 8);
     s += uResult.score;
-    details.push({name:"用户池", val:p.user_pool||0, 
-      ratio:uResult.ratio, score:uResult.score, max:8, target:"30人"});
+    details.push({name:"用户池", val:p.user_pool||0, ratio:uResult.ratio, score:uResult.score, max:8, target:"30人"});
 
     // ---- 触达(7分): 目标100次/月 ----
     var tcResult = calcItemScore(p.touch||0, 100, 7);
     s += tcResult.score;
-    details.push({name:"触达", val:p.touch||0, 
-      ratio:tcResult.ratio, score:tcResult.score, max:7, target:"100次"});
+    details.push({name:"触达", val:p.touch||0, ratio:tcResult.ratio, score:tcResult.score, max:7, target:"100次"});
 
-    // ---- 流量增长(25分): 多项目用平均完成率 ----
-    var staffProjectFlows = p._project_flows || [];
-    var staffIsMulti = staffProjectFlows.length > 1;
-    var staffBase = getBaseFlow(p);
-    var staffActual = p.flow || 0;
+    // ---- 流量增长(25分): 各项目(实际订单/(基期×115%))的算术平均；基期为0的项目视为达标100% ----
+    var sFlowRatios = projsS.map(function(pr){
+      var base = getBaseFlow(pr);
+      if(base <= 0) return 1.0;
+      var tgt = base * 1.15;
+      return pr.actual_order > 0 ? (pr.actual_order / tgt) : 0;
+    });
+    var avgSFlowRatio = sFlowRatios.reduce(function(a,b){return a+b;},0) / sFlowRatios.length;
+    var flResult = calcItemScoreByRatio(avgSFlowRatio, 25);
+    var staffActual = p.actual_order || 0;
+    var staffBase = projsS.reduce(function(a,pr){return a+getBaseFlow(pr);},0);
+    s += flResult.score;
+    details.push({name:"流量增长", val:((staffActual-staffBase)/10000).toFixed(2)+"万("+projsS.length+"项目均)",
+      ratio:flResult.ratio, score:flResult.score, max:25, target:"各项目基期×115%平均"});
 
-    if(staffIsMulti && staffProjectFlows.length > 0) {
-      // 多项目: 每个项目分别计算完成率, 取平均
-      var sFlowRatios = [];
-      for(var sfi=0;sfi<staffProjectFlows.length;sfi++) {
-        var spf = staffProjectFlows[sfi] || 0;
-        var sBase = (staffBase / staffProjectFlows.length);
-        var sTarget = sBase > 0 ? sBase * 1.15 : spf;
-        sFlowRatios.push(sTarget > 0 ? spf / sTarget : 1);
-      }
-      var avgSFlowRatio = sFlowRatios.reduce(function(a,b){return a+b;},0) / sFlowRatios.length;
-      var flResult = calcItemScoreByRatio(avgSFlowRatio, 25);
-      s += flResult.score;
-      details.push({name:"流量增长", val:((staffActual-staffBase)/10000).toFixed(2)+"万("+staffProjectFlows.length+"项目均)",
-        ratio:(avgSFlowRatio*100).toFixed(0), score:flResult.score, max:25,
-        target:"各项目基期×115%"});
-    } else {
-      var staffTarget = staffBase > 0 ? staffBase * 1.15 : staffActual;
-      var flResult = calcItemScore(staffActual, staffTarget, 25);
-      s += flResult.score;
-      details.push({name:"流量增长", val:((staffActual-staffBase)/10000).toFixed(2)+"万",
-        ratio:flResult.ratio, score:flResult.score, max:25,
-        target:(staffTarget/10000).toFixed(2)+"万"});
-    }
-
-    // ---- 结算率(10分): 多项目用平均结算率 ----
-    var staffSettleRates = p._settle_rates || [];
-    if(staffIsMulti && staffSettleRates.length > 0) {
-      var sSrSum = 0, sSrCnt = 0;
-      for(var ssi=0;ssi<staffSettleRates.length;ssi++) {
-        var ssv = parseFloat(staffSettleRates[ssi]) || 0;
-        if(ssv > 0) { sSrSum += ssv; sSrCnt++; }
-      }
-      var avgSSr = sSrCnt > 0 ? sSrSum / sSrCnt : 0;
+    // ---- 结算率(10分): 各项目 settle_rate>0 的算术平均；全为0记为"无结算数据"给0分 ----
+    var sSrVals = projsS.map(function(pr){return parseFloat(pr.settle_rate)||0;}).filter(function(v){return v>0;});
+    if(sSrVals.length > 0) {
+      var avgSSr = sSrVals.reduce(function(a,b){return a+b;},0)/sSrVals.length;
       var seResult = calcItemScore(avgSSr, 0.85, 10);
       s += seResult.score;
-      details.push({name:"结算率", val:(avgSSr*100).toFixed(1)+"%("+sSrCnt+"项目均)",
+      details.push({name:"结算率", val:(avgSSr*100).toFixed(1)+"%("+sSrVals.length+"项目均)",
         ratio:seResult.ratio, score:seResult.score, max:10, target:"85%"});
     } else {
-      var sr3 = parseFloat(p.settle_rate)||0;
-      var seResult = calcItemScore(sr3, 0.85, 10);
-      s += seResult.score;
-      details.push({name:"结算率", val:(sr3*100).toFixed(1)+"%",
-        ratio:seResult.ratio, score:seResult.score, max:10, target:"85%"});
+      s += 0;
+      details.push({name:"结算率", val:"无结算数据", ratio:0, score:0, max:10, target:"85%"});
     }
   }
 
@@ -800,11 +767,11 @@ function updatePerformanceContent() {
     return;
   }
 
-  var people = md.people || [];
-  var filtered = people;
-  if(currentViewMode === "leaders") filtered = people.filter(function(p){ return p.role === "区域主管"; });
-  else if(currentViewMode === "managers") filtered = people.filter(function(p){ return p.role === "项目营销负责人"; });
-  else if(currentViewMode === "staff") filtered = people.filter(function(p){ return p.role === "运营专员"; });
+  var allPeople = getPersonLevelPeople(md);
+  var filtered = allPeople;
+  if(currentViewMode === "leaders") filtered = allPeople.filter(function(p){ return p.role === "区域主管"; });
+  else if(currentViewMode === "managers") filtered = allPeople.filter(function(p){ return p.role === "项目营销负责人"; });
+  else if(currentViewMode === "staff") filtered = allPeople.filter(function(p){ return p.role === "运营专员"; });
 
   var out = '<div class="score-grid">';
   filtered.forEach(function(p) {
@@ -866,7 +833,7 @@ function calcSubjectiveTotal(person, role) {
 
 // 绩效排名视图（排行榜）
 function renderRankingView(md) {
-  var people = md.people || [];
+  var people = getPersonLevelPeople(md);
 
   var scored = people.map(function(p) {
     var objResult = calcObjectiveScore(p, p.role);
@@ -917,7 +884,7 @@ function renderRankingView(md) {
 
 // 绩效评估图表视图
 function renderEvalChartView(md) {
-  var people = md.people || [];
+  var people = getPersonLevelPeople(md);
 
   var scored = people.map(function(p) {
     var objResult = calcObjectiveScore(p, p.role);
