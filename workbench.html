@@ -477,21 +477,29 @@ function renderEvalChartView(md) {
 
   $("perfContent").innerHTML = out;
 
-  // 渲染图表 (流量单位:万)
+  // 渲染图表
+  // 1) 区域主管: 绩效 vs 区域总流量(万) — 从regions取区域汇总的线上订单金额
   var leaders = scored.filter(function(p){ return p.role === "区域主管"; }).sort(function(a,b){ return b.total-a.total; });
+  var regions = md.regions || {};
   if(leaders.length > 0) {
     renderComboChart("perfSummaryLeaderChart", "区域主管-绩效vs区域流量(万)",
       leaders.map(function(p){return p.name;}),
       leaders.map(function(p){return p.total;}),
-      leaders.map(function(p){return (p.flow||0) / 10000;}), "流量(万)"
+      leaders.map(function(p){
+        // 从regions中按人名查找该区域的汇总flow
+        var rKey = Object.keys(regions).find(function(k){ return regions[k].region === p.region || k === p.name; });
+        var r = rKey ? regions[rKey] : null;
+        return r ? (r.flow||0) / 10000 : (p.flow||0) / 10000;
+      }), "流量(万)"
     );
   }
+  // 2) 营销负责人: 绩效 vs 项目流量(万) — 用个人实际产生线上订单金额
   var mgrs = scored.filter(function(p){ return p.role === "项目营销负责人"; }).sort(function(a,b){ return b.total-a.total; });
   if(mgrs.length > 0) {
-    renderComboChart("perfSummaryMarketingChart", "营销负责人-绩效vs触达",
+    renderComboChart("perfSummaryMarketingChart", "营销负责人-绩效vs项目流量(万)",
       mgrs.map(function(p){return p.name;}),
       mgrs.map(function(p){return p.total;}),
-      mgrs.map(function(p){return p.touch||0;}), "触达次数"
+      mgrs.map(function(p){return (p.flow||0) / 10000;}), "项目流量(万)"
     );
   }
   var stf = scored.filter(function(p){ return p.role === "运营专员"; }).sort(function(a,b){ return b.total-a.total; });
