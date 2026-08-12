@@ -190,8 +190,12 @@ tr:hover td{background:#f8fafc}
 
       <div class="kpi-row" id="waKPIs"></div>
 
-      <div class="chart-row" style="grid-template-columns:1fr">
-        <div class="chart-container" style="height:360px"><canvas id="waRegionBarChart"></canvas></div>
+      <div class="chart-row">
+        <div class="chart-container" style="height:360px"><canvas id="waRegionPieChart"></canvas></div>
+        <div class="chart-container" style="height:360px;overflow:auto;padding:12px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#333">各区域流量增量排名（万）</div>
+          <div id="waRegionRankList"></div>
+        </div>
       </div>
 
       <div class="chart-row" style="grid-template-columns:1fr">
@@ -200,7 +204,7 @@ tr:hover td{background:#f8fafc}
 
       <div style="margin-top:20px">
         <h4 style="margin:0 0 6px;font-size:15px">🔍 区域下钻分析 — <span id="waDrillTitle" style="color:#1a73e8"></span></h4>
-        <div style="font-size:11px;color:#888;margin-bottom:10px">💡 点击上方「各区域运营指标对比」图中的柱子，可快速定位到对应区域并下钻查看各项目明细</div>
+        <div style="font-size:11px;color:#888;margin-bottom:10px">💡 点击左侧饼图或右侧排名，可快速定位到对应区域并下钻查看各项目明细</div>
         <table>
           <thead><tr><th>项目/学校</th><th>负责人</th><th>区域</th><th>用户池</th><th>有效触达</th><th>培训场次</th><th>校园行场次</th><th>流量(万)</th><th>流量增量(万)</th></tr></thead>
           <tbody id="waDrillTable"></tbody>
@@ -984,25 +988,50 @@ function initWorkAnalysis() {
     '<div class="kpi-card"><div class="label">校园行场次</div><div class="value">'+fmt(total.campus)+'</div><div class="trend">活跃学校</div></div>' +
     '<div class="kpi-card"><div class="label">培训场次</div><div class="value">'+fmt(total.train)+'</div><div class="trend">覆盖人次</div></div>';
 
-  // 图1：各区域运营指标对比（柱状图）——可作为下钻入口
-  renderGroupedBarChart("waRegionBarChart", currentMonth + " 各区域运营指标对比",
-    regionEntries.map(function(e){ return e.name; }),
-    [
-      {label:"用户池", data:regionEntries.map(function(e){return e.data.user_pool||0;}), color:"#1a73e8"},
-      {label:"校园行", data:regionEntries.map(function(e){return e.data.campus||0;}), color:"#22c55e"},
-      {label:"培训", data:regionEntries.map(function(e){return e.data.train||0;}), color:"#f59e0b"},
-      {label:"有效触达", data:regionEntries.map(function(e){return e.data.touch||0;}), color:"#8b5cf6"}
-    ]
-  );
-  if(allCharts["waRegionBarChart"]) {
-    allCharts["waRegionBarChart"].options.onClick = function(evt, items){
+  // 图1：各区域流量增量贡献占比（饼图）——可作为下钻入口
+  var regionIncrements = regionEntries.map(function(e){
+    return { key:e.key, name:e.name, increment: regionFlowIncrement(currentMonth, e.key) };
+  });
+  var positiveTotal = regionIncrements.reduce(function(s, r){ return s + Math.max(r.increment, 0); }, 0);
+  var pieLabels = regionIncrements.map(function(r){ return r.name; });
+  var pieData = regionIncrements.map(function(r){ return Math.max(r.increment, 0); });
+  renderPieChart("waRegionPieChart", currentMonth + " 各区域流量增量贡献占比", pieLabels, pieData);
+  if(allCharts["waRegionPieChart"]) {
+    allCharts["waRegionPieChart"].options.onClick = function(evt, items){
       if(!items || !items.length) return;
-      var label = items[0].label;
-      var match = regionEntries.find(function(r){ return r.name === label; });
+      var idx = items[0].index;
+      var match = regionIncrements[idx];
       if(match){ sel.value = match.key; renderWADrill(currentMonth); }
     };
-    allCharts["waRegionBarChart"].update();
+    allCharts["waRegionPieChart"].update();
   }
+
+  // 右侧：按增量金额排序的区域列表
+  regionIncrements.sort(function(a, b){ return b.increment - a.increment; });
+  var rankHtml = regionIncrements.map(function(r, i){
+    var isPositive = r.increment >= 0;
+    var color = isPositive ? '#16a34a' : '#dc2626';
+    var pct = positiveTotal > 0 ? (Math.max(r.increment, 0) / positiveTotal * 100).toFixed(1) + '%' : '0%';
+    var arrow = isPositive ? '↑' : (r.increment < 0 ? '↓' : '—');
+    return '<div class="region-rank-row" data-key="'+r.key+'" style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'transparent\'">' +
+      '<div style="display:flex;align-items:center;gap:8px">' +
+        '<span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:'+(i<3?'#1a73e8':'#e5e7eb')+';color:'+(i<3?'#fff':'#666')+';font-size:11px;font-weight:600">'+(i+1)+'</span>' +
+        '<span style="font-size:13px;color:#333">'+r.name+'</span>' +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div style="font-size:13px;font-weight:600;color:'+color+'">'+arrow+' '+fmt(r.increment)+'万</div>' +
+        '<div style="font-size:11px;color:#888">占比 '+pct+'</div>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+  $("waRegionRankList").innerHTML = rankHtml;
+  // 绑定点击下钻
+  $("waRegionRankList").querySelectorAll(".region-rank-row").forEach(function(row){
+    row.addEventListener("click", function(){
+      sel.value = this.getAttribute("data-key");
+      renderWADrill(currentMonth);
+    });
+  });
 
   // 图2：运营动作 vs 流量增量(万) 关系图
   renderWorkIncrementChart("waIncrementChart", currentMonth + " 运营动作 vs 流量增量(万)", regionEntries);
