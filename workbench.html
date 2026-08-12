@@ -149,9 +149,9 @@ tr:hover td{background:#f8fafc}
   <!-- 左侧导航 -->
   <div class="sidebar">
     <div class="sidebar-title">功能模块</div>
-    <div class="nav-item active" data-panel="modOverview" onclick="switchModule(this)"><span class="nav-icon">📈</span>运营概览</div>
+    <div class="nav-item active" data-panel="modOverview" onclick="switchModule(this)"><span class="nav-icon">📈</span>总体概况</div>
     <div class="nav-item" data-panel="modPerformance" onclick="switchModule(this)"><span class="nav-icon">🎯</span>绩效评估</div>
-    <div class="nav-item" data-panel="modAction" onclick="switchModule(this)"><span class="nav-icon">⚡</span>运营动作分析</div>
+    <div class="nav-item" data-panel="modWorkAnalysis" onclick="switchModule(this)"><span class="nav-icon">📊</span>运营工作分析</div>
     <div class="nav-item" data-panel="modUserPool" onclick="switchModule(this)"><span class="nav-icon">👥</span>用户池管理</div>
     <div class="nav-item" data-panel="modMarketing" onclick="switchModule(this)"><span class="nav-icon">📢</span>营销活动管理</div>
     <div class="nav-item" data-panel="modCampus" onclick="switchModule(this)"><span class="nav-icon">🏫</span>校园行管理</div>
@@ -160,9 +160,9 @@ tr:hover td{background:#f8fafc}
   <!-- 右侧内容区 -->
   <div class="content-area">
 
-    <!-- 模块1: 运营概览 -->
+    <!-- 模块1: 总体概况 -->
     <div class="module-panel active" id="modOverview">
-      <div class="module-title">📈 运营概览</div>
+      <div class="module-title">📈 总体概况</div>
       <div class="kpi-row" id="overviewKPIs"></div>
       <table><thead><tr><th>区域</th><th>负责人</th><th>项目数</th><th>运营人数</th><th>用户池</th><th>有效触达</th><th>培训场次</th><th>校园行场次</th><th>流量(万)</th></tr></thead><tbody id="overviewTable"></tbody></table>
       <div class="chart-row" style="grid-template-columns:1fr"><div class="chart-container" style="height:320px"><canvas id="overviewTrendChart"></canvas></div></div>
@@ -176,11 +176,36 @@ tr:hover td{background:#f8fafc}
       <div id="perfContent"></div>
     </div>
 
-    <!-- 模块3: 运营动作分析 -->
-    <div class="module-panel" id="modAction">
-      <div class="module-title">⚡ 运营动作分析</div>
-      <div class="kpi-row" id="actionKPIs"></div>
-      <div class="chart-row"><div class="chart-container"><canvas id="actionRadarChart"></canvas></div><div class="chart-container"><canvas id="actionBarChart"></canvas></div></div>
+    <!-- 模块3: 运营工作分析 -->
+    <div class="module-panel" id="modWorkAnalysis">
+      <div class="module-title">📊 运营工作分析</div>
+
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+        <span style="font-size:12px;color:#666">分析月份：<strong id="waMonthLabel" style="color:#1a73e8"></strong>（可在顶部切换月份）</span>
+        <label style="font-size:12px;color:#666">选择区域下钻：</label>
+        <select id="waRegionSelect" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;min-width:170px">
+          <option value="all">全部区域（汇总）</option>
+        </select>
+      </div>
+
+      <div class="kpi-row" id="waKPIs"></div>
+
+      <div class="chart-row" style="grid-template-columns:1fr">
+        <div class="chart-container" style="height:360px"><canvas id="waRegionBarChart"></canvas></div>
+      </div>
+
+      <div class="chart-row" style="grid-template-columns:1fr">
+        <div class="chart-container" style="height:360px"><canvas id="waIncrementChart"></canvas></div>
+      </div>
+
+      <div style="margin-top:20px">
+        <h4 style="margin:0 0 6px;font-size:15px">🔍 区域下钻分析 — <span id="waDrillTitle" style="color:#1a73e8"></span></h4>
+        <div style="font-size:11px;color:#888;margin-bottom:10px">💡 点击上方「各区域运营指标对比」图中的柱子，可快速定位到对应区域并下钻查看各项目明细</div>
+        <table>
+          <thead><tr><th>项目/学校</th><th>区域</th><th>用户池</th><th>有效触达</th><th>培训场次</th><th>校园行场次</th><th>流量(万)</th><th>流量增量(万)</th></tr></thead>
+          <tbody id="waDrillTable"></tbody>
+        </table>
+      </div>
     </div>
 
     <!-- 模块4: 用户池CRM -->
@@ -691,7 +716,7 @@ function refreshCurrentModule() {
   switch(currentModule) {
     case "modOverview": initOverview(); break;
     case "modPerformance": initPerformance(); break;
-    case "modAction": initActionAnalysis(); break;
+    case "modWorkAnalysis": initWorkAnalysis(); break;
     case "modUserPool": initUserPool(); break;
     case "modMarketing": initMarketing(); break;
     case "modCampus": initCampus(); break;
@@ -934,37 +959,144 @@ function renderEvalChartView(md) {
 }
 
 
-function initActionAnalysis() {
+function initWorkAnalysis() {
   var md = WORKBENCH_DATA.monthly_data[currentMonth];
   if(!md) return;
-  var total = WORKBENCH_DATA.totals[currentMonth] || {};
-  var opCount = total.operators || 1;
-
-  $("actionKPIs").innerHTML =
-    '<div class="kpi-card"><div class="label">人均触达</div><div class="value">'+fmt((total.touch||0)/opCount)+'</div><div class="trend">次/人</div></div>' +
-    '<div class="kpi-card"><div class="label">人均校园行</div><div class="value">'+fmt((total.campus||0)/opCount)+'</div><div class="trend">场/人</div></div>' +
-    '<div class="kpi-card"><div class="label">人均培训</div><div class="value">'+fmt((total.train||0)/opCount)+'</div><div class="trend">场/人</div></div>' +
-    '<div class="kpi-card"><div class="label">平均结算率</div><div class="value">'+calcAvgSettle(md.people)+'%</div><div class="trend">基准: ≥90%</div></div>';
-
-  // 雷达图 - TOP5按触达排序
-  var people = (md.people || []).slice().sort(function(a,b){ return (b.touch||0)-(a.touch||0); }).slice(0,5);
-  renderRadarChart("actionRadarChart", "TOP5运营人员能力雷达",
-    people.map(function(p){return p.name;}),
-    [{label:"有效触达",data:people.map(function(p){return p.touch||0;})},
-     {label:"校园行",data:people.map(function(p){return p.campus||0;})},
-     {label:"培训",data:people.map(function(p){return p.train||0;})},
-     {label:"用户池",data:people.map(function(p){return p.user_pool||0;})}]
-  );
-
-  // 柱状图 - 各区域指标对比(过滤合计)
   var regions = md.regions || {};
-  var rNames = Object.keys(regions).filter(function(n){ return n !== '合计'; });
-  renderGroupedBarChart("actionBarChart", "各区域核心指标对比",
-    rNames.map(function(k){return regions[k].region;}),
-    [{label:"触达",data:rNames.map(function(k){return regions[k].touch||0;}),color:"#1a73e8"},
-     {label:"校园行",data:rNames.map(function(k){return regions[k].campus||0;}),color:"#22c55e"},
-     {label:"培训",data:rNames.map(function(k){return regions[k].train||0;}),color:"#f59e0b"}]
+  var regionEntries = Object.keys(regions).filter(function(k){ return k !== '合计'; }).map(function(k){
+    return { key:k, name:regions[k].region, data:regions[k] };
+  });
+
+  // 月份标签
+  $("waMonthLabel").textContent = currentMonth;
+
+  // 填充区域下拉（保留第一个"全部区域"选项）
+  var sel = $("waRegionSelect");
+  sel.innerHTML = '<option value="all">全部区域（汇总）</option>' + regionEntries.map(function(e){
+    return '<option value="'+e.key+'">'+e.name+' ('+e.key+')</option>';
+  }).join("");
+  sel.onchange = function(){ renderWADrill(currentMonth); };
+
+  // KPI：当月总流量增量 + 各运营动作汇总
+  var total = WORKBENCH_DATA.totals[currentMonth] || {};
+  var totalIncrement = regionEntries.reduce(function(s,e){ return s + regionFlowIncrement(currentMonth, e.key); }, 0);
+  $("waKPIs").innerHTML =
+    '<div class="kpi-card"><div class="label">当月总流量增量(万)</div><div class="value">'+fmt(totalIncrement)+'</div><div class="trend up">环比上月</div></div>' +
+    '<div class="kpi-card"><div class="label">用户池累计</div><div class="value">'+fmt(total.user_pool)+'</div><div class="trend">新增用户</div></div>' +
+    '<div class="kpi-card"><div class="label">有效触达</div><div class="value">'+fmt(total.touch)+'</div><div class="trend">人次</div></div>' +
+    '<div class="kpi-card"><div class="label">校园行场次</div><div class="value">'+fmt(total.campus)+'</div><div class="trend">活跃学校</div></div>' +
+    '<div class="kpi-card"><div class="label">培训场次</div><div class="value">'+fmt(total.train)+'</div><div class="trend">覆盖人次</div></div>';
+
+  // 图1：各区域运营指标对比（柱状图）——可作为下钻入口
+  renderGroupedBarChart("waRegionBarChart", currentMonth + " 各区域运营指标对比",
+    regionEntries.map(function(e){ return e.name; }),
+    [
+      {label:"用户池", data:regionEntries.map(function(e){return e.data.user_pool||0;}), color:"#1a73e8"},
+      {label:"校园行", data:regionEntries.map(function(e){return e.data.campus||0;}), color:"#22c55e"},
+      {label:"培训", data:regionEntries.map(function(e){return e.data.train||0;}), color:"#f59e0b"},
+      {label:"有效触达", data:regionEntries.map(function(e){return e.data.touch||0;}), color:"#8b5cf6"}
+    ]
   );
+  if(allCharts["waRegionBarChart"]) {
+    allCharts["waRegionBarChart"].options.onClick = function(evt, items){
+      if(!items || !items.length) return;
+      var label = items[0].label;
+      var match = regionEntries.find(function(r){ return r.name === label; });
+      if(match){ sel.value = match.key; renderWADrill(currentMonth); }
+    };
+    allCharts["waRegionBarChart"].update();
+  }
+
+  // 图2：运营动作 vs 流量增量(万) 关系图
+  renderWorkIncrementChart("waIncrementChart", currentMonth + " 运营动作 vs 流量增量(万)", regionEntries);
+
+  // 区域下钻表
+  renderWADrill(currentMonth);
+}
+
+
+// 获取上一月份（用于流量增量环比）
+function getPrevMonth(month) {
+  var months = Object.keys(WORKBENCH_DATA.monthly_data).sort();
+  var idx = months.indexOf(month);
+  return idx > 0 ? months[idx-1] : null;
+}
+
+// 计算某区域在某月的流量增量(万)：当月区域流量 - 上月区域流量；首月无基期则返回0
+function regionFlowIncrement(month, regionKey) {
+  var md = WORKBENCH_DATA.monthly_data[month];
+  if(!md) return 0;
+  var prevM = getPrevMonth(month);
+  if(!prevM) return 0; // 首月无环比基期
+  var cur = md.regions[regionKey];
+  var curFlow = cur ? (cur.flow||0) : 0;
+  var prevRegions = WORKBENCH_DATA.monthly_data[prevM].regions;
+  var prev = prevRegions[regionKey];
+  var prevFlow = prev ? (prev.flow||0) : 0;
+  return (curFlow - prevFlow) / 10000;
+}
+
+
+// 运营动作(柱) vs 流量增量(线) 组合图：双轴，柱为动作数量，线为流量增量(万)
+function renderWorkIncrementChart(canvasId, title, regionEntries) {
+  if(allCharts[canvasId]) allCharts[canvasId].destroy();
+  var ctx = $(canvasId);
+  if(!ctx) return;
+  var labels = regionEntries.map(function(e){ return e.name; });
+  var barColors = ['#1a73e8','#22c55e','#f59e0b','#8b5cf6'];
+  var metrics = [
+    {key:"user_pool", label:"用户池"},
+    {key:"campus", label:"校园行"},
+    {key:"train", label:"培训"},
+    {key:"touch", label:"有效触达"}
+  ];
+  var ds = metrics.map(function(m,i){
+    return { label:m.label, data:regionEntries.map(function(e){return e.data[m.key]||0;}), backgroundColor:barColors[i]+'80', borderColor:barColors[i], borderWidth:1, yAxisID:'y' };
+  });
+  ds.push({ type:'line', label:'流量增量(万)', data:regionEntries.map(function(e){return regionFlowIncrement(currentMonth, e.key);}), borderColor:'#ef4444', backgroundColor:'#ef444420', tension:0.3, yAxisID:'y1' });
+  allCharts[canvasId] = new Chart(ctx, {
+    type:'bar',
+    data:{ labels:labels, datasets:ds },
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ title:{display:true,text:title,font:{size:13,weight:'bold'}},
+        legend:{display:true,position:'top',labels:{boxWidth:12,font:{size:10}}},
+        datalabels:{ display:function(c){ return c.dataset.type!=='line' && c.dataset.data[c.dataIndex]>0; }, anchor:'end', align:'top', color:'#333', font:{size:8,weight:'bold'}, offset:2, formatter:function(v){ if(v===0) return ''; return v.toFixed(0); } },
+        tooltip:{ callbacks:{ label:function(c){ var v=c.parsed.y; var lbl=c.dataset.label||''; if(lbl.indexOf('流量增量')>=0) return lbl+': '+(v>=0?'+':'')+v.toFixed(1)+'万'; return lbl+': '+v; } } } },
+      scales:{ y:{ beginAtZero:true, position:'left', title:{display:true,text:'动作数量',font:{size:11}} },
+        y1:{ beginAtZero:true, position:'right', grid:{drawOnChartArea:false}, title:{display:true,text:'流量增量(万)',font:{size:11}} } }
+    }
+  });
+}
+
+
+// 区域下钻：显示各项目（学校）运营明细 + 流量增量
+function renderWADrill(month) {
+  var md = WORKBENCH_DATA.monthly_data[month];
+  if(!md) return;
+  var sel = $("waRegionSelect");
+  var scope = sel ? sel.value : "all";
+  var people = (md.people||[]).filter(function(p){ return p.role !== "区域主管"; });
+  if(scope !== "all") {
+    people = people.filter(function(p){ return p.leader === scope; });
+  }
+  // 按流量增量降序
+  people.sort(function(a,b){ return ((b.flow||0)-(b.prev_flow||0)) - ((a.flow||0)-(a.prev_flow||0)); });
+
+  var titleEl = $("waDrillTitle");
+  if(scope === "all") titleEl.textContent = "全部区域（"+people.length+"个项目）";
+  else {
+    var reg = md.regions[scope];
+    titleEl.textContent = (reg?reg.region:scope) + " （"+people.length+"个项目）";
+  }
+
+  var tbody = "";
+  people.forEach(function(p){
+    var increment = ((p.flow||0) - (p.prev_flow||0)) / 10000;
+    var incColor = increment >= 0 ? '#16a34a' : '#dc2626';
+    var incStr = (increment>=0?'+':'') + fmt(increment);
+    tbody += "<tr><td>"+p.name+"</td><td>"+(p.region||"")+"</td><td>"+fmt(p.user_pool)+"</td><td>"+fmt(p.touch)+"</td><td>"+fmt(p.train)+"</td><td>"+fmt(p.campus)+"</td><td>"+fmt((p.flow||0)/10000)+"</td><td style='color:"+incColor+";font-weight:600'>"+incStr+"</td></tr>";
+  });
+  $("waDrillTable").innerHTML = tbody;
 }
 
 function calcAvgSettle(people) {
