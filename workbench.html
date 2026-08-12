@@ -615,7 +615,7 @@ function initOverview() {
   
   // KPI卡片 - 用正确的字段名: flow, touch, train, campus
   $("overviewKPIs").innerHTML =
-    '<div class="kpi-card"><div class="label">当月总流量(万)</div><div class="value">'+fmt(total.flow)+'</div><div class="trend up">本月累计</div></div>' +
+    '<div class="kpi-card"><div class="label">当月总流量(万)</div><div class="value">'+fmt((total.flow||0)/10000)+'</div><div class="trend up">本月累计</div></div>' +
     '<div class="kpi-card"><div class="label">有效触达</div><div class="value">'+fmt(total.touch)+'</div><div class="trend">目标: ≥'+(total.projects * 100 || 3800)+'次</div></div>' +
     '<div class="kpi-card"><div class="label">培训场次</div><div class="value">'+fmt(total.train)+'</div><div class="trend up">累计覆盖</div></div>' +
     '<div class="kpi-card"><div class="label">校园行场次</div><div class="value">'+fmt(total.campus)+'</div><div class="trend up">活跃学校</div></div>';
