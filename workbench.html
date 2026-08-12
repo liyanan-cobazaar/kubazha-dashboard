@@ -830,7 +830,7 @@ function renderEvalChartView(md) {
   }
   var stf = scored.filter(function(p){ return p.role === "运营专员"; }).sort(function(a,b){ return b.total-a.total; });
   if(stf.length > 0) {
-    renderMultiComboChart("perfSummaryStaffChart", "运营专员-绩效vs多指标",
+    renderMultiComboChart("perfSummaryStaffChart", "绩效vs行为指标",
       stf.map(function(p){return p.name;}),
       stf.map(function(p){return p.total;}),
       [stf.map(function(p){return p.campus||0;}),
@@ -1589,7 +1589,18 @@ function renderMultiComboChart(canvasId, title, labels, lineData, barDatasets, b
     options: { responsive: true, maintainAspectRatio: false,
       plugins: { title: { display: true, text: title, font: { size: 13, weight: 'bold' } },
         legend: { display: true, position: 'top', labels: { boxWidth: 12, font: { size: 10 } } },
-        datalabels: { display: function(c) { return c.dataset.type !== 'line' && c.dataset.data[c.dataIndex] > 0; }, anchor: 'end', align: 'top', color: '#333', font: { size: 8, weight: 'bold' }, offset: 2, formatter: function(v) { if (v === 0) return ''; if (v >= 10000) return (v / 10000).toFixed(1) + '\u4e07'; return v.toFixed(0); } } },
+        datalabels: { display: function(c) { return c.dataset.type !== 'line' && c.dataset.data[c.dataIndex] > 0; }, anchor: 'end', align: 'top', color: '#333', font: { size: 8, weight: 'bold' }, offset: 2, formatter: function(v) { if (v === 0) return ''; if (v >= 10000) return (v / 10000).toFixed(1) + '\u4e07'; return v.toFixed(0); } },
+        tooltip: {
+          callbacks: {
+            title: function(items) { return items.length > 0 ? items[0].label : ''; },
+            label: function(context) {
+              var v = context.parsed.y !== undefined ? context.parsed.y : context.parsed.x;
+              var label = context.dataset.label || '';
+              return label + ': ' + v;
+            }
+          }
+        }
+      },
       scales: { y: { beginAtZero: true, position: 'left', stacked: false, title: { display: true, text: unit, font: { size: 11 } } },
         y1: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '\u7ee9\u6548\u5206', font: { size: 11 } } } }
     }
