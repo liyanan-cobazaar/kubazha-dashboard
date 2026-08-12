@@ -190,9 +190,9 @@ tr:hover td{background:#f8fafc}
 
       <div class="kpi-row" id="waKPIs"></div>
 
-      <div class="chart-row" style="grid-template-columns:1.25fr 0.75fr">
-        <div class="chart-container" style="height:360px"><canvas id="waRegionPieChart"></canvas></div>
-        <div class="chart-container" style="height:360px;overflow:auto;padding:10px">
+      <div class="chart-row" style="grid-template-columns:1.4fr 0.6fr">
+        <div class="chart-container" style="height:420px"><canvas id="waRegionPieChart"></canvas></div>
+        <div class="chart-container" style="height:420px;overflow:auto;padding:10px">
           <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#333">各区域流量增量排名（万）</div>
           <div id="waRegionRankList"></div>
         </div>
@@ -995,7 +995,7 @@ function initWorkAnalysis() {
   var positiveTotal = regionIncrements.reduce(function(s, r){ return s + Math.max(r.increment, 0); }, 0);
   var pieLabels = regionIncrements.map(function(r){ return r.name; });
   var pieData = regionIncrements.map(function(r){ return Math.max(r.increment, 0); });
-  renderPieChart("waRegionPieChart", currentMonth + " 各区域流量增量贡献占比", pieLabels, pieData);
+  renderPieChart("waRegionPieChart", currentMonth + " 各区域流量增量贡献占比", pieLabels, pieData, true);
   if(allCharts["waRegionPieChart"]) {
     allCharts["waRegionPieChart"].options.onClick = function(evt, items){
       if(!items || !items.length) return;
@@ -2016,7 +2016,7 @@ function renderMultiComboChart(canvasId, title, labels, lineData, barDatasets, b
   });
 }
 
-function renderPieChart(canvasId, title, labels, data) {
+function renderPieChart(canvasId, title, labels, data, hideLabels) {
   if (allCharts[canvasId]) allCharts[canvasId].destroy();
   var ctx = $(canvasId);
   if (!ctx) return;
@@ -2040,17 +2040,16 @@ function renderPieChart(canvasId, title, labels, data) {
           });
         }} },
         datalabels: {
-          display: function(context) {
+          display: hideLabels ? false : function(context) {
             var v = data[context.dataIndex] || 0;
             var pct = total > 0 ? (v / total * 100) : 0;
-            return pct >= 4;
+            return pct >= 12;
           },
           color: '#1f2937',
           font: { size: 10, weight: 'bold' },
           textAlign: 'center',
           textShadowColor: 'rgba(255,255,255,0.8)',
           textShadowBlur: 4,
-          textAlign: 'center',
           formatter: function(value, context) {
             var label = labels[context.dataIndex] || '';
             var pct = total > 0 ? (value / total * 100) : 0;
