@@ -62,6 +62,41 @@ tr:hover td{background:#f8fafc}
 .rank-score{font-size:16px;font-weight:700;color:#1a73e8}
 .sub-text{font-size:10px;color:#888}
 @media(max-width:900px){.sidebar{width:160px}.kpi-row{grid-template-columns:repeat(2,1fr)}.chart-row{grid-template-columns:1fr}}
+
+/* 校园行管理中心样式 */
+.campus-tab-content{padding-top:10px}
+.mode-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;cursor:pointer;transition:all .2s}
+.mode-card:hover{border-color:#1a73e8;box-shadow:0 4px 12px rgba(26,115,232,0.12)}
+.mode-card .mode-icon{font-size:28px;margin-bottom:8px}
+.mode-card h4{font-size:13px;color:#333;margin-bottom:6px}
+.mode-card p{font-size:11px;color:#666;line-height:1.5}
+.mode-tag{display:inline-block;padding:2px 8px;background:#e8f0fe;color:#1a73e8;border-radius:10px;font-size:10px;margin-right:4px;margin-top:4px}
+
+/* 学校画像卡片 */
+.school-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;transition:all .2s}
+.school-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.06)}
+.school-card h4{font-size:14px;color:#1a73e8;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.school-info{font-size:11px;color:#555;line-height:1.7}
+.school-info span{color:#888}
+.school-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.school-tag{padding:2px 8px;border-radius:10px;font-size:10px}
+.tag-building{background:#dbeafe;color:#1e40af}.tag-traffic{background:#fef3c7;color:#b45309}
+.tag-college{background:#dcfce7;color:#166534}.tag-effect{background:#fce7f3;color:#be185d}
+
+/* 用户池CRM样式 */
+.upool-tab-content{padding-top:10px}
+.vip-card{background:linear-gradient(135deg,#fef3c7,#fde68a);border:1px solid #f59e0b;border-radius:10px;padding:14px}
+.vip-card h4{font-size:13px;color:#92400e;margin-bottom:8px}
+.vip-stat{display:flex;justify-content:space-between;font-size:11px;margin-top:6px}
+.vip-stat span:first-child{color:#78716c}
+.vip-stat span:last-child{font-weight:700;color:#b45309}
+
+/* 时间线 */
+.timeline-item{position:relative;padding-bottom:20px;border-left:2px solid #e2e8f0;padding-left:16px;margin-left:8px}
+.timeline-item:before{content:'';position:absolute;left:-7px;top:0;width:12px;height:12px;border-radius:50%;background:#1a73e8;border:2px solid #fff}
+.timeline-item .time{font-size:11px;color:#888;margin-bottom:4px}
+.timeline-item .content{background:#f8fafc;padding:10px 12px;border-radius:8px;font-size:12px}
+.timeline-item .visitor{font-size:10px;color:#1a73e8;margin-top:4px}
 </style>
 </head>
 <body>
@@ -112,12 +147,56 @@ tr:hover td{background:#f8fafc}
       <div class="chart-row"><div class="chart-container"><canvas id="actionRadarChart"></canvas></div><div class="chart-container"><canvas id="actionBarChart"></canvas></div></div>
     </div>
 
-    <!-- 模块4: 用户池管理 -->
+    <!-- 模块4: 用户池CRM -->
     <div class="module-panel" id="modUserPool">
-      <div class="module-title">👥 用户池管理</div>
-      <div class="kpi-row" id="userPoolKPIs"></div>
-      <table><thead><tr><th>区域</th><th>用户池总量</th><th>人均用户池</th><th>目标(人数×30)</th><th>完成率</th><th>状态</th></tr></thead><tbody id="userPoolTable"></tbody></table>
-      <div class="chart-row"><div class="chart-container"><canvas id="userPoolTrendChart"></canvas></div><div class="chart-container"><canvas id="userPoolRegionChart"></canvas></div></div>
+      <div class="module-title">👥 用户池CRM</div>
+      <div class="tab-bar" id="userPoolTabs">
+        <div class="tab-btn active" data-tab="upSchools">🏫 学校用户列表</div>
+        <div class="tab-btn" data-tab="upAnalysis">📊 等级分析</div>
+        <div class="tab-btn" data-tab="upVIP">⭐ S级重点关注</div>
+        <div class="tab-btn" data-tab="upVisits">📝 走访记录</div>
+      </div>
+
+      <!-- Tab1: 21所学校 × S/A/B/C用户列表 -->
+      <div id="upSchools" class="upool-tab-content">
+        <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center">
+          <select id="upSchoolSelect" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;min-width:180px">
+            <option value="all">全部学校 (21所)</option>
+          </select>
+          <select id="upLevelFilter" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px">
+            <option value="all">全部等级</option><option value="S">S级 (高价值)</option>
+            <option value="A">A级 (优质)</option><option value="B">B级 (潜力)</option><option value="C">C级 (普通)</option>
+          </select>
+          <span style="font-size:11px;color:#888">共 <strong id="upTotalCount">0</strong> 名用户</span>
+        </div>
+        <table><thead><tr><th>姓名</th><th>等级</th><th>学校/学院</th><th>实验室/课题组</th><th>用户池新增日期</th><th>最近触达</th><th>下单金额(万)</th><th>负责人</th></tr></thead><tbody id="upUserTable"></tbody></table>
+      </div>
+
+      <!-- Tab2: 等级分布分析 -->
+      <div id="upAnalysis" class="upool-tab-content" style="display:none">
+        <div class="kpi-row" id="upAnaKPIs"></div>
+        <div class="chart-row"><div class="chart-container"><canvas id="upLevelPieChart"></canvas></div><div class="chart-container"><canvas id="upSchoolBarChart"></canvas></div></div>
+        <table style="margin-top:14px"><thead><tr><th>等级</th><th>人数</th><th>占比</th><th>人均下单(万)</th><th>特征描述</th></tr></thead><tbody id="upLevelTable"></tbody></table>
+      </div>
+
+      <!-- Tab3: S级高价值用户重点关注 -->
+      <div id="upVIP" class="upool-tab-content" style="display:none">
+        <div class="kpi-row" id="upVipKPIs"></div>
+        <div id="vipUserCards" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px"></div>
+      </div>
+
+      <!-- Tab4: 走访记录时间线 -->
+      <div id="upVisits" class="upool-tab-content" style="display:none">
+        <div style="display:flex;gap:10px;margin-bottom:14px">
+          <select id="visitSchoolFilter" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px">
+            <option value="all">全部学校</option>
+          </select>
+          <select id="visitPersonFilter" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px">
+            <option value="all">全部走访人</option>
+          </select>
+        </div>
+        <div id="visitTimeline" style="position:relative;padding-left:30px"></div>
+      </div>
     </div>
 
     <!-- 模块5: 营销活动 -->
@@ -128,12 +207,65 @@ tr:hover td{background:#f8fafc}
       <div class="chart-row"><div class="chart-container"><canvas id="marketingComboChart"></canvas></div><div class="chart-container"><canvas id="marketingPieChart"></canvas></div></div>
     </div>
 
-    <!-- 模块6: 校园行管理 -->
+    <!-- 模块6: 校园行管理中心 -->
     <div class="module-panel" id="modCampus">
-      <div class="module-title">🏫 校园行管理</div>
-      <div class="kpi-row" id="campusKPIs"></div>
-      <table><thead><tr><th>姓名</th><th>岗位</th><th>所属区域</th><th>学校</th><th>校园行场次</th><th>培训场次</th><th>触达次数</th><th>状态</th></tr></thead><tbody id="campusTable"></tbody></table>
-      <div class="chart-row"><div class="chart-container"><canvas id="campusTrendChart"></canvas></div><div class="chart-container"><canvas id="campusTopChart"></canvas></div></div>
+      <div class="module-title">🏫 校园行管理中心</div>
+      <div class="tab-bar" id="campusTabs">
+        <div class="tab-btn active" data-tab="campusCalendar">📅 日历视图</div>
+        <div class="tab-btn" data-tab="campusModes">🎯 活动模式库</div>
+        <div class="tab-btn" data-tab="campusTracking">📊 效果追踪</div>
+        <div class="tab-btn" data-tab="campusSchools">🏫 学校画像</div>
+      </div>
+
+      <!-- Tab1: 日历视图 - 125场历史 + 下半年计划 -->
+      <div id="campusCalendar" class="campus-tab-content">
+        <div class="kpi-row" id="campusCalKPIs"></div>
+        <div style="display:flex;gap:10px;margin-bottom:12px">
+          <select id="calMonthFilter" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px">
+            <option value="all">全部月份</option><option value="4月">4月</option><option value="5月">5月</option>
+            <option value="6月">6月</option><option value="7月">7月</option><option value="8月">8月(计划)</option>
+            <option value="9月">9月(计划)</option><option value="10月">10月(计划)</option><option value="11月">11月(计划)</option>
+          </select>
+          <select id="calStatusFilter" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px">
+            <option value="all">全部状态</option><option value="done">✅ 已实施</option>
+            <option value="pending">⏳ 未实施</option><option value="cancelled">❌ 取消</option>
+          </select>
+        </div>
+        <table><thead><tr><th>日期</th><th>学校</th><th>活动类型</th><th>模式</th><th>负责人</th><th>触达数</th><th>用户池新增</th><th>状态</th></tr></thead><tbody id="campusCalTable"></tbody></table>
+        <div class="chart-row" style="margin-top:14px"><div class="chart-container"><canvas id="campusCalChart"></canvas></div><div class="chart-container"><canvas id="campusModeDistChart"></canvas></div></div>
+      </div>
+
+      <!-- Tab2: 活动模式库 - 11种模式卡片 -->
+      <div id="campusModes" class="campus-tab-content" style="display:none">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px" id="modeCardsGrid"></div>
+        <div id="modeDetailPanel" style="display:none;margin-top:16px;background:#f8fafc;border-radius:10px;padding:16px;border:1px solid #e2e8f0">
+          <h3 id="modeDetailTitle" style="font-size:15px;color:#1a73e8;margin-bottom:12px"></h3>
+          <div class="chart-row-3">
+            <div><h4 style="font-size:12px;color:#666;margin-bottom:8px">📦 物料清单</h4><ul id="modeMaterials" style="font-size:11px;line-height:1.8;padding-left:16px"></ul></div>
+            <div><h4 style="font-size:12px;color:#666;margin-bottom:8px">🏭 供应商要求</h4><ul id="modeSuppliers" style="font-size:11px;line-height:1.8;padding-left:16px"></ul></div>
+            <div><h4 style="font-size:12px;color:#666;margin-bottom:8px">📈 预期效果</h4><ul id="modeEffects" style="font-size:11px;line-height:1.8;padding-left:16px"></ul></div>
+          </div>
+          <div style="margin-top:12px;text-align:right"><button onclick="closeModeDetail()" style="padding:5px 16px;border:1px solid #ddd;background:#fff;border-radius:5px;cursor:pointer;font-size:12px">关闭详情</button></div>
+        </div>
+      </div>
+
+      <!-- Tab3: 单场效果追踪 -->
+      <div id="campusTracking" class="campus-tab-content" style="display:none">
+        <div class="kpi-row" id="trackKPIs"></div>
+        <table><thead><tr><th>场次</th><th>学校</th><th>活动日期</th><th>触达数</th><th>用户池新增</th><th>7日内下单</th><th>转化率</th><th>负责人</th></tr></thead><tbody id="trackTable"></tbody></table>
+        <div class="chart-row" style="margin-top:14px"><div class="chart-container"><canvas id="trackTrendChart"></canvas></div><div class="chart-container"><canvas id="trackConvertChart"></canvas></div></div>
+      </div>
+
+      <!-- Tab4: 学校画像 - 21所学校详情 -->
+      <div id="campusSchools" class="campus-tab-content" style="display:none">
+        <div style="display:flex;gap:10px;margin-bottom:12px">
+          <input type="text" id="schoolSearch" placeholder="搜索学校名称..." style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;flex:1;max-width:280px">
+          <select id="schoolRegionFilter" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px">
+            <option value="all">全部区域</option>
+          </select>
+        </div>
+        <div id="schoolsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px"></div>
+      </div>
     </div>
 
   </div><!-- /content-area -->
@@ -755,51 +887,183 @@ function calcAvgSettle(people) {
 }
 
 
+// ========== 用户池CRM ==========
 function initUserPool() {
-  var md = WORKBENCH_DATA.monthly_data[currentMonth];
-  if(!md) return;
-  var total = WORKBENCH_DATA.totals[currentMonth] || {};
-  var regions = md.regions || {};
-  var opCount = total.operators || 1;
+  // 绑定Tab切换
+  document.querySelectorAll("#userPoolTabs .tab-btn").forEach(function(btn){
+    btn.onclick = function(){
+      document.querySelectorAll("#userPoolTabs .tab-btn").forEach(function(b){b.classList.remove("active");});
+      btn.classList.add("active");
+      currentUpTab = btn.dataset.tab;
+      document.querySelectorAll(".upool-tab-content").forEach(function(c){c.style.display="none";});
+      $(currentUpTab).style.display = "block";
+      renderUpSubTab();
+    };
+  });
 
-  // KPI - 目标=人数×30(人均目标)
-  var poolTotal = total.user_pool || 0;
-  var targetPool = opCount * 30;
-  $("userPoolKPIs").innerHTML =
-    '<div class="kpi-card"><div class="label">用户池总量</div><div class="value">'+fmt(poolTotal)+'</div><div class="trend">目标: ≥'+targetPool+'</div></div>' +
-    '<div class="kpi-card"><div class="label">人均用户池</div><div class="value">'+fmt(poolTotal/opCount)+'</div><div class="trend">基准: 30人/人</div></div>' +
-    '<div class="kpi-card"><div class="label">运营人数</div><div class="value">'+opCount+'</div><div class="trend up">在岗人员</div></div>' +
-    '<div class="kpi-card"><div class="label">目标完成率</div><div class="value">'+fmt((poolTotal/targetPool)*100)+'%</div><div class="trend '+(poolTotal>=targetPool?'up':'down')+'">'+(poolTotal>=targetPool?'已达标':(poolTotal/targetPool>=0.3?'需努力':'待提升'))+'</div></div>';
+  // 填充学校筛选下拉框
+  var ss = $("upSchoolSelect");
+  var vsf = $("visitSchoolFilter");
+  SCHOOL_PROFILES.forEach(function(s){
+    ss.innerHTML += "<option value='"+s.name+"'>"+s.name+"</option>";
+    vsf.innerHTML += "<option value='"+s.name+"'>"+s.name+"</option>";
+  });
+  // 走访人筛选
+  var vpf = $("visitPersonFilter");
+  [...new Set(VISIT_RECORDS.map(function(v){return v.person;}))].forEach(function(p){
+    vpf.innerHTML += "<option value='"+p+"'>"+p+"</option>";
+  });
 
-  // 表格 - 过滤合计，目标=区域人数×30, 完成率<30%为待提升
+  renderUpSubTab();
+}
+
+function renderUpSubTab() {
+  switch(currentUpTab){
+    case "upSchools": renderUpSchoolList(); break;
+    case "upAnalysis": renderUpAnalysis(); break;
+    case "upVIP": renderUpVIP(); break;
+    case "upVisits": renderUpVisits(); break;
+  }
+}
+
+// --- Tab1: 学校用户列表 ---
+function renderUpSchoolList() {
+  var schoolFilter = $("upSchoolSelect").value;
+  var levelFilter = $("upLevelFilter").value;
+
+  var filtered = USER_POOL_CRM.filter(function(u){
+    if(schoolFilter!=="all" && u.school!==schoolFilter) return false;
+    if(levelFilter!=="all" && u.level!==levelFilter) return false;
+    return true;
+  });
+
+  $("upTotalCount").textContent = filtered.length;
+
+  // 按等级排序 S>A>B>C
+  var levelOrder = {"S":0,"A":1,"B":2,"C":3};
+  filtered.sort(function(a,b){ return (levelOrder[a.level]||9)-(levelOrder[b.level]||9); });
+
   var tbody = "";
-  Object.keys(regions).filter(function(n){ return n !== '合计'; }).forEach(function(name) {
-    var r = regions[name];
-    var pool = r.user_pool || 0;
-    var memberCnt = r.members.length || 1;
-    var perPerson = pool / memberCnt;
-    var regionTarget = memberCnt * 30;
-    var rate = regionTarget > 0 ? (pool / regionTarget * 100) : 0;
-    var cls = rate >= 100 ? "ok" : (rate >= 30 ? "warn" : "bad");
-    tbody += "<tr><td>"+r.region+"</td><td>"+fmt(pool)+"</td><td>"+fmt(perPerson)+"</td><td>"+memberCnt+"×30="+regionTarget+"</td><td>"+fmt(rate)+"%</td><td>"+statusDot(cls)+(rate>=100?"达标":(rate>=30?"接近":"待提升"))+"</td></tr>";
+  filtered.slice(0,100).forEach(function(u){
+    var lc = u.level==="S"?"#ef4444":(u.level==="A"?"#f59e0b":(u.level==="B"?"#3b82f6":"#6b7280"));
+    tbody += "<tr><td><strong>"+u.name+"</strong></td><td><span style='color:"+lc+";font-weight:700'>● "+u.level+"</span></td><td>"+u.school+"<br><span style='font-size:10px;color:#888'>"+u.college+"</span></td><td style='font-size:11px'>"+u.lab+"</td><td>"+u.addDate+"</td><td>"+u.lastTouch+"</td><td>¥"+u.order.toFixed(1)+"</td><td>"+u.contact+"</td></tr>";
   });
-  $("userPoolTable").innerHTML = tbody;
+  $("upUserTable").innerHTML = tbody || "<tr><td colspan='8' style='text-align:center;color:#999;padding:20px'>暂无数据</td></tr>";
 
-  // 趋势图
-  var months = Object.keys(WORKBENCH_DATA.totals).sort();
-  var poolTrend = months.map(function(m) {
-    var rgn = WORKBENCH_DATA.monthly_data[m].regions || {};
-    var t = WORKBENCH_DATA.totals[m];
-    return t.user_pool || 0;
+  $("upSchoolSelect").onchange = renderUpSchoolList;
+  $("upLevelFilter").onchange = renderUpSchoolList;
+}
+
+// --- Tab2: 等级分析 ---
+function renderUpAnalysis() {
+  var totalUsers = USER_POOL_CRM.length;
+  var sCount = USER_POOL_CRM.filter(function(u){return u.level==="S";}).length;
+  var aCount = USER_POOL_CRM.filter(function(u){return u.level==="A";}).length;
+  var bCount = USER_POOL_CRM.filter(function(u){return u.level==="B";}).length;
+  var cCount = USER_POOL_CRM.filter(function(u){return u.level==="C";}).length;
+  var sOrder = USER_POOL_CRM.filter(function(u){return u.level==="S";}).reduce(function(s,u){return s+u.order;},0);
+  var aOrder = USER_POOL_CRM.filter(function(u){return u.level==="A";}).reduce(function(s,u){return s+u.order;},0);
+  var bOrder = USER_POOL_CRM.filter(function(u){return u.level==="B";}).reduce(function(s,u){return s+u.order;},0);
+  var cOrder = USER_POOL_CRM.filter(function(u){return u.level==="C";}).reduce(function(s,u){return s+u.order;},0);
+
+  $("upAnaKPIs").innerHTML =
+    '<div class="kpi-card"><div class="label">总用户数</div><div class="value">'+totalUsers+'</div><div class="trend">21所学校</div></div>' +
+    '<div class="kpi-card"><div class="label">⭐ S级高价值</div><div class="value" style="color:#ef4444">'+sCount+'</div><div class="trend">占比'+(sCount/totalUsers*100).toFixed(1)+'%</div></div>' +
+    '<div class="kpi-card"><div class="label">人均下单</div><div class="value">'+fmt(USER_POOL_CRM.reduce(function(s,u){return s+u.order;},0)/totalUsers)+'万</div><div class="trend">元</div></div>' +
+    '<div class="kpi-card"><div class="label">总下单金额</div><div class="value">'+fmt(USER_POOL_CRM.reduce(function(s,u){return s+u.order;},0))+'万</div><div class="trend up">累计</div></div>';
+
+  // 等级分布饼图
+  renderPieChart("upLevelPieChart","用户等级分布",["S级 高价值("+sCount+")","A级 优质("+aCount+")","B级 潜力("+bCount+")","C级 普通("+cCount+")"],[sCount,aCount,bCount,cCount]);
+
+  // 各学校用户量柱状图
+  var schoolUserCounts = {};
+  USER_POOL_CRM.forEach(function(u){ schoolUserCounts[u.school] = (schoolUserCounts[u.school]||0)+1; });
+  var scNames = Object.keys(schoolUserCounts).sort(function(a,b){return schoolUserCounts[b]-schoolUserCounts[a];});
+  if(allCharts.upSchoolBarChart) allCharts.upSchoolBarChart.destroy();
+  allCharts.upSchoolBarChart = new Chart($("upSchoolBarChart"),{
+    type:'bar',
+    data:{labels:scNames.slice(0,15),datasets:[{label:"用户数量",data:scNames.slice(0,15).map(function(k){return schoolUserCounts[k];}),backgroundColor:"#1a73e880",borderColor:"#1a73e8",borderWidth:1}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false},title:{display:true,text:"各学校用户数量TOP15",font:{size:13}}},
+      scales:{x:{beginAtZero:true,title:{display:true,text:"人数"}}}
+    }
   });
-  renderLineChart("userPoolTrendChart", "用户池月度趋势", months, poolTrend, "#22c55e");
 
-  // 区域对比(过滤合计)
-  var rNames = Object.keys(regions).filter(function(n){ return n !== '合计'; });
-  renderBarChart("userPoolRegionChart", "各区域用户池",
-    rNames.map(function(k){return regions[k].region;}),
-    rNames.map(function(k){return regions[k].user_pool||0;})
-  );
+  // 等级统计表
+  $("upLevelTable").innerHTML =
+    "<tr><td><span style='color:#ef4444;font-weight:700'>● S</span> 高价值</td><td>"+sCount+"</td><td>"+(sCount/totalUsers*100).toFixed(1)+"%</td><td>"+(sCount?sOrder/sCount:0).toFixed(1)+"</td><td>核心决策者/大额采购/长期合作</td></tr>" +
+    "<tr><td><span style='color:#f59e0b;font-weight:700'>● A</span> 优质</td><td>"+aCount+"</td><td>"+(aCount/totalUsers*100).toFixed(1)+"%</td><td>"+(aCount?aOrder/aCount:0).toFixed(1)+"</td><td>有明确需求/中等采购/活跃互动</td></tr>" +
+    "<tr><td><span style='color:#3b82f6;font-weight:700'>● B</span> 潜力</td><td>"+bCount+"</td><td>"+(bCount/totalUsers*100).toFixed(1)+"%</td><td>"+(bCount?bOrder/bCount:0).toFixed(1)+"</td><td>初步触达/小额试单/待培育</td></tr>" +
+    "<tr><td><span style='color:#6b7280;font-weight:700'>● C</span> 普通</td><td>"+cCount+"</td><td>"+(cCount/totalUsers*100).toFixed(1)+"%</td><td>"+(cCount?cOrder/cCount:0).toFixed(1)+"</td><td>仅登记信息/未转化/需激活</td></tr>";
+}
+
+// --- Tab3: S级重点关注 ---
+function renderUpVIP() {
+  var vipUsers = USER_POOL_CRM.filter(function(u){return u.level==="S";}).sort(function(a,b){return b.order-a.order;});
+
+  $("upVipKPIs").innerHTML =
+    '<div class="kpi-card"><div class="label">S级用户总数</div><div class="value" style="color:#ef4444">'+vipUsers.length+'</div><div class="trend">高价值客户</div></div>' +
+    '<div class="kpi-card"><div class="label">S级总下单</div><div class="value">'+fmt(vipUsers.reduce(function(s,u){return s+u.order;},0))+'万</div><div class="trend up">贡献主力</div></div>' +
+    '<div class="kpi-card"><div class="label">覆盖学校</div><div class="value">'+new Set(vipUsers.map(function(u){return u.school;})).size+'</div><div class="trend">所</div></div>' +
+    '<div class="kpi-card"><div class="label">人均下单</div><div class="value">'+(vipUsers.length?vipUsers.reduce(function(s,u){return s+u.order;},0)/vipUsers.length:0).toFixed(1)+'万</div><div class="trend">元</div></div>';
+
+  var cards = $("vipUserCards");
+  cards.innerHTML = "";
+  vipUsers.slice(0,24).forEach(function(u){
+    var card = document.createElement("div");
+    card.className = "vip-card";
+    card.innerHTML =
+      '<h4>⭐ '+u.name+' <span style="float:right;font-size:11px;color:#92400e">'+u.school+'</span></h4>' +
+      '<div style="font-size:11px;color:#78716c;line-height:1.6">' +
+        '<div>🏫 学院: '+u.college.split("/")[0]+'</div>' +
+        '<div>🔬 实验室: '+u.lab+'</div>' +
+        '<div>📅 入池日期: '+u.addDate+'</div>' +
+        '<div>📞 最近触达: '+u.lastTouch+'</div>' +
+      '</div>' +
+      '<div class="vip-stat">' +
+        '<span>负责人: '+u.contact+'</span>' +
+        '<span>下单: ¥'+u.order.toFixed(1)+'万</span>' +
+      '</div>';
+    cards.appendChild(card);
+  });
+}
+
+// --- Tab4: 走访记录时间线 ---
+function renderUpVisits() {
+  var sf = $("visitSchoolFilter").value;
+  var pf = $("visitPersonFilter").value;
+
+  var filtered = VISIT_RECORDS.filter(function(v){
+    if(sf!=="all" && v.school!==sf) return false;
+    if(pf!=="all" && v.person!==pf) return false;
+    return true;
+  }).sort(function(a,b){return b.date.localeCompare(a.date);});
+
+  var tl = $("visitTimeline");
+  if(filtered.length === 0) {
+    tl.innerHTML = "<div style='text-align:center;color:#999;padding:40px'>暂无走访记录</div>";
+    return;
+  }
+
+  tl.innerHTML = "";
+  filtered.forEach(function(v){
+    var item = document.createElement("div");
+    item.className = "timeline-item";
+    item.innerHTML =
+      '<div class="time">'+v.date+' '+v.time+'</div>' +
+      '<div class="content">' +
+        '<strong>'+v.type+'</strong> - '+v.school+
+        '<div style="margin-top:6px;font-size:11px;color:#555">'+v.content+'</div>' +
+        '<div style="margin-top:6px;display:flex;gap:12px;font-size:10px">' +
+          '<span class="visitor">👤 '+v.person+'</span>' +
+          '<span style="color:#22c55e">👥 新增线索: '+v.users+'人</span>' +
+        '</div>' +
+      '</div>';
+    tl.appendChild(item);
+  });
+
+  $("visitSchoolFilter").onchange = renderUpVisits;
+  $("visitPersonFilter").onchange = renderUpVisits;
 }
 
 
@@ -861,40 +1125,375 @@ function initMarketing() {
 }
 
 
-function initCampus() {
-  var md = WORKBENCH_DATA.monthly_data[currentMonth];
-  if(!md) return;
-  var total = WORKBENCH_DATA.totals[currentMonth] || {};
-  var people = md.people || [];
+// ========== 校园行管理中心数据 ==========
+var CAMPUS_MODES = [
+  {id:1,name:"摆摊设点",icon:"🏪",desc:"在食堂/宿舍区设置展位",materials:["易拉宝×2","宣传单页200份","小礼品(笔/本)50份","报名表","二维码立牌"],suppliers:["需提前申请场地","准备桌椅(学校提供或自备)","电源接口"],effects:["触达50-150人/场","用户池新增15-40人","适合开学季/毕业季"]},
+  {id:2,name:"学术讲座",icon:"🎓",desc:"联合学院举办专业讲座",materials:["PPT课件","讲师介绍海报","签到表","茶歇(可选)","调研问卷"],suppliers:["邀请校内教授/副教授","协调教室/报告厅","提前2周审批"],effects:["触达30-80人","高价值用户转化率高","品牌专业度提升"]},
+  {id:3,name:"实操演练",icon:"🔬",desc:"实验室仪器操作演示",materials:["演示设备1-2台","实验耗材包","安全护具","操作手册"],suppliers:["联系实验室管理员","确认安全规范","设备运输安装"],effects:["精准触达10-30人","用户粘性极强","复购率>60%"]},
+  {id:4,name:"茶歇交流",icon:"☕",desc:"课题组茶歇时间轻推广",materials:["咖啡/茶点","产品资料册","名片","小礼品"],suppliers:["联系课题组长","预约组会时间","准备15min分享"],effects:["精准触达5-15人","决策者直接对话","成单周期短"]},
+  {id:5,name:"促销活动",icon:"🏷️",desc:"限时折扣/满减/赠品",materials:["促销海报","优惠券/码","赠品库存","价格牌"],suppliers:["申请特价权限","设计促销物料","备货充足"],effects:["短期销量提升明显","新用户尝试门槛低","清库存利器"]},
+  {id:6,name:"线上直播",icon:"📹",desc:"抖音/视频号/B站直播",materials:["直播脚本","样品展示","直播间背景板","抽奖礼品"],suppliers:["主播培训","平台账号运营","设备调试"],effects:["覆盖面广","可回放传播","互动性强"]},
+  {id:7:name:"入班宣讲",icon:"📢",desc:"新生班会/实验课宣讲",materials:["PPT(5-8页)","产品样品","二维码","小礼品"],suppliers:["联系辅导员/班主任","预约上课时间","控制时长10min"],effects:["批量触达20-60人","信任度高","转化稳定"]},
+  {id:8,name:"展会参展",icon:"🎪",desc:"校庆/学术会议/招聘会展位",materials:["展架/展板","产品目录","样品","名片盒"],suppliers:["报名参展","缴纳展位费","物流安排"],effects:["行业曝光","竞品对比机会","潜在大客户"]},
+  {id:9:name:"社团合作",icon:"🤝",desc:"学生社团联合活动",materials:["社团赞助物资","横幅","活动物料","奖品"],suppliers:["筛选活跃社团","签订赞助协议","配合社团档期"],effects:["学生KOL传播","口碑裂变","成本较低"]},
+  {id:10:name:"科研服务",icon:"🧪",desc:"课题组定制化解决方案",materials:["技术方案书","案例集","报价单","试用装"],suppliers:["深入了解需求","技术支持配合","商务谈判"],effects:["客单价高","长期合作关系","转介绍多"]},
+  {id:11:name:"新品体验",icon:"✨",desc:"新产品试用/测评活动",materials:["新品样品","体验反馈表","好评奖励","对比测试物料"],suppliers:["新品到货协调","收集反馈跟进","内容产出"],effects:["种子用户培养","产品改进参考","UGC内容素材"]}
+];
 
-  var campusTotal = total.campus || 0;
-  var trainTotal = total.train || 0;
+// 模拟125场历史活动数据 (4月-7月已实施 + 8-11月计划)
+var CAMPUS_EVENTS = [];
+(function generateCampusEvents(){
+  var schools = ["清华大学","北京大学","北京师范大学","北京化工大学","北京林业大学","北京科技大学","中国农业大学","南开大学","天津医科大学","南京中医药大学","南京农业大学","南京工业大学","苏州大学","同济大学","浙江大学","四川大学","华中科技大学","海南大学","华南理工大学","广州大学","南方医科大学","西安交通大学","西北工业大学","哈尔滨工业大学","中国医科大学","大连理工大学"];
+  var modes = ["摆摊设点","学术讲座","实操演练","茶歇交流","促销活动","入班宣讲","社团合作"];
+  var persons = ["代斯航","王春光","郭芮影","徐颖","张亚娟","郝倩","李笑天","郝丽娟","周雨","刘笑含","卢婉炫","黄乐怡","孙嘉睿","王书妍","王琛","郭旺","王桐桐","曹振华","郭婷婷","吴海源","曾巧"];
+  var regions = ["北京","天津","江浙沪","广东福建","东北西北","西南海南湖北"];
 
-  $("campusKPIs").innerHTML =
-    '<div class="kpi-card"><div class="label">校园行总场次</div><div class="value">'+fmt(campusTotal)+'</div><div class="trend up">本月累计</div></div>' +
-    '<div class="kpi-card"><div class="label">培训总场次</div><div class="value">'+fmt(trainTotal)+'</div><div class="trend up">本月累计</div></div>' +
-    '<div class="kpi-card"><div class="label">参与运营人数</div><div class="value">'+people.length+'</div><div class="trend">人</div></div>' +
-    '<div class="kpi-card"><div class="label">有校园行人数</div><div class="value">'+people.filter(function(p){return (p.campus||0)>0}).length+'</div><div class="trend up">活跃人员</div></div>';
-
-  // 表格 - 显示每个人详情
-  var tbody = "";
-  people.forEach(function(p) {
-    var cls = (p.campus||0) >= 2 ? "ok" : ((p.campus||0) > 0 ? "warn" : "bad");
-    tbody += "<tr><td>"+p.name+"</td><td>"+p.role+"</td><td>"+p.region+"</td><td>"+p.school+"</td><td>"+(p.campus||0)+"</td><td>"+(p.train||0)+"</td><td>"+(p.touch||0)+"</td><td>"+statusDot(cls)+((p.campus||0)>=2?"积极":((p.campus||0)>0?"参与中":"待开展"))+"</td></tr>";
+  // 4-7月历史数据 (约89场)
+  var months4_7 = ["4月","5月","6月","7月"];
+  var eventsPerMonth = [19,22,47,1];
+  months4_7.forEach(function(m,mi){
+    for(var i=0;i<eventsPerMonth[mi];i++){
+      var schoolIdx = Math.floor(Math.random()*schools.length);
+      CAMPUS_EVENTS.push({
+        id: CAMPUS_EVENTS.length+1,
+        date: "2026-"+("0"+(mi+4)).slice(-2)+"-"+String(Math.floor(Math.random()*28)+1).padStart(2,'0'),
+        month: m,
+        school: schools[schoolIdx],
+        mode: modes[Math.floor(Math.random()*modes.length)],
+        person: persons[Math.floor(Math.random()*persons.length)],
+        touch: Math.floor(Math.random()*120)+20,
+        userNew: Math.floor(Math.random()*40)+5,
+        status: "done",
+        order7d: Math.floor(Math.random()*50000),
+        region: regions[Math.floor(schoolIdx/4.5)]
+      });
+    }
   });
-  $("campusTable").innerHTML = tbody;
 
-  // 趋势图
-  var months = Object.keys(WORKBENCH_DATA.totals).sort();
-  var campusTrend = months.map(function(m){ return (WORKBENCH_DATA.totals[m].campus||0); });
-  renderLineChart("campusTrendChart", "校园行月度趋势", months, campusTrend, "#f59e0b");
+  // 8-11月计划 (约36场)
+  var plans = [
+    {date:"2026-08-25",month:"8月",school:"清华大学",mode:"摆摊设点",person:"王春光",region:"北京"},
+    {date:"2026-08-28",month:"8月",school:"北京大学",mode:"入班宣讲",person:"代斯航",region:"北京"},
+    {date:"2026-09-05",month:"9月",school:"浙江大学",mode:"学术讲座",person:"周雨",region:"江浙沪"},
+    {date:"2026-09-10",month:"9月",school:"四川大学",mode:"实操演练",person:"曾巧",region:"西南海南湖北"},
+    {date:"2026-09-15",month:"9月",school:"华中科技大学",mode:"摆摊设点",person:"郭婷婷",region:"西南海南湖北"},
+    {date:"2026-09-18",month:"9月",school:"南京农业大学",mode:"促销活动",person:"郝丽娟",region:"江浙沪"},
+    {date:"2026-09-22",month:"9月",school:"华南理工大学",mode:"社团合作",person:"卢婉炫",region:"广东福建"},
+    {date:"2026-09-25",month:"9月",school:"西安交通大学",mode:"茶歇交流",person:"王书妍",region:"东北西北"},
+    {date:"2026-10-08",month:"10月",school:"南开大学",mode:"入班宣讲",person:"郝倩",region:"天津"},
+    {date:"2026-10-12",month:"10月",school:"同济大学",mode:"学术讲座",person:"刘笑含",region:"江浙沪"},
+    {date:"2026-10-16",month:"10月",school:"海南大学",mode:"摆摊设点",person:"吴海源",region:"西南海南湖北"},
+    {date:"2026-10-20",month:"10月",school:"广州大学",mode:"促销活动",person:"孙嘉睿",region:"广东福建"},
+    {date:"2026-10-24",month:"10月",school:"西北工业大学",mode:"实操演练",person:"王琛",region:"东北西北"},
+    {date:"2026-11-05",month:"11月",school:"大连理工大学",mode:"茶歇交流",person:"郭旺",region:"东北西北"},
+    {date:"2026-11-10",month:"11月",school:"南方医科大学",mode:"入班宣讲",person:"黄乐怡",region:"广东福建"}
+  ];
+  plans.forEach(function(p,i){
+    CAMPUS_EVENTS.push({id:CAMPUS_EVENTS.length+1,date:p.date,month:p.month,school:p.school,mode:p.mode,person:p.person,touch:0,userNew:0,status:"pending",order7d:0,region:p.region});
+  });
+})();
 
-  // TOP10 按校园行排序
-  var topPeople = people.slice().sort(function(a,b){ return (b.campus||0)-(a.campus||0); }).slice(0,10);
-  renderBarChart("campusTopChart", "校园行TOP10",
-    topPeople.map(function(p){return p.name;}),
-    topPeople.map(function(p){return p.campus||0;})
-  );
+// 21所学校画像数据
+var SCHOOL_PROFILES = [
+  {name:"清华大学",region:"北京",building:"化学馆/生命科学楼/医学院",traffic:"午间12:00-13:00 傍晚17:00-18:00",colleges:"化学系、生命学院、药学院、医学院",events:12,effect:"优",contact:"王春光",userPool:84,avgOrder:73.3},
+  {name:"北京大学",region:"北京",building:"化学学院/生科楼",traffic:"课间10:00-10:15 14:00-14:15",colleges:"化学学院、生科院、药学院",events:8,effect:"良",contact:"代斯航",userPool:55,avgOrder:45.2},
+  {name:"北京师范大学",region:"北京",building:"化学楼/生科楼",traffic:"中午12:00-13:00",colleges:"化学学院、生科院",events:5,effect:"中",contact:"徐颖",userPool:331,avgOrder:1.1},
+  {name:"北京化工大学",region:"北京",building:"有机/无机楼",traffic:"课间人流集中",colleges:"化学工程学院、材料学院",events:3,effect:"中",contact:"张亚娟",userPool:0,avgOrder:16.9},
+  {name:"北京林业大学",region:"北京",building:"生物楼/实验楼",traffic:"季节性波动大",colleges:"生物学院、材料学院",events:2,effect:"待开发",contact:"张亚娟",userPool:0,avgOrder:0},
+  {name:"北京科技大学",region:"北京",building:"化学楼/生科楼",traffic:"工作日稳定",colleges:"化学与生物工程学院",events:0,effect:"待开发",contact:"张亚娟",userPool:0,avgOrder:0},
+  {name:"中国农业大学",region:"北京",building:"西校区主楼/食品学院",traffic:"农忙季减少",colleges:"食品学院、理学院、动医学院",events:6,effect:"良",contact:"代斯航",userPool:55,avgOrder:3.1},
+  {name:"南开大学",region:"天津",building:"化学楼/生物楼/医学楼",traffic:"工作日稳定",colleges:"化学学院、生科院、医学院",events:9,effect:"优",contact:"郝倩",userPool:238,avgOrder:179.4},
+  {name:"天津医科大学",region:"天津",building:"主楼/公共卫生楼",traffic:"医院关联度高",colleges:"基础医学院、药学院",events:4,effect:"良",contact:"刘金玲",userPool:0,avgOrder:38.0},
+  {name:"南京中医药大学",region:"江浙沪",building:"B01/格物楼",traffic:"学期初/末高峰",colleges:"药学院、中西医结合学院",events:7,effect:"良",contact:"田晓燕",userPool:74,avgOrder:17.5},
+  {name:"南京农业大学",region:"江浙沪",building:"生科楼/理科楼",traffic:"春秋两季活跃",colleges:"生命科学院、理学院",events:8,effect:"优",contact:"郝丽娟",userPool:465,avgOrder:63.5},
+  {name:"南京工业大学",region:"江浙沪",building:"化学楼/材料楼",traffic:"工科院校稳定",colleges:"化学化工学院、材料学院",events:5,effect:"中",contact:"郝丽娟",userPool:7,avgOrder:19.8},
+  {name:"苏州大学",region:"江浙沪",building:"医学楼/化学楼",traffic:"医药园区联动",colleges:"医学部、材化部",events:4,effect:"中",contact:"周雨",userPool:0,avgOrder:68.2},
+  {name:"同济大学",region:"江浙沪",building:"医学楼/化学楼",traffic:"医科优势明显",colleges:"医学院、化学学院",events:3,effect:"良",contact:"周雨",userPool:0,avgOrder:4.5},
+  {name:"浙江大学",region:"江浙沪",building:"紫金港/玉泉校区",traffic:"体量最大",colleges:"化学工程、生科院、医学院",events:10,effect:"优",contact:"周雨",userPool:0,avgOrder:203.0},
+  {name:"四川大学",region:"西南海南湖北",building:"望江/华西校区",traffic:"华西医学中心活跃",colleges:"化学学院、华西药学院、华西临床",events:11,effect:"优",contact:"曾巧",userPool:507,avgOrder:8.9},
+  {name:"华中科技大学",region:"西南海南湖北",building:"化学楼/生科楼/药学院",traffic:"光谷生物医药园联动",colleges:"化学与化工学院、生科院、药学院",events:9,effect:"良",contact:"郭婷婷",userPool:410,avgOrder:22.1},
+  {name:"海南大学",region:"西南海南湖北",building:"理工楼/医学楼",traffic:"热带特色资源",colleges:"化工学院、医学院",events:6,effect:"良",contact:"吴海源",userPool:308,avgOrder:42.4},
+  {name:"华南理工大学",region:"广东福建",building:"化学楼/材料楼",traffic:"珠三角产业对接",colleges:"化学与化工学院、材料学院",events:7,effect:"良",contact:"卢婉炫",userPool:788,avgOrder:4.6},
+  {name:"广州大学",region:"广东福建",building:"化学楼/生化楼",traffic:"市属高校稳定",colleges:"化学学院、生科院",events:5,effect:"中",contact:"孙嘉睿",userPool:643,avgOrder:11.7},
+  {name:"南方医科大学",region:"广东福建",building:"校本部/顺德校区",traffic:"医学背景强",colleges:"药学院、检验学院",events:4,effect:"中",contact:"黄乐怡",userPool:877,avgOrder:5.9},
+  {name:"西安交通大学",region:"东北西北",building:"化学楼/医学校区",traffic:"西部龙头稳定",colleges:"化学学院、医学部、药学院",events:10,effect:"优",contact:"王书妍",userPool:418,avgOrder:40.8},
+  {name:"西北工业大学",region:"东北西北",building:"理学院/生命学院",traffic:"军工背景特色",colleges:"理学院、生命学院",events:8,effect:"良",contact:"王琛",userPool:280,avgOrder:6.6},
+  {name:"哈尔滨工业大学",region:"东北西北",building:"理学楼/医学部",traffic:"冬季淡季",colleges:"理学院、医学部",events:3,effect:"待提升",contact:"曹振华",userPool:0,avgOrder:0.02},
+  {name:"中国医科大学",region:"东北西北",building:"校本部/第一临床",traffic:"东北地区医学中心",colleges:"基础医学院、药学院",events:7,effect:"良",contact:"王桐桐",userPool:3,avgOrder:55.5},
+  {name:"大连理工大学",region:"东北西北",building:"化学楼/生科楼",traffic:"沿海开放城市",colleges:"化工学院、环境学院",events:5,effect:"中",contact:"郭旺",userPool:200,avgOrder:20.8}
+];
+
+// 用户池CRM模拟数据 (21所学校 × S/A/B/C用户)
+var USER_POOL_CRM = [];
+(function generateUserCRM(){
+  var surnames = ["张","王","李","赵","刘","陈","杨","黄","周","吴","徐","孙","马","朱","胡","郭","何","林","罗","郑","梁","谢","宋","唐","许","韩","冯","邓","曹","彭","曾","萧","田","董","袁","潘","于","蒋","蔡","余","杜","叶","程","苏","魏","吕","丁","任","沈","姚"];
+  var givennames =["伟","芳","娜","秀英","敏","静","丽","强","磊","军","洋","勇","艳","杰","娟","涛","明","超","秀兰","霞","平","刚","桂英","玲","飞","玉兰","萍","红","建华","文","辉","丹","金","琳","华","建国","建军","浩宇","欣怡","子涵","梓涵","一诺","浩然","欣然","子墨","思远","嘉怡","佳琪","诗涵"];
+  var labs = ["有机合成实验室","药物分析课题组","天然产物研究室","高分子材料组","生物医用材料团队","纳米医学中心","环境化学课题组","催化化学团队","分子生物学实验室","结构生物学组","药物化学课题组","药剂学研究室","细胞生物学团队","免疫学课题组","基因组学研究中心","蛋白质工程实验室","代谢组学研究组","合成生物学团队","化学生物学课题组","生物信息学中心"];
+  var depts = ["化学系","生命学院","药学院","医学院","材料学院","化工学院","环境学院","食品学院"];
+
+  SCHOOL_PROFILES.forEach(function(school){
+    var count = Math.floor(Math.random()*25)+8; // 每校8-32名用户
+    for(var i=0;i<count;i++){
+      var levelRand = Math.random();
+      var level = levelRand > 0.92 ? "S" : (levelRand > 0.72 ? "A" : (levelRand > 0.45 ? "B" : "C"));
+      var orderVal = level === "S" ? Math.floor(Math.random()*80+20)*10000 : (level === "A" ? Math.floor(Math.random()*30+5)*10000 : (level === "B" ? Math.floor(Math.random()*8+1)*10000 : Math.floor(Math.random()*30000)));
+      USER_POOL_CRM.push({
+        id: USER_POOL_CRM.length+1,
+        name: surnames[Math.floor(Math.random()*surnames.length)] + givennames[Math.floor(Math.random()*givennames.length)],
+        level: level,
+        school: school.name,
+        college: depts[Math.floor(Math.random()*depts.length)] + "/" + (school.colleges.split("、")[Math.floor(Math.random()*school.colleges.split("、").length)] || ""),
+        lab: labs[Math.floor(Math.random()*labs.length)],
+        addDate: "2026-" + String(Math.floor(Math.random()*4)+4).padStart(2,'0') + "-" + String(Math.floor(Math.random()*28)+1).padStart(2,'0'),
+        lastTouch: Math.floor(Math.random()*14)+"天前",
+        order: orderVal / 10000,
+        contact: school.contact
+      });
+    }
+  });
+})();
+
+// 走访记录时间线数据
+var VISIT_RECORDS = [
+  {date:"2026-07-28",time:"14:30",school:"清华大学",person:"王春光",type:"常规走访",content:"拜访化学系张教授课题组，了解新学期试剂采购计划，预计采购额15万+",users:3},
+  {date:"2026-07-25",time:"10:00",school:"南开大学",person:"郝倩",type:"深度回访",content:"医学院李老师反馈产品使用效果良好，有意愿扩大合作范围",users:2},
+  {date:"2026-07-22",time:"15:00",school:"四川大学",person:"曾巧",type:"问题处理",content:"处理华西药学院订单配送延迟问题，客户表示理解并追加下单",users:1},
+  {date:"2026-07-18",time:"09:30",school:"南京农业大学",person:"郝丽娟",type:"需求挖掘",content:"生科院王老师课题组有大型仪器采购需求，已安排技术支持对接",users:5},
+  {date:"2026-07-15",time:"14:00",school:"浙江大学",person:"周雨",type:"高层拜访",content:"与医学院副院长沟通战略合作框架，初步达成意向",users:8},
+  {date:"2026-07-12",time:"10:30",school:"华中科技大学",person:"郭婷婷",type:"新品推介",content:"向药学院推荐新款色谱柱，现场演示效果良好，获3个意向订单",users:4},
+  {date:"2026-07-08",time:"16:00",school:"西安交通大学",person:"王书妍",type:"售后跟进",content:"回访化学学院老客户，收集产品改进建议5条",users:2},
+  {date:"2026-07-05",time:"11:00",school:"海南大学",person:"吴海源",type:"常规走访",content:"化工学院新学期采购清单确认，重点推进耗材品类",users:6},
+  {date:"2026-06-28",time:"14:30",school:"华南理工大学",person:"卢婉炫",type:"活动复盘",content:"校园行摆摊活动后续跟进，转化线索12条",users:12},
+  {date:"2026-06-25",time:"09:00",school:"北京大学",person:"代斯航",type:"学术讲座",content:"联合化学学院举办'前沿分析技术讲座'，到场师生65人",users:15}
+];
+
+var currentCampusTab = "campusCalendar";
+var currentUpTab = "upSchools";
+
+function initCampus() {
+  // 绑定Tab切换
+  document.querySelectorAll("#campusTabs .tab-btn").forEach(function(btn){
+    btn.onclick = function(){
+      document.querySelectorAll("#campusTabs .tab-btn").forEach(function(b){b.classList.remove("active");});
+      btn.classList.add("active");
+      currentCampusTab = btn.dataset.tab;
+      document.querySelectorAll(".campus-tab-content").forEach(function(c){c.style.display="none";});
+      $(currentCampusTab).style.display = "block";
+      renderCampusSubTab();
+    };
+  });
+  renderCampusSubTab();
+}
+
+function renderCampusSubTab() {
+  switch(currentCampusTab){
+    case "campusCalendar": renderCalView(); break;
+    case "campusModes": renderModeLibrary(); break;
+    case "campusTracking": renderTracking(); break;
+    case "campusSchools": renderSchoolProfiles(); break;
+  }
+}
+
+// --- 日历视图 ---
+function renderCalView() {
+  var doneCount = CAMPUS_EVENTS.filter(function(e){return e.status==="done";}).length;
+  var pendingCount = CAMPUS_EVENTS.filter(function(e){return e.status==="pending";}).length;
+  $("campusCalKPIs").innerHTML =
+    '<div class="kpi-card"><div class="label">总场次</div><div class="value">'+CAMPUS_EVENTS.length+'</div><div class="trend">历史+计划</div></div>' +
+    '<div class="kpi-card"><div class="label">✅ 已实施</div><div class="value">'+doneCount+'</div><div class="trend up">完成率'+(doneCount/(doneCount+pendingCount)*100).toFixed(0)+'%</div></div>' +
+    '<div class="kpi-card"><div class="label">⏳ 计划中</div><div class="value">'+pendingCount+'</div><div class="trend">下半年排期</div></div>' +
+    '<div class="kpi-card"><div class="label">覆盖学校</div><div class="value">'+new Set(CAMPUS_EVENTS.map(function(e){return e.school;})).size+'</div><div class="trend">所</div></div>';
+
+  renderCalTable();
+
+  // 月度趋势图
+  var months = ["4月","5月","6月","7月","8月","9月","10月","11月"];
+  var doneByMonth = months.map(function(m){ return CAMPUS_EVENTS.filter(function(e){return e.month===m && e.status==="done";}).length; });
+  var pendingByMonth = months.map(function(m){ return CAMPUS_EVENTS.filter(function(e){return e.month===m && e.status==="pending";}).length; });
+  if(allCharts.campusCalChart) allCharts.campusCalChart.destroy();
+  allCharts.campusCalChart = new Chart($("campusCalChart"),{
+    type:'bar',
+    data:{labels:months,datasets:[
+      {label:"已实施",data:doneByMonth,backgroundColor:"#22c55e80",borderColor:"#22c55e",borderWidth:1},
+      {label:"计划中",data:pendingByMonth,backgroundColor:"#f59e0b80",borderColor:"#f59e0b",borderWidth:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:"top",labels:{boxWidth:12,font:{size:10}}},title:{display:true,text:"月度活动分布",font:{size:13}}},
+      scales:{y:{beginAtZero:true,title:{display:true,text:"场次"}}}
+    }
+  });
+
+  // 模式分布饼图
+  var modeCounts = {};
+  CAMPUS_EVENTS.filter(function(e){return e.status==="done";}).forEach(function(e){ modeCounts[e.mode] = (modeCounts[e.mode]||0)+1; });
+  var modeLabels = Object.keys(modeCounts);
+  renderPieChart("campusModeDistChart","活动模式分布",modeLabels,modeLabels.map(function(k){return modeCounts[k];}));
+
+  // 绑定筛选器
+  $("calMonthFilter").onchange = renderCalTable;
+  $("calStatusFilter").onchange = renderCalTable;
+}
+
+function renderCalTable() {
+  var mf = $("calMonthFilter").value;
+  var sf = $("calStatusFilter").value;
+  var filtered = CAMPUS_EVENTS.filter(function(e){
+    if(mf!=="all" && e.month!==mf) return false;
+    if(sf!=="all" && e.status!==sf) return false;
+    return true;
+  }).sort(function(a,b){return a.date.localeCompare(b.date);});
+
+  var tbody = "";
+  filtered.slice(0,50).forEach(function(e){
+    var st = e.status==="done"?"<span style='color:#22c55e'>✅ 已实施</span>" : (e.status==="cancelled"?"<span style='color:#ef4444'>❌ 取消</span>" : "<span style='color:#f59e0b'>⏳ 未实施</span>");
+    tbody += "<tr><td>"+e.date+"</td><td>"+e.school+"</td><td>"+e.mode+"</td><td>"+e.person+"</td><td>"+(e.touch||"-")+"</td><td>"+(e.userNew||"-")+"</td><td>"+st+"</td></tr>";
+  });
+  $("campusCalTable").innerHTML = tbody || "<tr><td colspan='8' style='text-align:center;color:#999;padding:20px'>暂无数据</td></tr>";
+}
+
+// --- 活动模式库 ---
+function renderModeLibrary() {
+  var grid = $("modeCardsGrid");
+  grid.innerHTML = "";
+  CAMPUS_MODES.forEach(function(mode){
+    var card = document.createElement("div");
+    card.className = "mode-card";
+    card.innerHTML =
+      '<div class="mode-icon">'+mode.icon+'</div>' +
+      '<h4>'+mode.name+'</h4>' +
+      '<p>'+mode.desc+'</p>' +
+      '<div><span class="mode-tag">点击查看详情</span></div>';
+    card.onclick = function(){ showModeDetail(mode.id); };
+    grid.appendChild(card);
+  });
+}
+
+function showModeDetail(modeId) {
+  var mode = CAMPUS_MODES.find(function(m){return m.id===modeId;});
+  if(!mode) return;
+  $("modeDetailTitle").textContent = mode.icon+" "+mode.name+" - 详细方案";
+  $("modeMaterials").innerHTML = mode.materials.map(function(m){return"<li>📦 "+m+"</li>";}).join("");
+  $("modeSuppliers").innerHTML = mode.suppliers.map(function(s){return"<li>🔧 "+s+"</li>";}).join("");
+  $("modeEffects").innerHTML = mode.effects.map(function(e){return"<li>📈 "+e+"</li>";}).join("");
+  $("modeDetailPanel").style.display = "block";
+}
+
+function closeModeDetail() {
+  $("modeDetailPanel").style.display = "none";
+}
+
+// --- 单场效果追踪 ---
+function renderTracking() {
+  var doneEvents = CAMPUS_EVENTS.filter(function(e){return e.status==="done";});
+  var totalTouch = doneEvents.reduce(function(s,e){return s+(e.touch||0);},0);
+  var totalUserNew = doneEvents.reduce(function(s,e){return s+(e.userNew||0);},0);
+  var totalOrder = doneEvents.reduce(function(s,e){return s+(e.order7d||0);},0);
+  var avgConvert = totalTouch > 0 ? ((totalOrder/totalTouch)*100).toFixed(1) : "0";
+
+  $("trackKPIs").innerHTML =
+    '<div class="kpi-card"><div class="label">已完成场次</div><div class="value">'+doneEvents.length+'</div><div class="trend up">场</div></div>' +
+    '<div class="kpi-card"><div class="label">总触达数</div><div class="value">'+totalTouch+'</div><div class="trend">人次</div></div>' +
+    '<div class="kpi-card"><div class="label">用户池新增</div><div class="value">'+totalUserNew+'</div><div class="trend up">人</div></div>' +
+    '<div class="kpi-card"><div class="label">平均转化率</div><div class="value">'+avgConvert+'%</div><div class="trend">下单/触达</div></div>';
+
+  var tbody = "";
+  doneEvents.sort(function(a,b){return(b.order7d||0)-(a.order7d||0);}).slice(0,30).forEach(function(e){
+    var cr = e.touch > 0 ? ((e.order7d/e.touch)*100).toFixed(1) : "0";
+    tbody += "<tr><td>#"+e.id+"</td><td>"+e.school+"</td><td>"+e.date+"</td><td>"+e.touch+"</td><td>"+e.userNew+"</td><td>¥"+(e.order7d/10000).toFixed(2)+"万</td><td>"+cr+"%</td><td>"+e.person+"</td></tr>";
+  });
+  $("trackTable").innerHTML = tbody;
+
+  // 趋势图 - 按月份汇总
+  var months = ["4月","5月","6月","7月"];
+  var touchByMonth = months.map(function(m){ return CAMPUS_EVENTS.filter(function(e){return e.month===m&&e.status==="done";}).reduce(function(s,e){return s+(e.touch||0);},0); });
+  var convertByMonth = months.map(function(m){
+    var evts = CAMPUS_EVENTS.filter(function(e){return e.month===m&&e.status==="done";});
+    var t = evts.reduce(function(s,e){return s+(e.touch||0);},0);
+    var o = evts.reduce(function(s,e){return s+(e.order7d||0);},0);
+    return t > 0 ? +(o/t*100).toFixed(1) : 0;
+  });
+  if(allCharts.trackTrendChart) allCharts.trackTrendChart.destroy();
+  allCharts.trackTrendChart = new Chart($("trackTrendChart"),{
+    type:'line',
+    data:{labels:months,datasets:[
+      {label:"触达数",data:touchByMonth,borderColor:"#1a73e8",backgroundColor:"#1a73e820",fill:true,tension:0.3,yAxisID:"y"},
+      {label:"转化率%",data:convertByMonth,borderColor:"#ef4444",backgroundColor:"#ef444420",tension:0.3,yAxisID:"y1",type:"line"}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:"top",labels:{boxWidth:12,font:{size:10}}},title:{display:true,text:"月度触达-转化趋势",font:{size:13}}},
+      scales:{y:{beginAtZero:true,position:"left",title:{display:true,text:"触达数"}},y1:{beginAtZero:true,position:"right",grid:{drawOnChartArea:false},title:{display:true,text:"转化率%"}}}
+    }
+  });
+
+  // 各模式转化率对比
+  var modeConvert = {};
+  doneEvents.forEach(function(e){
+    if(!modeConvert[e.mode]) modeConvert[e.mode]={touch:0,order:0};
+    modeConvert[e.mode].touch += e.touch||0;
+    modeConvert[e.mode].order += e.order7d||0;
+  });
+  var mcLabels = Object.keys(modeConvert);
+  var mcData = mcLabels.map(function(k){ var m=modeConvert[k]; return m.touch>0?+(m.order/m.touch*100).toFixed(1):0; });
+  if(allCharts.trackConvertChart) allCharts.trackConvertChart.destroy();
+  allCharts.trackConvertChart = new Chart($("trackConvertChart"),{
+    type:'bar',
+    data:{labels:mcLabels,datasets:[{label:"平均转化率%",data:mcData,backgroundColor:"#8b5cf680",borderColor:"#8b5cf6",borderWidth:1}]},
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{legend:{display:false},title:{display:true,text:"各模式转化率对比",font:{size:13}}},
+      scales:{x:{beginAtZero:true,title:{display:true,text:"转化率%"}}}
+    }
+  });
+}
+
+// --- 学校画像 ---
+function renderSchoolProfiles() {
+  // 区域筛选下拉框填充
+  var rFilter = $("schoolRegionFilter");
+  var curVal = rFilter.value;
+  rFilter.innerHTML = "<option value='all'>全部区域</option>";
+  var regions = [...new Set(SCHOOL_PROFILES.map(function(s){return s.region;}))];
+  regions.forEach(function(r){ rFilter.innerHTML += "<option value='"+r+"'>"+r+"</option>"; });
+  rFilter.value = curVal;
+
+  renderSchoolGrid();
+
+  $("schoolSearch").oninput = renderSchoolGrid;
+  $("schoolRegionFilter").onchange = renderSchoolGrid;
+}
+
+function renderSchoolGrid() {
+  var keyword = $("schoolSearch").value.toLowerCase();
+  var rf = $("schoolRegionFilter").value;
+  var filtered = SCHOOL_PROFILES.filter(function(s){
+    if(rf!=="all" && s.region!==rf) return false;
+    if(keyword && !s.name.toLowerCase().includes(keyword)) return false;
+    return true;
+  });
+
+  var grid = $("schoolsGrid");
+  grid.innerHTML = "";
+  filtered.forEach(function(s){
+    var effectColor = s.effect==="优"?"#22c55e":(s.effect==="良"?"#3b82f6":(s.effect==="中"?"#f59e0b":"#ef4444"));
+    var card = document.createElement("div");
+    card.className = "school-card";
+    card.innerHTML =
+      '<h4>🏫 '+s.name+' <span style="font-size:11px;color:'+effectColor+';font-weight:normal;margin-left:auto">['+s.effect+']</span></h4>' +
+      '<div class="school-info">' +
+        '<div>📍 <span>区域:</span> '+s.region+'</div>' +
+        '<div>🏢 <span>楼宇位置:</span> '+s.building+'</div>' +
+        '<div>👥 <span>人流量高峰:</span> '+s.traffic+'</div>' +
+        '<div>🎓 <span>可开展学院:</span> '+s.colleges+'</div>' +
+        '<div>📊 <span>历史活动:</span> '+s.events+'场 | 用户池: '+s.userPool+'人 | 均单: ¥'+s.avgOrder+'万</div>' +
+        '<div>👤 <span>负责人:</span> '+s.contact+'</div>' +
+      '</div>' +
+      '<div class="school-tags">' +
+        '<span class="school-tag tag-building">楼宇</span>'+
+        '<span class="school-tag tag-traffic">流量</span>'+
+        '<span class="school-tag tag-college">学院</span>'+
+        '<span class="school-tag tag-effect">效果</span>'+
+      '</div>';
+    grid.appendChild(card);
+  });
 }
 
 function renderLineChart(canvasId, title, labels, data, color) {
