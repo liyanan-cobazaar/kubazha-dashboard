@@ -654,9 +654,9 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
       <div class="rule-panel">
         <div class="rule-header" onclick="toggleRulePanel(this)">
           <span>📋 运营部绩效考核规则说明（点击展开/收起）</span>
-          <span class="rule-toggle">▼</span>
+          <span class="rule-toggle">▶</span>
         </div>
-        <div class="rule-body open" id="perfRuleBody">
+        <div class="rule-body" id="perfRuleBody">
           <div class="rule-section">
             <h5>一、核心计算规则</h5>
             <ol>
@@ -1523,6 +1523,72 @@ function scopeTotals(month) {
   });
   return t;
 }
+// 聚合多个月的 scopeTotals（用于数据看板多月汇总）
+function aggregateTotals(months) {
+  if (!months || months.length === 0) months = [currentSelectedMonth()];
+  var agg = { flow: 0, touch: 0, train: 0, campus: 0, projects: 0, user_pool: 0 };
+  months.forEach(function(m) {
+    var t = scopeTotals(m);
+    agg.flow += (t.flow || 0);
+    agg.touch += (t.touch || 0);
+    agg.train += (t.train || 0);
+    agg.campus += (t.campus || 0);
+    agg.user_pool += (t.user_pool || 0);
+    agg.projects += (t.projects || 0);
+  });
+  return agg;
+}
+// 聚合多个月的 scopeRegions（用于数据看板多月汇总）
+function aggregateRegions(months) {
+  if (!months || months.length === 0) months = [currentSelectedMonth()];
+  var agg = {};
+  months.forEach(function(m) {
+    var md = WORKBENCH_DATA.monthly_data[m];
+    if (!md) return;
+    var regs = scopeRegions(md.regions || {});
+    Object.keys(regs).forEach(function(k) {
+      if (k === '合计') return;
+      var r = regs[k];
+      if (!agg[k]) {
+        agg[k] = {
+          region: r.region,
+          projects: 0,
+          members: r.members.slice ? r.members.slice() : [],
+          user_pool: 0,
+          touch: 0,
+          train: 0,
+          campus: 0,
+          flow: 0,
+          actual_order: 0
+        };
+      }
+      agg[k].projects += (r.projects || 0);
+      agg[k].user_pool += (r.user_pool || 0);
+      agg[k].touch += (r.touch || 0);
+      agg[k].train += (r.train || 0);
+      agg[k].campus += (r.campus || 0);
+      agg[k].flow += (r.flow || 0);
+      agg[k].actual_order += (r.actual_order || 0);
+    });
+  });
+  return agg;
+}
+// 多个月份某区域流量增量合计
+function aggregateRegionIncrement(months, regionKey) {
+  if (!months || months.length === 0) months = [currentSelectedMonth()];
+  var total = 0;
+  months.forEach(function(m) {
+    total += regionFlowIncrement(m, regionKey);
+  });
+  return total;
+}
+// 选中月份范围显示文本
+function selectedMonthsLabel() {
+  if (!selectedMonths || selectedMonths.length === 0) return formatMonthLabel(currentSelectedMonth());
+  if (selectedMonths.length === 1) return formatMonthLabel(selectedMonths[0]);
+  var sorted = selectedMonths.slice().sort(function(a,b){ return monthSortKey(a) - monthSortKey(b); });
+  return formatMonthLabel(sorted[0]) + ' ~ ' + formatMonthLabel(sorted[sorted.length-1]) + '（共' + sorted.length + '个月）';
+}
 // 聚合记录(getPersonLevelPeople 输出)按角色范围过滤
 function scopePersonLevel(list) {
   if (!CURRENT_USER || isAdmin()) return list || [];
@@ -1733,7 +1799,7 @@ function initOverview() {
   var noteHtml = scopeNote ? '<span style="float:right;font-size:11px;color:#1a73e8">'+scopeNote+'</span>' : '';
   var titleEl = document.querySelector('#modOverview .module-title');
   if (titleEl) titleEl.innerHTML = '📈 总体概况' + noteHtml;
-  var ml = $('ovMonthLabel'); if (ml) ml.textContent = '当前月份：' + formatMonthLabel(cm);
+  var ml = $('ovMonthLabel'); if (ml) ml.textContent = selectedMonthsLabel();
 
   renderOvActive();
 }
@@ -1750,33 +1816,47 @@ function renderOvActive() {
   else renderOvIncrement();
 }
 
-// 数据看板：KPI + 区域表 + 流量饼图/排名
+// 数据看板：KPI + 区域表 + 流量饼图/排名（基于 selectedMonths 聚合）
 function renderOvDashboard() {
-  var cm = currentSelectedMonth();
-  var md = WORKBENCH_DATA.monthly_data[cm];
-  if(!md) return;
-  var total = scopeTotals(cm);
+  var months = (selectedMonths && selectedMonths.length ? selectedMonths.slice() : [currentSelectedMonth()]);
+  months.sort(function(a,b){ return monthSortKey(a) - monthSortKey(b); });
+  var total = aggregateTotals(months);
 
-  var regions = scopeRegions(md.regions || {});
-  var regionEntries = Object.keys(regions).filter(function(k){ return k !== '合计'; }).map(function(k){
+  var regions = aggregateRegions(months);
+  var regionEntries = Object.keys(regions).map(function(k){
     return { key:k, name:regions[k].region, data:regions[k] };
   });
   var totalIncrement;
   if (regionEntries.length > 0) {
-    totalIncrement = regionEntries.reduce(function(s,e){ return s + regionFlowIncrement(cm, e.key); }, 0);
+    totalIncrement = regionEntries.reduce(function(s,e){ return s + aggregateRegionIncrement(months, e.key); }, 0) / 10000;
   } else if (CURRENT_USER && !isAdmin()) {
-    totalIncrement = scopePeople(md.people || []).reduce(function(s,p){ return s + calcFlowIncrement(p); }, 0) / 10000;
+    // staff：跨月把本人各项目 actual_order 求和 - 基期求和
+    var sumActual = 0, sumBase = 0;
+    var seen = {};
+    months.forEach(function(m){
+      var md = WORKBENCH_DATA.monthly_data[m];
+      if (!md) return;
+      scopePeople(md.people || []).forEach(function(p){
+        if (p._synthetic) return;
+        var key = p.school + '|' + p.name;
+        sumActual += (p.actual_order || 0);
+        sumBase += getBaseFlow(p);
+      });
+    });
+    totalIncrement = (sumActual - sumBase) / 10000;
   } else {
     totalIncrement = 0;
   }
 
-  var monthPrefix = formatMonthLabel(cm);
+  var rangePrefix = selectedMonthsLabel();
+  var singleMonth = months.length === 1;
+  var trendLabel = singleMonth ? '本月累计' : '累计汇总';
   $("overviewKPIs").innerHTML =
-    '<div class="kpi-card"><div class="label">' + monthPrefix + '总流量(万)</div><div class="value">'+fmt((total.flow||0)/10000)+'</div><div class="trend up">本月累计</div></div>' +
-    '<div class="kpi-card"><div class="label">' + monthPrefix + '总流量增量(万)</div><div class="value" style="color:'+(totalIncrement>=0?'#16a34a':'#dc2626')+'">'+(totalIncrement>=0?'+':'')+fmt(totalIncrement)+'</div><div class="trend">环比上月</div></div>' +
-    '<div class="kpi-card"><div class="label">' + monthPrefix + '有效触达</div><div class="value">'+fmt(total.touch)+'</div><div class="trend">目标: ≥'+(total.projects * 100 || 3800)+'次</div></div>' +
-    '<div class="kpi-card"><div class="label">' + monthPrefix + '培训场次</div><div class="value">'+fmt(total.train)+'</div><div class="trend up">累计覆盖</div></div>' +
-    '<div class="kpi-card"><div class="label">' + monthPrefix + '校园行场次</div><div class="value">'+fmt(total.campus)+'</div><div class="trend up">活跃学校</div></div>';
+    '<div class="kpi-card"><div class="label">' + rangePrefix + '总流量(万)</div><div class="value">'+fmt((total.flow||0)/10000)+'</div><div class="trend up">'+trendLabel+'</div></div>' +
+    '<div class="kpi-card"><div class="label">' + rangePrefix + '总流量增量(万)</div><div class="value" style="color:'+(totalIncrement>=0?'#16a34a':'#dc2626')+'">'+(totalIncrement>=0?'+':'')+fmt(totalIncrement)+'</div><div class="trend">'+(singleMonth?'环比上月':'跨期累计')+'</div></div>' +
+    '<div class="kpi-card"><div class="label">' + rangePrefix + '有效触达</div><div class="value">'+fmt(total.touch)+'</div><div class="trend">目标: ≥'+(total.projects * 100 || 3800)+'次</div></div>' +
+    '<div class="kpi-card"><div class="label">' + rangePrefix + '培训场次</div><div class="value">'+fmt(total.train)+'</div><div class="trend up">累计覆盖</div></div>' +
+    '<div class="kpi-card"><div class="label">' + rangePrefix + '校园行场次</div><div class="value">'+fmt(total.campus)+'</div><div class="trend up">活跃学校</div></div>';
 
   var regionNames = regionEntries.map(function(e){ return e.key; });
   var tbody = "";
@@ -1803,7 +1883,7 @@ function renderOvDashboard() {
     if (rc && rc.parentNode) rc.parentNode.innerHTML = noPermHtml('当前角色无区域汇总数据');
     $("overviewRegionRank").innerHTML = '<div style="font-size:11px;color:#999;padding:8px">当前角色无区域排名数据</div>';
   } else {
-    renderPieChart("overviewRegionChart", "各区域" + monthPrefix + "流量(万)",
+    renderPieChart("overviewRegionChart", "各区域" + rangePrefix + "流量(万)",
       regionArr.map(function(r){ return r.name; }),
       regionArr.map(function(r){ return r.flow; })
     );
