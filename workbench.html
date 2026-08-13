@@ -223,6 +223,312 @@ tr:hover td{background:#f8fafc}
 .role-no-perm-block{margin-top:14px}
 .mkt-readonly-val{font-weight:600;color:#334155}
 input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
+
+/* ===== 任务下发系统（原 dashboard-v2）样式，作用域限定 #modTaskDispatch ===== */
+
+#modTaskDispatch .header{ background:linear-gradient(135deg,#1a237e,#283593); color:#fff; padding:16px 24px; display:flex; justify-content:space-between; align-items:center; }
+#modTaskDispatch .header h1{ font-size:20px; font-weight:600; }
+#modTaskDispatch .header .date{ font-size:13px; opacity:0.8; }
+#modTaskDispatch .view-switch{ display:flex; gap:8px; }
+#modTaskDispatch .view-btn{ background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:6px 16px; border-radius:6px; cursor:pointer; font-size:13px; transition:all 0.2s; }
+#modTaskDispatch .view-btn:hover{ background:rgba(255,255,255,0.25); }
+#modTaskDispatch .view-btn.active{ background:#fff; color:#1a237e; font-weight:600; }
+#modTaskDispatch .dingtalk-status{ display:flex; align-items:center; gap:6px; font-size:12px; color:rgba(255,255,255,0.85); white-space:nowrap; }
+#modTaskDispatch .dt-dot{ width:8px; height:8px; border-radius:50%; background:#ff9800; flex-shrink:0; transition:background 0.3s; }
+#modTaskDispatch .dt-dot.online{ background:#4caf50; box-shadow:0 0 4px #4caf50; }
+#modTaskDispatch .dt-dot.offline{ background:#f44336; }
+
+#modTaskDispatch .kpi-bar{ display:flex; gap:12px; padding:16px 24px; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,0.08); overflow-x:auto; }
+#modTaskDispatch .kpi{ flex:1; min-width:140px; padding:12px 16px; border-radius:8px; position:relative; overflow:hidden; }
+#modTaskDispatch .kpi-label{ font-size:12px; color:rgba(255,255,255,0.8); margin-bottom:4px; }
+#modTaskDispatch .kpi-value{ font-size:24px; font-weight:700; color:#fff; }
+#modTaskDispatch .kpi-value .unit{ font-size:13px; font-weight:400; opacity:0.8; margin-left:2px; }
+#modTaskDispatch .kpi-delta{ font-size:11px; margin-top:2px; }
+#modTaskDispatch .kpi-1{ background:linear-gradient(135deg,#1565c0,#1976d2); }
+#modTaskDispatch .kpi-2{ background:linear-gradient(135deg,#2e7d32,#388e3c); }
+#modTaskDispatch .kpi-3{ background:linear-gradient(135deg,#e65100,#ef6c00); }
+#modTaskDispatch .kpi-4{ background:linear-gradient(135deg,#6a1b9a,#7b1fa2); }
+#modTaskDispatch .kpi-5{ background:linear-gradient(135deg,#c62828,#d32f2f); }
+#modTaskDispatch .kpi-6{ background:linear-gradient(135deg,#00838f,#0097a7); }
+
+#modTaskDispatch .main{ display:flex; gap:16px; padding:16px 24px; }
+#modTaskDispatch .sidebar-left{ width:240px; flex-shrink:0; }
+#modTaskDispatch .sidebar-right{ width:280px; flex-shrink:0; }
+#modTaskDispatch .content{ flex:1; min-width:0; }
+
+#modTaskDispatch .region-card{ background:#fff; border-radius:8px; padding:14px; margin-bottom:10px; cursor:pointer; transition:all 0.2s; border:2px solid transparent; }
+#modTaskDispatch .region-card:hover{ box-shadow:0 2px 8px rgba(0,0,0,0.12); }
+#modTaskDispatch .region-card.active{ border-color:#1a237e; box-shadow:0 2px 12px rgba(26,35,126,0.2); }
+#modTaskDispatch .region-card .rc-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+#modTaskDispatch .region-card .rc-name{ font-size:15px; font-weight:600; }
+#modTaskDispatch .region-card .rc-status{ font-size:11px; padding:2px 8px; border-radius:10px; }
+#modTaskDispatch .rc-status.red{ background:#ffebee; color:#c62828; }
+#modTaskDispatch .rc-status.yellow{ background:#fff8e1; color:#e65100; }
+#modTaskDispatch .rc-status.green{ background:#e8f5e9; color:#2e7d32; }
+#modTaskDispatch .region-card .rc-data{ font-size:12px; color:#666; line-height:1.6; }
+#modTaskDispatch .region-card .rc-bar{ height:4px; border-radius:2px; margin-top:6px; background:#eee; overflow:hidden; }
+#modTaskDispatch .region-card .rc-bar-fill{ height:100%; border-radius:2px; transition:width 0.3s; }
+
+#modTaskDispatch .panel{ background:#fff; border-radius:8px; padding:16px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+#modTaskDispatch .panel-title{ font-size:15px; font-weight:600; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; }
+#modTaskDispatch .panel-title .badge{ font-size:12px; font-weight:400; padding:2px 8px; border-radius:10px; background:#e3f2fd; color:#1565c0; }
+
+/* 总部视角 - 区域下发表 */
+#modTaskDispatch .dispatch-table{ width:100%; border-collapse:collapse; font-size:13px; }
+#modTaskDispatch .dispatch-table th{ background:#f5f5f5; padding:10px 8px; text-align:left; font-weight:600; color:#555; border-bottom:2px solid #ddd; white-space:nowrap; }
+#modTaskDispatch .dispatch-table td{ padding:10px 8px; border-bottom:1px solid #eee; }
+#modTaskDispatch .dispatch-table tr:hover{ background:#fafafa; }
+#modTaskDispatch .dispatch-table .region-cell{ font-weight:600; }
+#modTaskDispatch .dispatch-table .btn{ padding:4px 12px; border:none; border-radius:4px; cursor:pointer; font-size:12px; transition:all 0.2s; }
+#modTaskDispatch .btn-dispatch{ background:#1565c0; color:#fff; }
+#modTaskDispatch .btn-dispatch:hover{ background:#0d47a1; }
+#modTaskDispatch .btn-dispatch:disabled{ background:#bbb; cursor:default; }
+#modTaskDispatch .btn-fill{ background:#2e7d32; color:#fff; }
+#modTaskDispatch .btn-fill:hover{ background:#1b5e20; }
+#modTaskDispatch .btn-audit{ background:#e65100; color:#fff; }
+#modTaskDispatch .btn-audit:hover{ background:#bf360c; }
+#modTaskDispatch .btn-pass{ background:#2e7d32; color:#fff; }
+#modTaskDispatch .btn-reject{ background:#c62828; color:#fff; }
+#modTaskDispatch .btn-urge{ background:#7b1fa2; color:#fff; font-size:11px; padding:3px 8px; }
+#modTaskDispatch .btn-urge:hover{ background:#4a148c; }
+#modTaskDispatch .btn-collab{ background:#6a1b9a; color:#fff; }
+#modTaskDispatch .btn-small{ padding:3px 8px; font-size:11px; border:none; border-radius:3px; cursor:pointer; }
+
+/* 状态标签 */
+#modTaskDispatch .status-tag{ display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; font-weight:500; }
+#modTaskDispatch .st-pending{ background:#f5f5f5; color:#999; }
+#modTaskDispatch .st-dispatched{ background:#e3f2fd; color:#1565c0; }
+#modTaskDispatch .st-filling{ background:#fff3e0; color:#e65100; }
+#modTaskDispatch .st-review{ background:#fce4ec; color:#c62828; }
+#modTaskDispatch .st-passed{ background:#e8f5e9; color:#2e7d32; }
+#modTaskDispatch .st-rejected{ background:#ffebee; color:#c62828; }
+
+/* 项目类型标签 */
+#modTaskDispatch .type-tag{ display:inline-block; padding:1px 6px; border-radius:3px; font-size:10px; margin-left:4px; }
+#modTaskDispatch .tt-declining{ background:#ffebee; color:#c62828; }
+#modTaskDispatch .tt-growing{ background:#e8f5e9; color:#2e7d32; }
+#modTaskDispatch .tt-old_system{ background:#fff3e0; color:#e65100; }
+#modTaskDispatch .tt-new_low{ background:#f3e5f5; color:#7b1fa2; }
+#modTaskDispatch .tt-stable{ background:#e3f2fd; color:#1565c0; }
+#modTaskDispatch .tt-dormant{ background:#f5f5f5; color:#999; }
+
+/* 缺口/覆盖率 */
+#modTaskDispatch .coverage{ font-weight:600; }
+#modTaskDispatch .coverage.good{ color:#2e7d32; }
+#modTaskDispatch .coverage.warn{ color:#e65100; }
+#modTaskDispatch .coverage.bad{ color:#c62828; }
+
+/* 填报弹窗 */
+#modTaskDispatch .modal-overlay{ position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:none; justify-content:center; align-items:center; z-index:1000; }
+#modTaskDispatch .modal-overlay.show{ display:flex; }
+#modTaskDispatch .modal{ background:#fff; border-radius:8px; padding:24px; width:560px; max-height:80vh; overflow-y:auto; }
+#modTaskDispatch .modal h3{ margin-bottom:16px; font-size:18px; }
+#modTaskDispatch .modal .form-group{ margin-bottom:14px; }
+#modTaskDispatch .modal label{ display:block; font-size:13px; color:#555; margin-bottom:4px; font-weight:500; }
+#modTaskDispatch .modal input, #modTaskDispatch .modal textarea, #modTaskDispatch .modal select{ width:100%; padding:8px 12px; border:1px solid #ddd; border-radius:4px; font-size:14px; }
+#modTaskDispatch .modal textarea{ min-height:80px; resize:vertical; }
+#modTaskDispatch .modal .collab-options{ display:flex; flex-wrap:wrap; gap:8px; }
+#modTaskDispatch .modal .collab-chip{ padding:4px 12px; border:1px solid #ddd; border-radius:16px; cursor:pointer; font-size:12px; user-select:none; }
+#modTaskDispatch .modal .collab-chip.selected{ background:#6a1b9a; color:#fff; border-color:#6a1b9a; }
+#modTaskDispatch .modal .btn-row{ display:flex; gap:8px; justify-content:flex-end; margin-top:16px; }
+#modTaskDispatch .modal .btn-cancel{ padding:8px 20px; border:1px solid #ddd; background:#fff; border-radius:4px; cursor:pointer; font-size:14px; }
+#modTaskDispatch .modal .btn-submit{ padding:8px 20px; background:#1565c0; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:14px; }
+#modTaskDispatch .modal .btn-submit:hover{ background:#0d47a1; }
+#modTaskDispatch .monthly-table{ width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+#modTaskDispatch .monthly-table th, #modTaskDispatch .monthly-table td{ padding:8px 6px; border:1px solid #e0e0e0; text-align:center; }
+#modTaskDispatch .monthly-table th{ background:#f5f5f5; font-weight:500; }
+#modTaskDispatch .monthly-table input{ width:80px; padding:6px; text-align:right; }
+#modTaskDispatch .monthly-table .muted{ color:#999; font-size:12px; }
+#modTaskDispatch .monthly-total{ text-align:right; margin-top:6px; font-size:13px; color:#333; }
+#modTaskDispatch .monthly-total strong{ color:#1565c0; }
+
+/* 右侧栏 */
+#modTaskDispatch .task-summary{ font-size:13px; }
+#modTaskDispatch .task-summary .ts-row{ display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #f0f0f0; }
+#modTaskDispatch .task-summary .ts-row:last-child{ border-bottom:none; }
+#modTaskDispatch .task-summary .ts-label{ color:#666; }
+#modTaskDispatch .task-summary .ts-value{ font-weight:600; }
+#modTaskDispatch .urge-log{ font-size:12px; max-height:200px; overflow-y:auto; }
+#modTaskDispatch .urge-log .ul-item{ padding:6px 8px; border-left:3px solid #7b1fa2; margin-bottom:6px; background:#faf5fa; border-radius:0 4px 4px 0; }
+#modTaskDispatch .urge-log .ul-time{ color:#999; font-size:11px; }
+
+/* 筛选按钮 */
+#modTaskDispatch .filter-bar{ display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; }
+#modTaskDispatch .filter-btn{ padding:5px 14px; border:1px solid #ddd; background:#fff; border-radius:16px; cursor:pointer; font-size:12px; transition:all 0.2s; }
+#modTaskDispatch .filter-btn:hover{ border-color:#1565c0; }
+#modTaskDispatch .filter-btn.active{ background:#1565c0; color:#fff; border-color:#1565c0; }
+#modTaskDispatch .filter-btn .count{ margin-left:4px; font-weight:600; }
+
+/* 预警 */
+#modTaskDispatch .alert{ padding:10px 14px; border-radius:6px; margin-bottom:8px; font-size:13px; display:flex; align-items:flex-start; gap:8px; }
+#modTaskDispatch .alert-icon{ flex-shrink:0; font-size:16px; }
+#modTaskDispatch .alert-danger{ background:#ffebee; border-left:4px solid #c62828; }
+#modTaskDispatch .alert-warn{ background:#fff8e1; border-left:4px solid #e65100; }
+#modTaskDispatch .alert-info{ background:#e3f2fd; border-left:4px solid #1565c0; }
+#modTaskDispatch .alert-success{ background:#e8f5e9; border-left:4px solid #2e7d32; }
+#modTaskDispatch .alert-text{ flex:1; line-height:1.6; }
+#modTaskDispatch .alert-edit-btn{ flex-shrink:0; white-space:nowrap; padding:2px 10px; border:1px solid #ccc; background:#fff; border-radius:4px; cursor:pointer; font-size:12px; color:#555; }
+#modTaskDispatch .alert-edit-btn:hover{ background:#f0f0f0; }
+#modTaskDispatch .alert-edit-area{ margin-top:6px; display:flex; flex-direction:column; gap:6px; }
+#modTaskDispatch .alert-edit-area textarea{ width:100%; box-sizing:border-box; font-size:13px; line-height:1.5; padding:6px 8px; border:1px solid #1565c0; border-radius:4px; resize:vertical; min-height:50px; }
+#modTaskDispatch .alert-edit-actions{ display:flex; gap:6px; }
+
+/* 方案规划与实施 */
+#modTaskDispatch .plan-panel-title{ display:flex; justify-content:space-between; align-items:center; }
+#modTaskDispatch .plan-progress{ font-size:11px; color:#999; font-weight:400; }
+#modTaskDispatch .plan-card{ border:1px solid #e0e0e0; border-radius:8px; overflow:hidden; margin-bottom:10px; }
+#modTaskDispatch .plan-card-header{ background:#f5f5f5; padding:6px 12px; font-size:12px; color:#555; display:flex; align-items:center; gap:8px; }
+#modTaskDispatch .plan-card-header .pc-tag{ font-size:10px; padding:1px 7px; border-radius:8px; color:#fff; flex-shrink:0; }
+#modTaskDispatch .plan-card-header .pc-alert-ref{ color:#888; font-size:11px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#modTaskDispatch .plan-card-body{ padding:12px; }
+#modTaskDispatch .plan-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+#modTaskDispatch .plan-field-full{ grid-column:1/-1; }
+#modTaskDispatch .plan-field label{ font-size:11px; color:#888; display:block; margin-bottom:3px; }
+#modTaskDispatch .plan-field .pf-value{ font-size:13px; padding:6px 8px; background:#f9f9f9; border-radius:4px; line-height:1.5; min-height:20px; }
+#modTaskDispatch .plan-field .pf-value.empty{ color:#bbb; font-style:italic; }
+#modTaskDispatch .plan-field input, #modTaskDispatch .plan-field textarea{ width:100%; box-sizing:border-box; font-size:13px; padding:6px 8px; border:1px solid #ddd; border-radius:4px; resize:vertical; }
+#modTaskDispatch .plan-actions{ display:flex; gap:6px; margin-top:8px; }
+#modTaskDispatch .plan-actions button{ padding:4px 14px; border-radius:4px; font-size:12px; cursor:pointer; border:none; }
+#modTaskDispatch .btn-plan-save{ background:#1565c0; color:#fff; }
+#modTaskDispatch .btn-plan-cancel{ background:#eee; color:#555; }
+#modTaskDispatch .btn-plan-edit{ background:transparent; border:1px solid #ccc; color:#555; }
+#modTaskDispatch .plan-card.filled{ border-color:#c8e6c9; }
+#modTaskDispatch .plan-card.filled .plan-card-header{ background:#f1f8e9; }
+
+/* 分页 */
+#modTaskDispatch .pagination{ display:flex; justify-content:center; gap:4px; margin-top:12px; }
+#modTaskDispatch .pagination button{ padding:4px 10px; border:1px solid #ddd; background:#fff; border-radius:4px; cursor:pointer; font-size:12px; }
+#modTaskDispatch .pagination button.active{ background:#1565c0; color:#fff; border-color:#1565c0; }
+#modTaskDispatch .pagination button:disabled{ opacity:0.5; cursor:default; }
+
+#modTaskDispatch .export-btn{ padding:5px 12px; background:#2e7d32; color:#fff; border:none; border-radius:4px; cursor:pointer; font-size:12px; }
+
+/* 催办脉冲 */
+@keyframes td_pulse-red { 0%,100%{box-shadow:0 0 0 0 rgba(198,40,40,0.4);} 50%{box-shadow:0 0 0 8px rgba(198,40,40,0);} }
+#modTaskDispatch .urgent-pulse{ animation:td_pulse-red 1.5s infinite; }
+
+/* 审核历史 */
+#modTaskDispatch .audit-history{ font-size:12px; margin-top:8px; padding:8px; background:#f9f9f9; border-radius:4px; }
+#modTaskDispatch .audit-history .ah-item{ padding:4px 0; border-bottom:1px solid #eee; }
+#modTaskDispatch .audit-history .ah-item:last-child{ border-bottom:none; }
+#modTaskDispatch .audit-history .ah-time{ color:#999; font-size:11px; }
+
+/* 区域视角填报说明 */
+#modTaskDispatch .fill-notice{ background:#fff3e0; border:1px solid #ffe0b2; border-radius:6px; padding:10px 14px; margin-bottom:12px; font-size:13px; color:#e65100; }
+
+/* 操作流程说明 */
+#modTaskDispatch .flow-guide{ background:#fff; border-radius:8px; margin:12px 24px; box-shadow:0 1px 3px rgba(0,0,0,0.08); overflow:hidden; }
+#modTaskDispatch .flow-guide-header{ display:flex; justify-content:space-between; align-items:center; padding:10px 16px; cursor:pointer; user-select:none; background:linear-gradient(90deg,#e3f2fd,#f3e5f5); }
+#modTaskDispatch .flow-guide-header .fg-title{ font-size:14px; font-weight:600; color:#1a237e; display:flex; align-items:center; gap:6px; }
+#modTaskDispatch .flow-guide-header .fg-toggle{ font-size:12px; color:#666; }
+#modTaskDispatch .flow-guide-body{ padding:14px 16px; display:flex; gap:8px; align-items:stretch; flex-wrap:wrap; }
+#modTaskDispatch .flow-step{ flex:1; min-width:150px; padding:10px 12px; border-radius:6px; position:relative; font-size:12px; }
+#modTaskDispatch .flow-step .fs-num{ width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:12px; color:#fff; margin-bottom:6px; }
+#modTaskDispatch .flow-step .fs-title{ font-weight:600; font-size:13px; margin-bottom:3px; }
+#modTaskDispatch .flow-step .fs-role{ font-size:11px; color:#999; margin-bottom:4px; }
+#modTaskDispatch .flow-step .fs-desc{ color:#555; line-height:1.5; }
+#modTaskDispatch .flow-step .fs-arrow{ position:absolute; right:-10px; top:50%; transform:translateY(-50%); color:#bbb; font-size:16px; z-index:1; }
+#modTaskDispatch .fs-1{ background:#e3f2fd; } .fs-1 .fs-num { background:#1565c0; } .fs-1 .fs-title { color:#0d47a1; }
+#modTaskDispatch .fs-2{ background:#e8f5e9; } .fs-2 .fs-num { background:#2e7d32; } .fs-2 .fs-title { color:#1b5e20; }
+#modTaskDispatch .fs-3{ background:#fff3e0; } .fs-3 .fs-num { background:#e65100; } .fs-3 .fs-title { color:#bf360c; }
+#modTaskDispatch .fs-4{ background:#fce4ec; } .fs-4 .fs-num { background:#c62828; } .fs-4 .fs-title { color:#b71c1c; }
+#modTaskDispatch .fs-5{ background:#f3e5f5; } .fs-5 .fs-num { background:#7b1fa2; } .fs-5 .fs-title { color:#4a148c; }
+#modTaskDispatch .fs-6{ background:#e0f2f1; } .fs-6 .fs-num { background:#00838f; } .fs-6 .fs-title { color:#006064; }
+#modTaskDispatch .flow-guide.collapsed .flow-guide-body{ display:none; }
+
+/* 新增项目按钮 */
+#modTaskDispatch .btn-add-proj{ padding:5px 14px; background:#2e7d32; color:#fff; border:none; border-radius:16px; cursor:pointer; font-size:12px; transition:all 0.2s; }
+#modTaskDispatch .btn-add-proj:hover{ background:#1b5e20; }
+#modTaskDispatch .btn-del-proj{ padding:3px 8px; background:#c62828; color:#fff; border:none; border-radius:3px; cursor:pointer; font-size:11px; }
+#modTaskDispatch .btn-del-proj:hover{ background:#b71c1c; }
+#modTaskDispatch .new-proj-tag{ display:inline-block; padding:1px 6px; border-radius:3px; font-size:10px; background:#2e7d32; color:#fff; margin-left:4px; }
+#modTaskDispatch .fill-notice strong{ color:#bf360c; }
+
+/* 表格横向滚动容器 */
+#modTaskDispatch .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+
+/* 统计栏 */
+#modTaskDispatch .stats-bar{ display:flex; gap:16px; margin-bottom:12px; padding:10px; background:#f5f5f5; border-radius:6px; flex-wrap:wrap; align-items:center; }
+
+/* ========== 移动端适配 ========== */
+@media (max-width: 1024px) {
+  /* Header: 标题和按钮纵向堆叠 */
+#modTaskDispatch .header{ flex-direction:column; align-items:flex-start; gap:10px; padding:12px 16px; }
+#modTaskDispatch .header h1{ font-size:16px; }
+#modTaskDispatch .view-switch{ width:100%; }
+#modTaskDispatch .view-btn{ flex:1; text-align:center; padding:8px; }
+
+  /* KPI: 缩小卡片，保持横滑 */
+#modTaskDispatch .kpi-bar{ padding:10px 12px; gap:8px; }
+#modTaskDispatch .kpi{ min-width:130px; padding:10px; }
+#modTaskDispatch .kpi-value{ font-size:19px; }
+
+  /* 流程说明: 纵向排列，隐藏箭头 */
+#modTaskDispatch .flow-guide{ margin:10px 12px; }
+#modTaskDispatch .flow-guide-body{ flex-direction:column; }
+#modTaskDispatch .flow-step{ min-width:0; }
+#modTaskDispatch .flow-step .fs-arrow{ display:none; }
+
+  /* 主布局: 三栏改纵向堆叠 */
+#modTaskDispatch .main{ flex-direction:column; padding:10px 12px; gap:12px; }
+#modTaskDispatch .sidebar-left{ width:100%; }
+#modTaskDispatch .sidebar-right{ width:100%; }
+#modTaskDispatch .content{ width:100%; }
+
+  /* 区域卡片: 横向滚动条 */
+#modTaskDispatch .sidebar-left{ display:flex; flex-direction:row; overflow-x:auto; gap:8px; padding-bottom:6px; -webkit-overflow-scrolling:touch; }
+#modTaskDispatch .region-card{ min-width:220px; flex-shrink:0; margin-bottom:0; }
+#modTaskDispatch .region-card .rc-data{ font-size:11px; }
+
+  /* 统计栏: 换行 */
+#modTaskDispatch .stats-bar{ gap:6px 14px; font-size:12px; }
+
+  /* Panel */
+#modTaskDispatch .panel{ padding:12px; }
+#modTaskDispatch .panel-title{ font-size:14px; flex-wrap:wrap; gap:4px; }
+#modTaskDispatch .panel-title .badge{ font-size:11px; }
+
+  /* 筛选按钮 */
+#modTaskDispatch .filter-bar{ gap:6px; }
+#modTaskDispatch .filter-btn{ padding:5px 10px; font-size:11px; }
+#modTaskDispatch .btn-add-proj{ font-size:11px; padding:5px 10px; }
+
+  /* 弹窗: 全宽适配 */
+#modTaskDispatch .modal{ width:calc(100vw - 24px) !important; max-width:560px; padding:16px; }
+#modTaskDispatch .modal-overlay{ padding:12px; align-items:flex-start; }
+#modTaskDispatch .modal h3{ font-size:16px; }
+#modTaskDispatch .modal .btn-row{ flex-wrap:wrap; }
+
+  /* 预警面板 */
+#modTaskDispatch .alert-panel{ margin:0 12px 12px !important; }
+
+  /* 底部 */
+#modTaskDispatch .alert{ font-size:12px; }
+#modTaskDispatch .pagination button{ padding:4px 8px; font-size:11px; }
+#modTaskDispatch .pagination{ flex-wrap:wrap; }
+}
+
+@media (max-width: 640px) {
+#modTaskDispatch .header h1{ font-size:14px; }
+#modTaskDispatch .header .date{ font-size:11px; }
+#modTaskDispatch .kpi{ min-width:115px; padding:8px 10px; }
+#modTaskDispatch .kpi-value{ font-size:17px; }
+#modTaskDispatch .kpi-label{ font-size:11px; }
+#modTaskDispatch .region-card{ min-width:190px; }
+#modTaskDispatch .dispatch-table{ font-size:11px; }
+#modTaskDispatch .dispatch-table th, #modTaskDispatch .dispatch-table td{ padding:6px 4px; }
+#modTaskDispatch .modal{ padding:14px; }
+#modTaskDispatch .stats-bar{ gap:4px 12px; }
+#modTaskDispatch .view-btn{ font-size:12px; }
+#modTaskDispatch .plan-grid{ grid-template-columns:1fr; }
+#modTaskDispatch .plan-card-header .pc-alert-ref{ display:none; }
+#modTaskDispatch .alert-edit-btn{ padding:1px 6px; font-size:11px; }
+#modTaskDispatch .flow-step .fs-arrow{ display:none; }
+}
+@media (max-width: 1024px) {
+#modTaskDispatch .plan-grid{ grid-template-columns:1fr 1fr; }
+}
+
 </style>
 </head>
 <body>
@@ -245,6 +551,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
     <div class="nav-item" data-panel="modUserPool" onclick="switchModule(this)"><span class="nav-icon">👥</span>用户池管理</div>
     <div class="nav-item" data-panel="modMarketing" onclick="switchModule(this)"><span class="nav-icon">📢</span>营销活动管理</div>
     <div class="nav-item" data-panel="modCampus" onclick="switchModule(this)"><span class="nav-icon">🏫</span>校园行管理</div>
+    <div class="nav-item" data-panel="modTaskDispatch" onclick="switchModule(this)"><span class="nav-icon">📋</span>任务下发</div>
   </div>
 
   <!-- 右侧内容区 -->
@@ -563,6 +870,65 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
           </select>
         </div>
         <div id="schoolsGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px"></div>
+      </div>
+    </div>
+
+    <!-- 模块: 任务下发系统（原 dashboard-v2 全部内容） -->
+    <div class="module-panel" id="modTaskDispatch" style="display:none">
+      <div class="header">
+        <div>
+          <h1>库巴扎运营数据—2026H2任务下发系统</h1>
+          <div class="date">数据基准：2026年H1（1-6月）实际 | H2任务下发周期</div>
+        </div>
+        <div class="view-switch" style="display:flex;align-items:center;gap:12px;">
+          <button class="view-btn active" onclick="switchView('hq')">总部视角</button>
+          <button class="view-btn" onclick="switchView('region')">区域视角</button>
+          <span class="dingtalk-status" id="dingtalkStatus" title="双击「启动钉钉通知服务.command」启动后变绿"><span class="dt-dot"></span><span id="dtText">检查中</span></span>
+        </div>
+      </div>
+      
+      <div class="kpi-bar" id="kpiBar"></div>
+      
+      <div class="flow-guide" id="flowGuide">
+        <div class="flow-guide-header" onclick="toggleFlowGuide()">
+          <span class="fg-title">📋 操作流程说明（下发 → 填报 → 提交 → 审核 → 执行 → 完成）</span>
+          <span class="fg-toggle" id="flowToggle">收起 ▲</span>
+        </div>
+        <div class="flow-guide-body">
+          <div class="flow-step fs-1"><div class="fs-num">1</div><div class="fs-title">下发任务</div><div class="fs-role">总部操作</div><div class="fs-desc">总部在「总部视角」对6个区域逐一点击"下发任务"，区域负责人收到通知并可开始填报。</div><span class="fs-arrow">→</span></div>
+          <div class="flow-step fs-2"><div class="fs-num">2</div><div class="fs-title">逐项填报</div><div class="fs-role">区域负责人</div><div class="fs-desc">切到「区域视角」，逐个项目填写H2计划线上金额和执行动作；如有可预估的新增项目，可点"新增项目"补录。</div><span class="fs-arrow">→</span></div>
+          <div class="flow-step fs-3"><div class="fs-num">3</div><div class="fs-title">汇总提交</div><div class="fs-role">区域负责人</div><div class="fs-desc">所有项目填报完成后点击"汇总提交区域计划"。计划覆盖金额需达到区域H2目标，不足100%会有提醒且可能被审核打回。</div><span class="fs-arrow">→</span></div>
+          <div class="flow-step fs-4"><div class="fs-num">4</div><div class="fs-title">总部审核</div><div class="fs-role">总部操作</div><div class="fs-desc">总部逐个项目审核，可"通过"或"打回"。打回时系统自动生成理由（如缺口过大、方案不足等），区域需修改后重新提交。</div><span class="fs-arrow">→</span></div>
+          <div class="flow-step fs-5"><div class="fs-num">5</div><div class="fs-title">落地执行</div><div class="fs-role">区域负责人</div><div class="fs-desc">审核通过的项目进入执行阶段，区域按计划落地推进，确保线上额达标。</div><span class="fs-arrow">→</span></div>
+          <div class="flow-step fs-6"><div class="fs-num">6</div><div class="fs-title">闭环完成</div><div class="fs-role">双方协作</div><div class="fs-desc">项目实际达成后标记完成，全区域形成闭环。总部可通过"催办"持续追踪进度。</div></div>
+        </div>
+      </div>
+      
+      <div class="main">
+        <div class="sidebar-left" id="regionList"></div>
+        <div class="content" id="contentArea"></div>
+        <div class="sidebar-right">
+          <div class="panel">
+            <div class="panel-title">任务状态总览</div>
+            <div class="task-summary" id="taskSummary"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">催办记录</div>
+            <div class="urge-log" id="urgeLog">
+              <div style="color:#999;font-size:12px;text-align:center;padding:12px;">暂无催办记录</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="panel alert-panel" style="margin:0 24px 16px;">
+        <div class="panel-title" id="bottomPanelTitle">自动预警与洞察</div>
+        <div id="alertArea"></div>
+        <div id="planArea" style="display:none;"></div>
+      </div>
+      
+      <div class="modal-overlay" id="modalOverlay">
+        <div class="modal" id="modalContent"></div>
       </div>
     </div>
 
@@ -1126,7 +1492,7 @@ function scopeNoteHtml() {
 function applyNavByRole() {
   if (!CURRENT_USER) return;
   var hide = [];
-  if (isStaff()) hide = ['modPerformance', 'modUserPool', 'modCampus'];
+  if (isStaff()) hide = ['modPerformance', 'modUserPool', 'modCampus', 'modTaskDispatch'];
   document.querySelectorAll('.nav-item').forEach(function(item) {
     var p = item.dataset.panel;
     item.style.display = hide.indexOf(p) >= 0 ? 'none' : '';
@@ -1161,7 +1527,7 @@ var currentModule = "modOverview";
 
 function switchModule(el) {
   var panelId = el.dataset.panel;
-  if (isStaff() && ['modPerformance','modUserPool','modCampus'].indexOf(panelId) >= 0) {
+  if (isStaff() && ['modPerformance','modUserPool','modCampus','modTaskDispatch'].indexOf(panelId) >= 0) {
     alert('运营专员仅可查看本人项目数据，无权访问该模块');
     return;
   }
@@ -1180,6 +1546,7 @@ function refreshCurrentModule() {
     case "modUserPool": initUserPool(); break;
     case "modMarketing": initMarketing(); break;
     case "modCampus": initCampus(); break;
+    case "modTaskDispatch": initTaskDispatch(); break;
   }
 }
 
@@ -3355,6 +3722,1406 @@ document.addEventListener("DOMContentLoaded", function() {
   }
 });
 
+
+// ===== 任务下发系统（原 dashboard-v2 全部功能）=====
+
+const REGIONS = {
+  'jzh': {
+    name: '江浙沪',
+    h1Online: 23548.0,
+    h2Natural: 35322.0,
+    projects: [
+      {name:'浙江大学', h1Online:8533.0, h1Total:42738.0, rate:20.0, h2Natural:12800.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'苏州大学', h1Online:3806.0, h1Total:9604.0, rate:39.6, h2Natural:5709.0, h1_25_online:3556.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'南京农业大学', h1Online:3109.0, h1Total:3729.0, rate:83.4, h2Natural:4664.0, h1_25_online:2751.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'南京工业大学', h1Online:1420.0, h1Total:3830.0, rate:37.1, h2Natural:2130.0, h1_25_online:965.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'徐州医科大学(新)', h1Online:1381.0, h1Total:1423.0, rate:97.0, h2Natural:2072.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'上海交通大学医学院', h1Online:1343.0, h1Total:2833.0, rate:47.4, h2Natural:2014.0, h1_25_online:1667.0, type:'declining', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'江南大学', h1Online:1037.0, h1Total:1059.0, rate:97.9, h2Natural:1556.0, h1_25_online:1134.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'南京中医药大学（实验材料）', h1Online:891.0, h1Total:2316.0, rate:38.5, h2Natural:1336.0, h1_25_online:469.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'华东师范大学', h1Online:566.0, h1Total:566.0, rate:100.0, h2Natural:849.0, h1_25_online:378.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'同济大学', h1Online:486.0, h1Total:1820.0, rate:26.7, h2Natural:729.0, h1_25_online:205.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'东南大学（老系统）', h1Online:448.0, h1Total:15127.0, rate:3.0, h2Natural:672.0, h1_25_online:453.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'江苏师范大学（全年数据）', h1Online:180.0, h1Total:784.0, rate:23.0, h2Natural:270.0, h1_25_online:27.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'浙江师范大学（T6）', h1Online:179.0, h1Total:442.0, rate:40.4, h2Natural:268.0, h1_25_online:143.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'温州大学', h1Online:91.0, h1Total:218.0, rate:42.0, h2Natural:136.0, h1_25_online:146.0, type:'declining', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'南京中医药大学(办公耗材)', h1Online:64.0, h1Total:71.0, rate:90.8, h2Natural:96.0, h1_25_online:49.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'南京中医药大学(管制品气体)', h1Online:6.0, h1Total:7.0, rate:99.8, h2Natural:9.0, h1_25_online:3.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'南京航空航天大学', h1Online:4.0, h1Total:4.0, rate:100.0, h2Natural:6.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'之江实验室（全年数据）', h1Online:4.0, h1Total:4.0, rate:100.0, h2Natural:6.0, h1_25_online:16.0, type:'declining', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'浙江大学国际健康医学研究院', h1Online:0.0, h1Total:0.0, rate:100.0, h2Natural:0.0, h1_25_online:0.0, type:'dormant', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'上海应用技术大学（未正式用）', h1Online:0.0, h1Total:0.0, rate:0.0, h2Natural:0.0, h1_25_online:0.0, type:'dormant', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'东南大学无锡校区', h1Online:0.0, h1Total:0.0, rate:0.0, h2Natural:0.0, h1_25_online:0.0, type:'dormant', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+    ]
+  },
+  'bj': {
+    name: '北京',
+    h1Online: 25983.0,
+    h2Natural: 38977.0,
+    projects: [
+      {name:'北京大学', h1Online:8267.0, h1Total:20514.0, rate:40.3, h2Natural:12400.0, h1_25_online:8266.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'北京大学医学部', h1Online:6630.0, h1Total:7608.0, rate:87.1, h2Natural:9945.0, h1_25_online:5926.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'清华大学', h1Online:3805.0, h1Total:3805.0, rate:100.0, h2Natural:5708.0, h1_25_online:4705.0, type:'declining', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'北京中医药大学', h1Online:2477.0, h1Total:2939.0, rate:84.3, h2Natural:3716.0, h1_25_online:2612.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'中国医学科学院药物所', h1Online:1922.0, h1Total:2431.0, rate:79.0, h2Natural:2883.0, h1_25_online:1968.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'北京化工大学', h1Online:847.0, h1Total:2932.0, rate:28.9, h2Natural:1270.0, h1_25_online:795.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'北京科技大学', h1Online:445.0, h1Total:635.0, rate:70.1, h2Natural:668.0, h1_25_online:535.0, type:'declining', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'北京工业大学旧（老系统）', h1Online:430.0, h1Total:559.0, rate:77.0, h2Natural:645.0, h1_25_online:549.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'中国环境科学研究院', h1Online:328.0, h1Total:507.0, rate:64.7, h2Natural:492.0, h1_25_online:324.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'中国中医科学院眼科医院', h1Online:160.0, h1Total:160.0, rate:99.8, h2Natural:240.0, h1_25_online:93.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'中国农业大学', h1Online:136.0, h1Total:14952.0, rate:0.9, h2Natural:204.0, h1_25_online:16.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'北京林业大学', h1Online:130.0, h1Total:131.0, rate:99.8, h2Natural:195.0, h1_25_online:141.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'北京大学成都前沿交叉生物技术研究院', h1Online:129.0, h1Total:129.0, rate:99.8, h2Natural:194.0, h1_25_online:66.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'北京工商大学（新）', h1Online:90.0, h1Total:212.0, rate:42.6, h2Natural:135.0, h1_25_online:0.0, type:'new_low', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'北京石油化工学院旧（老系统）', h1Online:65.0, h1Total:180.0, rate:35.9, h2Natural:98.0, h1_25_online:56.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'中国矿业大学（北京）', h1Online:44.0, h1Total:104.0, rate:42.6, h2Natural:66.0, h1_25_online:40.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'中国人民大学', h1Online:41.0, h1Total:78.0, rate:52.9, h2Natural:62.0, h1_25_online:39.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'北京理工大学旧（老系统）', h1Online:19.0, h1Total:19.0, rate:100.0, h2Natural:28.0, h1_25_online:55.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'中国人民大学（新）', h1Online:9.0, h1Total:9.0, rate:99.3, h2Natural:14.0, h1_25_online:0.0, type:'new_low', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'北京交通大学', h1Online:5.0, h1Total:5.0, rate:88.3, h2Natural:8.0, h1_25_online:5.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'北京师范大学', h1Online:4.0, h1Total:6.0, rate:70.9, h2Natural:6.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'北京邮电大学', h1Online:0.0, h1Total:8.0, rate:0.3, h2Natural:0.0, h1_25_online:0.0, type:'dormant', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+    ]
+  },
+  'dbxb': {
+    name: '东北西北',
+    h1Online: 9102.0,
+    h2Natural: 13655.0,
+    projects: [
+      {name:'中国医科大学（库巴扎老系统）', h1Online:2648.0, h1Total:2648.0, rate:100.0, h2Natural:3972.0, h1_25_online:1808.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'中国医科大学附属第一医院', h1Online:2454.0, h1Total:2454.0, rate:100.0, h2Natural:3681.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'西安交通大学', h1Online:2133.0, h1Total:2133.0, rate:100.0, h2Natural:3200.0, h1_25_online:1922.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'大连理工大学（新）', h1Online:920.0, h1Total:1249.0, rate:73.7, h2Natural:1380.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'西北工业大学', h1Online:332.0, h1Total:474.0, rate:70.0, h2Natural:498.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'中国医科大学(新)', h1Online:162.0, h1Total:162.0, rate:100.0, h2Natural:243.0, h1_25_online:0.0, type:'new_low', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'哈尔滨师范大学', h1Online:136.0, h1Total:151.0, rate:89.8, h2Natural:204.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'西北工业大学旧（老系统）', h1Online:99.0, h1Total:193.0, rate:51.3, h2Natural:148.0, h1_25_online:513.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'西安建筑科技大学（老系统）', h1Online:73.0, h1Total:73.0, rate:99.9, h2Natural:110.0, h1_25_online:58.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'东北大学材料', h1Online:69.0, h1Total:3199.0, rate:2.1, h2Natural:104.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'西安电子科技大学', h1Online:49.0, h1Total:52.0, rate:94.5, h2Natural:74.0, h1_25_online:31.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'陕西科技大学', h1Online:14.0, h1Total:14.0, rate:100.0, h2Natural:21.0, h1_25_online:12.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'哈尔滨工业大学', h1Online:8.0, h1Total:7.0, rate:118.8, h2Natural:12.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'青海民族大学', h1Online:4.0, h1Total:4.0, rate:100.0, h2Natural:6.0, h1_25_online:6.0, type:'declining', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'宁夏大学', h1Online:1.0, h1Total:115.0, rate:0.5, h2Natural:2.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'东北大学旧（化学品老系统）', h1Online:0.0, h1Total:31.0, rate:0.5, h2Natural:0.0, h1_25_online:0.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'大连理工大学（旧）', h1Online:0.0, h1Total:0.0, rate:0.0, h2Natural:0.0, h1_25_online:1095.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'哈尔滨工程大学（新）', h1Online:0.0, h1Total:0.0, rate:0.0, h2Natural:0.0, h1_25_online:0.0, type:'new_low', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+    ]
+  },
+  'tj': {
+    name: '天津',
+    h1Online: 8250.0,
+    h2Natural: 12374.0,
+    projects: [
+      {name:'南开大学', h1Online:4604.0, h1Total:9599.0, rate:48.0, h2Natural:6906.0, h1_25_online:2853.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'天津医科大学', h1Online:2115.0, h1Total:2142.0, rate:98.7, h2Natural:3172.0, h1_25_online:2143.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'天津中医药大学（新）', h1Online:530.0, h1Total:530.0, rate:100.0, h2Natural:795.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'天津大学（化学品）新', h1Online:470.0, h1Total:821.0, rate:57.2, h2Natural:705.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'河北工业大学', h1Online:160.0, h1Total:441.0, rate:36.3, h2Natural:240.0, h1_25_online:157.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'天津工业大学', h1Online:153.0, h1Total:225.0, rate:68.3, h2Natural:230.0, h1_25_online:63.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'天津市人民医院', h1Online:151.0, h1Total:151.0, rate:100.0, h2Natural:226.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'天津理工大学', h1Online:33.0, h1Total:253.0, rate:13.0, h2Natural:50.0, h1_25_online:18.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'燕山大学（老系统）', h1Online:19.0, h1Total:32.0, rate:60.7, h2Natural:28.0, h1_25_online:21.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'天津市第三中心医院（26.5上线）', h1Online:15.0, h1Total:15.0, rate:100.0, h2Natural:22.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'天津市中心妇产医院（上线中）', h1Online:0.0, h1Total:0.0, rate:0.0, h2Natural:0.0, h1_25_online:0.0, type:'dormant', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+    ]
+  },
+  'gdfj': {
+    name: '广东福建',
+    h1Online: 7295.0,
+    h2Natural: 10940.0,
+    projects: [
+      {name:'福建医科大学（老系统）', h1Online:2815.0, h1Total:2815.0, rate:100.0, h2Natural:4222.0, h1_25_online:2049.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'福建中医药大学（老系统）', h1Online:1248.0, h1Total:1501.0, rate:83.2, h2Natural:1872.0, h1_25_online:1424.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'广州大学', h1Online:960.0, h1Total:2553.0, rate:37.6, h2Natural:1440.0, h1_25_online:805.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'福建省妇幼保健院试剂采购平台', h1Online:959.0, h1Total:959.0, rate:100.0, h2Natural:1438.0, h1_25_online:570.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'广州中医药大学', h1Online:566.0, h1Total:783.0, rate:72.3, h2Natural:849.0, h1_25_online:431.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'深圳技术大学', h1Online:275.0, h1Total:288.0, rate:95.4, h2Natural:412.0, h1_25_online:45.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'柳州市人民医院', h1Online:223.0, h1Total:223.0, rate:100.0, h2Natural:334.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'华南理工大学', h1Online:208.0, h1Total:208.0, rate:100.0, h2Natural:312.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'福建师范大学（老系统）', h1Online:15.0, h1Total:279.0, rate:5.3, h2Natural:22.0, h1_25_online:2.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'南方医科大学', h1Online:22.0, h1Total:23.0, rate:95.7, h2Natural:33.0, h1_25_online:17.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'深圳北理莫斯科大学', h1Online:4.0, h1Total:123.0, rate:3.0, h2Natural:6.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'福耀科技大学', h1Online:0.0, h1Total:0.0, rate:0.0, h2Natural:0.0, h1_25_online:0.0, type:'dormant', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+    ]
+  },
+  'xn': {
+    name: '西南海南湖北',
+    h1Online: 3793.0,
+    h2Natural: 5690.0,
+    projects: [
+      {name:'海南大学', h1Online:1970.0, h1Total:5205.0, rate:37.8, h2Natural:2955.0, h1_25_online:1872.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'华中科技大学', h1Online:801.0, h1Total:2225.0, rate:36.0, h2Natural:1202.0, h1_25_online:155.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'四川大学', h1Online:439.0, h1Total:447.0, rate:98.1, h2Natural:658.0, h1_25_online:318.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'重庆大学', h1Online:386.0, h1Total:694.0, rate:55.6, h2Natural:579.0, h1_25_online:454.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'湖南大学（老系统）', h1Online:172.0, h1Total:403.0, rate:42.5, h2Natural:258.0, h1_25_online:146.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'昆明理工大学', h1Online:9.0, h1Total:9.0, rate:100.0, h2Natural:14.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'西南交通大学', h1Online:7.0, h1Total:7.0, rate:100.0, h2Natural:10.0, h1_25_online:4.0, type:'growing', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'成都理工大学（老系统）', h1Online:5.0, h1Total:1.0, rate:973.9, h2Natural:8.0, h1_25_online:6.0, type:'old_system', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'西南民族大学', h1Online:3.0, h1Total:19.0, rate:17.9, h2Natural:4.0, h1_25_online:3.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'重庆医科大学', h1Online:1.0, h1Total:1.0, rate:100.0, h2Natural:2.0, h1_25_online:0.0, type:'stable', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'重庆大学（新）T7未开始使用', h1Online:0.0, h1Total:0.0, rate:0.0, h2Natural:0.0, h1_25_online:0.0, type:'new_low', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'华中农业大学（上线中）', h1Online:0.0, h1Total:0.0, rate:0.0, h2Natural:0.0, h1_25_online:0.0, type:'dormant', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+      {name:'湖南师范大学', h1Online:0.0, h1Total:18.0, rate:0.0, h2Natural:0.0, h1_25_online:0.0, type:'dormant', status:'pending', planAmount:0, planActions:'', planDate:'', auditNote:'', history:[], collaborate:[]},
+    ]
+  },
+};
+
+const REGION_TARGETS = {"jzh": 51950, "bj": 57330, "dbxb": 20080, "tj": 18200, "gdfj": 16090, "xn": 8370};
+
+// 关键数字
+const FULL_YEAR_TARGET = 250000;  // 25亿（万）
+const H1_DONE = 77971;            // 7.80亿
+const H2_TARGET = 172029;         // 17.20亿 = 25 - 7.80
+const H2_NATURAL = 116958;        // 11.70亿
+const H2_GAP = 55071;             // 5.51亿 = 17.20 - 11.70
+
+const REGION_ORDER = ['jzh','bj','dbxb','tj','gdfj','xn'];
+const DEPARTMENTS = ['销售部','产品部','营销部','技术部','客服部','多部门联动'];
+
+let currentView = 'hq';
+let currentRegion = 'jzh';
+let urgeLog = [];
+let selectedCollab = [];
+let alertEdits = {};      // alertId -> 编辑后的文字
+let alertEditingId = null; // 当前正在编辑的预警ID
+let regionPlans = {};     // rcode -> { planType: {action, amount, owner, deadline, editing} }
+let planEditingKey = null; // 当前正在编辑的方案 "rcode:planType"
+
+// 深拷贝初始数据
+let state = JSON.parse(JSON.stringify(REGIONS));
+
+// 初始化每个项目的月度目标/实际/原因/补差方案字段
+Object.values(state).forEach(r => {
+  r.projects.forEach(p => {
+    p.monthlyTargets = p.monthlyTargets || {7:0, 8:0, 9:0, 10:0, 11:0, 12:0};
+    p.monthlyActuals = p.monthlyActuals || {7:0, 8:0, 9:0, 10:0, 11:0, 12:0};
+    p.monthlyReasons = p.monthlyReasons || {8:'', 9:'', 10:'', 11:'', 12:''};
+    p.monthlyRecoveries = p.monthlyRecoveries || {8:'', 9:'', 10:'', 11:'', 12:''};
+  });
+});
+
+// 初始化每个区域的方案容器
+REGION_ORDER.forEach(rc => { regionPlans[rc] = {}; });
+
+// ====== 工具函数 ======
+function fmtWan(wan) {
+  if (wan >= 10000) return (wan/10000).toFixed(2) + '亿';
+  return wan.toFixed(0) + '万';
+}
+function fmtPct(p) { return p.toFixed(1) + '%'; }
+
+function getRegionHealth(rcode) {
+  const r = state[rcode];
+  let issues = [];
+  // 线上率低
+  let totalOnline = 0, totalAmount = 0;
+  r.projects.forEach(p => { totalOnline += p.h1Online; totalAmount += p.h1Total; });
+  let onlineRate = totalAmount > 0 ? totalOnline/totalAmount*100 : 0;
+  // 同比下降项目数
+  let decliningCount = r.projects.filter(p => p.type === 'declining').length;
+  // 老系统项目
+  let oldSysCount = r.projects.filter(p => p.type === 'old_system').length;
+  
+  if (onlineRate < 35) issues.push('线上率偏低');
+  if (decliningCount >= 2) issues.push(decliningCount+'个项目同比下降');
+  if (oldSysCount >= 2) issues.push(oldSysCount+'个老系统待切换');
+  
+  if (issues.length >= 2) return {level:'red', label:'预警', issues};
+  if (issues.length >= 1) return {level:'yellow', label:'关注', issues};
+  return {level:'green', label:'健康', issues:[]};
+}
+
+function getAllProjects() {
+  let all = [];
+  REGION_ORDER.forEach(rc => {
+    state[rc].projects.forEach((p, i) => {
+      all.push({...p, rcode: rc, rname: state[rc].name, pidx: i});
+    });
+  });
+  return all;
+}
+
+function getProjectStatusCounts(rcode) {
+  if (!rcode) {
+    let all = getAllProjects();
+    let counts = {pending:0, dispatched:0, filling:0, review:0, passed:0, rejected:0};
+    all.forEach(p => counts[p.status]++);
+    return counts;
+  }
+  let counts = {pending:0, dispatched:0, filling:0, review:0, passed:0, rejected:0};
+  state[rcode].projects.forEach(p => counts[p.status]++);
+  return counts;
+}
+
+// ====== 渲染 KPI ======
+function renderKPI() {
+  let planCover = 0;
+  getAllProjects().forEach(p => { if(p.planAmount > 0) planCover += p.planAmount; });
+  let coverPct = H2_TARGET > 0 ? planCover/H2_TARGET*100 : 0;
+  
+  const kpis = [
+    {label:'全年目标', value:FULL_YEAR_TARGET/10000, unit:'亿元', delta:'2026年公司目标', cls:'kpi-1'},
+    {label:'H1已完成', value:H1_DONE/10000, unit:'亿元', delta:'线上额 7.80亿', cls:'kpi-2'},
+    {label:'H2目标', value:H2_TARGET/10000, unit:'亿元', delta:'25亿 - H1已完成7.80亿', cls:'kpi-3'},
+    {label:'H2自然流量', value:H2_NATURAL/10000, unit:'亿元', delta:'按H1节奏自然延伸', cls:'kpi-4'},
+    {label:'H2战略缺口', value:H2_GAP/10000, unit:'亿元', delta:'H2目标 - 自然流量', cls:'kpi-5'},
+    {label:'区域计划覆盖(实时)', value:planCover/10000, unit:'亿元', delta:fmtPct(coverPct)+' 目标覆盖率', cls:'kpi-6'},
+  ];
+  
+  document.getElementById('kpiBar').innerHTML = kpis.map(k => 
+    '<div class="kpi '+k.cls+'">'+
+    '<div class="kpi-label">'+k.label+'</div>'+
+    '<div class="kpi-value">'+k.value.toFixed(2)+'<span class="unit">'+k.unit+'</span></div>'+
+    '<div class="kpi-delta">'+k.delta+'</div>'+
+    '</div>'
+  ).join('');
+}
+
+// ====== 渲染区域卡片 ======
+function renderRegionList() {
+  let html = '';
+  REGION_ORDER.forEach(rc => {
+    if (!taskUserCanHQ() && rc !== taskUserRegion()) return; // 区域负责人仅可见本人区域卡片
+    const r = state[rc];
+    const h = getRegionHealth(rc);
+    const counts = getProjectStatusCounts(rc);
+    const totalProj = r.projects.length;
+    const filled = counts.review + counts.passed + counts.rejected;
+    const target = REGION_TARGETS[rc];
+    const natural = r.h2Natural;
+    const gap = target - natural;
+    let planSum = 0;
+    r.projects.forEach(p => { if(p.planAmount>0) planSum += p.planAmount; });
+    let coverPct = target > 0 ? planSum/target*100 : 0;
+    
+    const isActive = currentView === 'region' && currentRegion === rc;
+    
+    html += '<div class="region-card '+(isActive?'active':'')+'" onclick="selectRegion(\''+rc+'\')">'+
+      '<div class="rc-header">'+
+        '<span class="rc-name">'+r.name+'</span>'+
+        '<span class="rc-status '+h.level+'">'+h.label+'</span>'+
+      '</div>'+
+      '<div class="rc-data">'+
+        totalProj+'个项目 | H1线上 '+fmtWan(r.h1Online)+'<br>'+
+        'H2目标 '+fmtWan(target)+' | 自然 '+fmtWan(natural)+'<br>'+
+        '缺口 '+fmtWan(gap)+' | 已填报 '+filled+'/'+totalProj+
+      '</div>'+
+      '<div class="rc-bar"><div class="rc-bar-fill" style="width:'+coverPct+'%;background:'+(coverPct>=100?'#2e7d32':coverPct>=70?'#e65100':'#c62828')+';"></div></div>'+
+    '</div>';
+  });
+  document.getElementById('regionList').innerHTML = html;
+}
+
+// ====== 总部视角：区域级任务下发 ======
+function renderHQView() {
+  let html = '<div class="panel">'+
+    '<div class="panel-title">区域任务下发 <span class="badge">总部以区域为单位下发H2目标</span></div>'+
+    '<div class="fill-notice"><strong>说明：</strong>总部向6个区域分别下发H2线上目标，区域负责人收到后进入"区域视角"逐个项目填报计划。</div>'+
+    '<div class="table-scroll"><table class="dispatch-table">'+
+    '<thead><tr>'+
+    '<th>区域</th><th>项目数</th><th>H1线上</th><th>H2自然流量</th><th>H2目标</th>'+
+    '<th>缺口</th><th>已填报</th><th>计划覆盖</th><th>覆盖率</th><th>状态</th><th>操作</th>'+
+    '</tr></thead><tbody>';
+  
+  let totalTarget = 0, totalNatural = 0, totalGap = 0, totalPlan = 0;
+  
+  REGION_ORDER.forEach(rc => {
+    const r = state[rc];
+    const target = REGION_TARGETS[rc];
+    const gap = target - r.h2Natural;
+    const counts = getProjectStatusCounts(rc);
+    let planSum = 0;
+    r.projects.forEach(p => { if(p.planAmount>0) planSum += p.planAmount; });
+    let coverPct = target > 0 ? planSum/target*100 : 0;
+    let coverCls = coverPct >= 100 ? 'good' : coverPct >= 70 ? 'warn' : 'bad';
+    
+    totalTarget += target;
+    totalNatural += r.h2Natural;
+    totalGap += gap;
+    totalPlan += planSum;
+    
+    // 区域状态判断
+    let regionStatus = 'pending';
+    let statusLabel = '待下发';
+    if (counts.filling > 0 || counts.review > 0) { regionStatus = 'filling'; statusLabel = '填报中'; }
+    if (counts.review > 0 && counts.filling === 0) { regionStatus = 'review'; statusLabel = '待审核'; }
+    if (counts.passed === r.projects.length && r.projects.length > 0) { regionStatus = 'passed'; statusLabel = '已完成'; }
+    
+    let btnHtml = '';
+    if (regionStatus === 'pending') {
+      btnHtml = '<button class="btn btn-dispatch" onclick="dispatchRegion(\''+rc+'\')">下发任务</button>';
+    } else if (regionStatus === 'filling') {
+      btnHtml = '<button class="btn btn-urge" onclick="urgeRegion(\''+rc+'\')">🔔 催办</button>';
+    } else if (regionStatus === 'review') {
+      btnHtml = '<button class="btn btn-audit" onclick="openAuditModal(\''+rc+'\')">去审核 ('+counts.review+')</button>';
+    } else {
+      btnHtml = '<span style="color:#2e7d32;">✓ 已闭环</span>';
+    }
+    
+    html += '<tr>'+
+      '<td class="region-cell">'+r.name+'</td>'+
+      '<td>'+r.projects.length+'</td>'+
+      '<td>'+fmtWan(r.h1Online)+'</td>'+
+      '<td>'+fmtWan(r.h2Natural)+'</td>'+
+      '<td><strong>'+fmtWan(target)+'</strong></td>'+
+      '<td style="color:#c62828;">'+fmtWan(gap)+'</td>'+
+      '<td>'+(counts.review+counts.passed+counts.rejected)+'/'+r.projects.length+'</td>'+
+      '<td>'+fmtWan(planSum)+'</td>'+
+      '<td class="coverage '+coverCls+'">'+fmtPct(coverPct)+'</td>'+
+      '<td><span class="status-tag st-'+regionStatus+'">'+statusLabel+'</span></td>'+
+      '<td>'+btnHtml+'</td>'+
+    '</tr>';
+  });
+  
+  // 合计行
+  let totalCoverPct = totalTarget > 0 ? totalPlan/totalTarget*100 : 0;
+  html += '<tr style="background:#f5f5f5;font-weight:600;">'+
+    '<td>合计</td><td>'+getAllProjects().length+'</td>'+
+    '<td>'+fmtWan(H1_DONE)+'</td>'+
+    '<td>'+fmtWan(totalNatural)+'</td>'+
+    '<td>'+fmtWan(totalTarget)+'</td>'+
+    '<td style="color:#c62828;">'+fmtWan(totalGap)+'</td>'+
+    '<td>-</td>'+
+    '<td>'+fmtWan(totalPlan)+'</td>'+
+    '<td class="coverage '+(totalCoverPct>=100?'good':totalCoverPct>=70?'warn':'bad')+'">'+fmtPct(totalCoverPct)+'</td>'+
+    '<td>-</td><td>-</td>'+
+  '</tr>';
+  
+  html += '</tbody></table></div></div>';
+
+  document.getElementById('contentArea').innerHTML = html;
+}
+
+// ====== 区域视角：项目级填报 ======
+let currentFilter = 'all';
+let currentPage = 1;
+const PAGE_SIZE = 15;
+
+function renderRegionView() {
+  const r = state[currentRegion];
+  const target = REGION_TARGETS[currentRegion];
+  const gap = target - r.h2Natural;
+  
+  let planSum = 0;
+  r.projects.forEach(p => { if(p.planAmount>0) planSum += p.planAmount; });
+  let coverPct = target > 0 ? planSum/target*100 : 0;
+  
+  // 筛选
+  let filteredProjects = r.projects.map((p, i) => ({...p, pidx: i}));
+  if (currentFilter !== 'all') {
+    filteredProjects = filteredProjects.filter(p => p.status === currentFilter);
+  }
+  
+  // 分页
+  let totalPages = Math.ceil(filteredProjects.length / PAGE_SIZE);
+  if (currentPage > totalPages) currentPage = 1;
+  let pageProjects = filteredProjects.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE);
+  
+  // 筛选按钮
+  const counts = getProjectStatusCounts(currentRegion);
+  const filters = [
+    {key:'all', label:'全部', count: r.projects.length},
+    {key:'pending', label:'待填报', count: counts.pending + counts.dispatched},
+    {key:'filling', label:'填报中', count: counts.filling},
+    {key:'review', label:'待审核', count: counts.review},
+    {key:'passed', label:'已通过', count: counts.passed},
+    {key:'rejected', label:'已打回', count: counts.rejected},
+  ];
+  
+  let filterHtml = '<div class="filter-bar">';
+  filters.forEach(f => {
+    filterHtml += '<button class="filter-btn '+(currentFilter===f.key?'active':'')+'" onclick="setFilter(\''+f.key+'\')">'+f.label+' <span class="count">'+f.count+'</span></button>';
+  });
+  filterHtml += '<button class="btn-add-proj" onclick="openAddProjectModal()">+ 新增项目</button>';
+  filterHtml += '</div>';
+  
+  // 项目类型标签
+  function typeTag(type) {
+    const map = {
+      declining: {label:'存量流失', cls:'tt-declining'},
+      growing: {label:'增长标杆', cls:'tt-growing'},
+      old_system: {label:'老系统', cls:'tt-old_system'},
+      new_low: {label:'新项目', cls:'tt-new_low'},
+      stable: {label:'稳健', cls:'tt-stable'},
+      dormant: {label:'休眠', cls:'tt-dormant'},
+    };
+    const t = map[type] || map.stable;
+    return '<span class="type-tag '+t.cls+'">'+t.label+'</span>';
+  }
+  
+  let html = '<div class="panel">'+
+    '<div class="panel-title">'+r.name+' — 项目级填报 <span class="badge">'+r.projects.length+'个项目 | H2目标 '+fmtWan(target)+'</span></div>'+
+    '<div class="fill-notice"><strong>区域负责人操作指引：</strong>请逐个项目填写H2计划线上金额和具体执行动作，填报完成后汇总提交审核。计划覆盖金额需达到区域H2目标，否则将被打回。</div>'+
+    
+    '<div class="stats-bar">'+
+      '<div><strong>H2目标：</strong>'+fmtWan(target)+'</div>'+
+      '<div><strong>自然流量：</strong>'+fmtWan(r.h2Natural)+'</div>'+
+      '<div><strong>缺口：</strong><span style="color:#c62828;">'+fmtWan(gap)+'</span></div>'+
+      '<div><strong>已填报计划：</strong>'+fmtWan(planSum)+'</div>'+
+      '<div><strong>覆盖率：</strong><span class="coverage '+(coverPct>=100?'good':coverPct>=70?'warn':'bad')+'">'+fmtPct(coverPct)+'</span></div>'+
+    '</div>'+
+    
+    filterHtml+
+    
+    '<div class="table-scroll"><table class="dispatch-table">'+
+    '<thead><tr>'+
+    '<th>项目名称</th><th>类型</th><th>H1线上</th><th>线上率</th><th>H2自然</th>'+
+    '<th>计划金额</th><th>覆盖率</th><th>状态</th><th>操作</th>'+
+    '</tr></thead><tbody>';
+  
+  pageProjects.forEach(p => {
+    let projTarget = p.h2Natural; // 项目级参考目标=自然流量
+    let pCover = projTarget > 0 ? p.planAmount/projTarget*100 : 0;
+    let pCoverCls = pCover >= 100 ? 'good' : pCover >= 70 ? 'warn' : (p.planAmount > 0 ? 'bad' : '');
+    
+    let statusMap = {
+      pending: {label:'待填报', cls:'st-pending'},
+      dispatched: {label:'待填报', cls:'st-dispatched'},
+      filling: {label:'填报中', cls:'st-filling'},
+      review: {label:'待审核', cls:'st-review'},
+      passed: {label:'已通过', cls:'st-passed'},
+      rejected: {label:'已打回', cls:'st-rejected'},
+    };
+    let st = statusMap[p.status] || statusMap.pending;
+    
+    let btnHtml = '';
+    if (p.status === 'pending' || p.status === 'dispatched' || p.status === 'rejected') {
+      btnHtml = '<button class="btn btn-fill" onclick="openFillModal(\''+currentRegion+'\','+p.pidx+')">填报</button>';
+    } else if (p.status === 'filling' || p.status === 'review') {
+      btnHtml = '<button class="btn btn-small" style="background:#9e9e9e;color:#fff;" onclick="openFillModal(\''+currentRegion+'\','+p.pidx+')">查看</button>';
+    } else if (p.status === 'passed') {
+      btnHtml = '<button class="btn btn-small" style="background:#2e7d32;color:#fff;" onclick="openTrackModal(\''+currentRegion+'\','+p.pidx+')">跟踪</button>';
+    }
+    // 新增项目可删除
+    if (p.isNew) {
+      btnHtml += ' <button class="btn-del-proj" onclick="deleteProject('+p.pidx+')">删除</button>';
+    }
+    
+    let collabHtml = '';
+    if (p.collaborate && p.collaborate.length > 0) {
+      collabHtml = ' <span class="type-tag tt-new_low">'+p.collaborate.join('/')+'</span>';
+    }
+    let newTag = p.isNew ? ' <span class="new-proj-tag">新增</span>' : '';
+    
+    html += '<tr>'+
+      '<td>'+p.name+newTag+collabHtml+'</td>'+
+      '<td>'+typeTag(p.type)+'</td>'+
+      '<td>'+fmtWan(p.h1Online)+'</td>'+
+      '<td>'+fmtPct(p.rate)+'</td>'+
+      '<td>'+fmtWan(p.h2Natural)+'</td>'+
+      '<td>'+(p.planAmount>0?fmtWan(p.planAmount):'-')+'</td>'+
+      '<td class="coverage '+pCoverCls+'">'+(p.planAmount>0?fmtPct(pCover):'-')+'</td>'+
+      '<td><span class="status-tag '+st.cls+'">'+st.label+'</span></td>'+
+      '<td>'+btnHtml+'</td>'+
+    '</tr>';
+  });
+  
+  html += '</tbody></table></div>';
+
+  // 分页
+  if (totalPages > 1) {
+    html += '<div class="pagination">';
+    html += '<button '+(currentPage<=1?'disabled':'')+' onclick="goPage('+(currentPage-1)+')">上一页</button>';
+    for (let i = 1; i <= totalPages; i++) {
+      html += '<button class="'+(i===currentPage?'active':'')+'" onclick="goPage('+i+')">'+i+'</button>';
+    }
+    html += '<button '+(currentPage>=totalPages?'disabled':'')+' onclick="goPage('+(currentPage+1)+')">下一页</button>';
+    html += '</div>';
+  }
+  
+  // 汇总提交按钮
+  let canSubmit = r.projects.some(p => p.status === 'filling' || p.status === 'review');
+  html += '<div style="margin-top:16px;text-align:right;">'+
+    '<button class="btn btn-fill" style="padding:8px 24px;" onclick="submitRegionPlan(\''+currentRegion+'\')" '+(canSubmit?'':'disabled style="opacity:0.5;cursor:default;"')+'>汇总提交区域计划</button>'+
+  '</div>';
+  
+  html += '</div>';
+  
+  document.getElementById('contentArea').innerHTML = html;
+}
+
+// ====== 渲染任务状态总览 ======
+function renderTaskSummary() {
+  const counts = getProjectStatusCounts();
+  const total = getAllProjects().length;
+  const closedLoop = counts.passed;
+  const closedPct = total > 0 ? closedLoop/total*100 : 0;
+  
+  const rows = [
+    {label:'总项目数', value: total},
+    {label:'待填报', value: counts.pending + counts.dispatched},
+    {label:'填报中', value: counts.filling},
+    {label:'待审核', value: counts.review},
+    {label:'已通过', value: counts.passed},
+    {label:'已打回', value: counts.rejected},
+    {label:'闭环率', value: fmtPct(closedPct)},
+  ];
+  
+  document.getElementById('taskSummary').innerHTML = rows.map(r =>
+    '<div class="ts-row"><span class="ts-label">'+r.label+'</span><span class="ts-value">'+r.value+'</span></div>'
+  ).join('');
+}
+
+// ====== 渲染预警 ======
+// 生成预警列表（带稳定ID），供总部和区域视角共用
+function buildAlerts() {
+  let alerts = [];
+
+  // 1. 线上率断崖
+  let lowRateProjects = getAllProjects().filter(p => p.rate < 20 && p.h1Online > 50);
+  if (lowRateProjects.length > 0) {
+    alerts.push({id:'low_rate', type:'danger', icon:'⚠️', text:'线上率断崖预警：'+lowRateProjects.length+'个项目线上率低于20%（如'+lowRateProjects.slice(0,3).map(p=>p.name).join('、')+'），需重点攻坚线上化转化', planType:'online_attack'});
+  }
+
+  // 2. 头部项目流失
+  let decliningProjects = getAllProjects().filter(p => p.type === 'declining' && p.h1Online > 500);
+  if (decliningProjects.length > 0) {
+    alerts.push({id:'declining', type:'danger', icon:'📉', text:'存量头部流失：'+decliningProjects.map(p=>p.name+'(同比降幅>'+(p.h1_25_online>0?((p.h1Online/p.h1_25_online-1)*100).toFixed(0):0)+'%)').join('、')+'，需立即启动挽回计划', planType:'winback'});
+  }
+
+  // 3. 战略缺口
+  let planSum = 0;
+  getAllProjects().forEach(p => { if(p.planAmount>0) planSum += p.planAmount; });
+  let remainGap = H2_TARGET - planSum;
+  alerts.push({id:'gap', type:'warn', icon:'🎯', text:'H2战略缺口'+fmtWan(H2_GAP)+'：H2目标'+fmtWan(H2_TARGET)+'减去自然流量'+fmtWan(H2_NATURAL)+'，当前已填报计划覆盖'+fmtWan(planSum)+'，剩余缺口'+fmtWan(remainGap), planType:'gap_fill'});
+
+  // 4. 标杆机会
+  let growingProjects = getAllProjects().filter(p => p.type === 'growing' && p.h1_25_online > 0 && p.h1Online/p.h1_25_online > 2);
+  if (growingProjects.length > 0) {
+    alerts.push({id:'benchmark', type:'success', icon:'💡', text:'增长标杆：'+growingProjects.slice(0,3).map(p=>p.name+'(同比+'+((p.h1Online/p.h1_25_online-1)*100).toFixed(0)+'%)').join('、')+'，建议总结打法向同类项目推广', planType:'benchmark'});
+  }
+
+  // 5. 老系统切换
+  let oldSysProjects = getAllProjects().filter(p => p.type === 'old_system');
+  if (oldSysProjects.length > 0) {
+    alerts.push({id:'old_sys', type:'warn', icon:'🔄', text:'老系统切换护航：'+oldSysProjects.length+'个老系统项目（如'+oldSysProjects.slice(0,3).map(p=>p.name).join('、')+'），需确保切换期订单不丢失', planType:'old_switch'});
+  }
+
+  // 6. 江浙沪线上率机会
+  let jzhRate = state.jzh.h1Online / state.jzh.projects.reduce((s,p)=>s+p.h1Total, 0) * 100;
+  if (jzhRate < 30) {
+    alerts.push({id:'jzh_rate', type:'info', icon:'📊', text:'江浙沪线上率仅'+fmtPct(jzhRate)+'，但区域总额大，提升线上率10个百分点可带来约'+fmtWan(state.jzh.h2Natural*0.1)+'增量，是H2最大增长杠杆', planType:'rate_boost'});
+  }
+
+  // 7. 北京线上率下降
+  let bjRate = state.bj.h1Online / state.bj.projects.reduce((s,p)=>s+p.h1Total, 0) * 100;
+  alerts.push({id:'bj_rate', type:'danger', icon:'🔴', text:'北京线上率'+fmtPct(bjRate)+'（去年61.3%→今年44.9%），北京大学线上率40.3%（去年87.7%→40.3%）腰部斩，中国农业大学线上率仅0.9%，需紧急启动线上化攻坚', planType:'bj_attack'});
+
+  // 应用用户编辑
+  alerts.forEach(a => { if (alertEdits[a.id]) a.text = alertEdits[a.id]; });
+  return alerts;
+}
+
+function renderAlerts() {
+  let alerts = buildAlerts();
+  document.getElementById('alertArea').innerHTML = alerts.map(a => {
+    let h = '<div class="alert alert-'+a.type+'"><span class="alert-icon">'+a.icon+'</span>';
+    if (alertEditingId === a.id) {
+      h += '<div class="alert-edit-area" style="flex:1;">'+
+           '<textarea id="alertEdit_'+a.id+'">'+a.text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')+'</textarea>'+
+           '<div class="alert-edit-actions">'+
+           '<button class="btn-plan-save" onclick="saveAlertEdit(\''+a.id+'\')">保存</button>'+
+           '<button class="btn-plan-cancel" onclick="cancelAlertEdit()">取消</button>'+
+           '</div></div>';
+    } else {
+      h += '<span class="alert-text">'+a.text+'</span>';
+      h += '<button class="alert-edit-btn" onclick="startAlertEdit(\''+a.id+'\')">编辑</button>';
+    }
+    h += '</div>';
+    return h;
+  }).join('');
+}
+
+function startAlertEdit(id) {
+  alertEditingId = id;
+  renderAlerts();
+}
+function cancelAlertEdit() {
+  alertEditingId = null;
+  renderAlerts();
+}
+function saveAlertEdit(id) {
+  let ta = document.getElementById('alertEdit_'+id);
+  if (ta) alertEdits[id] = ta.value;
+  alertEditingId = null;
+  renderAlerts();
+  if (currentView === 'region') renderPlans();
+}
+
+// ====== 方案规划与实施（区域视角） ======
+const PLAN_DEFS = [
+  {key:'online_attack', alertId:'low_rate', label:'线上率断崖攻坚方案', color:'#c62828',
+   desc:'针对线上率低于20%的项目，制定线上化推进措施',
+   applies:(rc) => true},
+  {key:'winback', alertId:'declining', label:'存量头部挽回方案', color:'#c62828',
+   desc:'针对同比下滑的头部项目，制定客户挽留与恢复计划',
+   applies:(rc) => true},
+  {key:'gap_fill', alertId:'gap', label:'战略缺口补充方案', color:'#e65100',
+   desc:'针对H2战略缺口，区域如何补充增量（新项目/新渠道/新客群）',
+   applies:(rc) => true},
+  {key:'benchmark', alertId:'benchmark', label:'增长标杆推广方案', color:'#2e7d32',
+   desc:'将高增长项目的打法总结推广到同类项目',
+   applies:(rc) => true},
+  {key:'old_switch', alertId:'old_sys', label:'老系统切换护航方案', color:'#e65100',
+   desc:'老系统项目切换期间，确保订单不丢失的保障措施',
+   applies:(rc) => true},
+  {key:'rate_attack', alertId:'all_rate', label:'线上化紧急攻坚方案', color:'#c62828',
+   desc:'针对线上率下滑/低位的项目，制定紧急线上化推进措施',
+   applies:(rc) => true},
+];
+
+function renderPlans() {
+  let rc = currentRegion;
+  let r = state[rc];
+  let alerts = buildAlerts();
+  let alertMap = {};
+  alerts.forEach(a => { alertMap[a.id] = a; });
+
+  let applicablePlans = PLAN_DEFS.filter(p => p.applies(rc));
+  let filledCount = applicablePlans.filter(p => regionPlans[rc] && regionPlans[rc][p.key] && regionPlans[rc][p.key].action).length;
+
+  let html = '<div style="font-size:13px;color:#666;margin-bottom:10px;">对应总部预警，区域负责人逐项填写应对方案。已填 <b style="color:#2e7d32;">'+filledCount+'</b>/'+applicablePlans.length+'</div>';
+
+  applicablePlans.forEach(p => {
+    let alert = alertMap[p.alertId];
+    let alertText = alert ? alert.text : '';
+    let plan = (regionPlans[rc] && regionPlans[rc][p.key]) || {};
+    let isEditing = planEditingKey === rc+':'+p.key;
+    let isFilled = plan.action && plan.action.length > 0;
+
+    html += '<div class="plan-card '+(isFilled?'filled':'')+'">';
+    html += '<div class="plan-card-header">';
+    html += '<span class="pc-tag" style="background:'+p.color+';">'+p.label+'</span>';
+    html += '</div>';
+    html += '<div class="plan-card-body">';
+
+    if (isEditing) {
+      html += '<div class="plan-grid">';
+      html += '<div class="plan-field plan-field-full"><label>应对措施</label><textarea id="plan_action_'+p.key+'" rows="2">'+(plan.action||'').replace(/</g,'&lt;')+'</textarea></div>';
+      html += '<div class="plan-field"><label>预期贡献金额（万元）</label><input type="number" id="plan_amount_'+p.key+'" value="'+(plan.amount||'')+'" placeholder="数字"></div>';
+      html += '<div class="plan-field"><label>责任人</label><input type="text" id="plan_owner_'+p.key+'" value="'+(plan.owner||'').replace(/"/g,'&quot;')+'" placeholder="姓名"></div>';
+      html += '<div class="plan-field"><label>完成节点</label><input type="text" id="plan_deadline_'+p.key+'" value="'+(plan.deadline||'').replace(/"/g,'&quot;')+'" placeholder="如 9月底"></div>';
+      html += '<div class="plan-field" style="display:flex;align-items:flex-end;"><div class="plan-actions"><button class="btn-plan-save" onclick="savePlan(\''+rc+'\',\''+p.key+'\')">保存方案</button><button class="btn-plan-cancel" onclick="cancelPlanEdit()">取消</button></div></div>';
+      html += '</div>';
+    } else {
+      html += '<div class="plan-grid">';
+      html += '<div class="plan-field plan-field-full"><label>应对措施</label><div class="pf-value '+(isFilled?'':'empty')+'">'+(isFilled?plan.action:'未填写')+'</div></div>';
+      html += '<div class="plan-field"><label>预期贡献金额（万元）</label><div class="pf-value '+(plan.amount?'':'empty')+'">'+(plan.amount?plan.amount:'未填写')+'</div></div>';
+      html += '<div class="plan-field"><label>责任人</label><div class="pf-value '+(plan.owner?'':'empty')+'">'+(plan.owner?plan.owner:'未填写')+'</div></div>';
+      html += '<div class="plan-field"><label>完成节点</label><div class="pf-value '+(plan.deadline?'':'empty')+'">'+(plan.deadline?plan.deadline:'未填写')+'</div></div>';
+      html += '<div class="plan-field" style="display:flex;align-items:flex-end;"><button class="btn-plan-edit" onclick="startPlanEdit(\''+rc+'\',\''+p.key+'\')">'+(isFilled?'编辑':'填写方案')+'</button></div>';
+      html += '</div>';
+    }
+    html += '</div></div>';
+  });
+
+  // 汇总已填方案的贡献金额
+  let totalPlanAmount = applicablePlans.reduce((s,p) => {
+    let plan = (regionPlans[rc] && regionPlans[rc][p.key]) || {};
+    return s + (parseFloat(plan.amount) || 0);
+  }, 0);
+  if (totalPlanAmount > 0) {
+    html += '<div style="margin-top:8px;padding:10px 12px;background:#e8f5e9;border-radius:6px;font-size:13px;color:#2e7d32;">方案预期贡献合计：<b>'+fmtWan(totalPlanAmount)+'</b>，区域H2目标 <b>'+fmtWan(REGION_TARGETS[rc])+'</b></div>';
+  }
+
+  document.getElementById('planArea').innerHTML = html;
+}
+
+function startPlanEdit(rc, key) {
+  planEditingKey = rc+':'+key;
+  renderPlans();
+}
+function cancelPlanEdit() {
+  planEditingKey = null;
+  renderPlans();
+}
+function savePlan(rc, key) {
+  if (!regionPlans[rc]) regionPlans[rc] = {};
+  regionPlans[rc][key] = {
+    action: document.getElementById('plan_action_'+key).value,
+    amount: document.getElementById('plan_amount_'+key).value,
+    owner: document.getElementById('plan_owner_'+key).value,
+    deadline: document.getElementById('plan_deadline_'+key).value,
+  };
+  planEditingKey = null;
+  renderPlans();
+}
+
+// ====== 视角切换 ======
+function switchView(view) {
+  if (view === 'hq' && !taskUserCanHQ()) return; // 区域负责人无权切总部视角
+  currentView = view;
+  document.querySelectorAll('.view-btn').forEach((b,i) => {
+    b.classList.toggle('active', (i===0 && view==='hq') || (i===1 && view==='region'));
+  });
+  if (view === 'hq') {
+    renderHQView();
+    // 总部视角：显示预警，隐藏方案
+    document.getElementById('bottomPanelTitle').innerHTML = '自动预警与洞察';
+    document.getElementById('alertArea').style.display = '';
+    document.getElementById('planArea').style.display = 'none';
+  } else {
+    renderRegionView();
+    // 区域视角：显示方案，隐藏预警
+    let rname = state[currentRegion].name;
+    document.getElementById('bottomPanelTitle').innerHTML = '方案规划与实施 — '+rname;
+    document.getElementById('alertArea').style.display = 'none';
+    document.getElementById('planArea').style.display = '';
+    renderPlans();
+  }
+  renderRegionList();
+}
+
+function selectRegion(rc) {
+  if (!taskUserCanHQ() && rc !== taskUserRegion()) return; // 区域负责人仅可查看本人区域
+  currentRegion = rc;
+  currentView = 'region';
+  currentPage = 1;
+  currentFilter = 'all';
+  document.querySelectorAll('.view-btn').forEach((b,i) => {
+    b.classList.toggle('active', i===1);
+  });
+  renderRegionView();
+  // 更新底部面板为方案规划
+  let rname = state[rc].name;
+  document.getElementById('bottomPanelTitle').innerHTML = '方案规划与实施 — '+rname;
+  document.getElementById('alertArea').style.display = 'none';
+  document.getElementById('planArea').style.display = '';
+  renderPlans();
+  renderRegionList();
+}
+
+function setFilter(f) {
+  currentFilter = f;
+  currentPage = 1;
+  renderRegionView();
+}
+
+function goPage(p) {
+  currentPage = p;
+  renderRegionView();
+}
+
+// ====== 流程说明折叠 ======
+function toggleFlowGuide() {
+  const g = document.getElementById('flowGuide');
+  const t = document.getElementById('flowToggle');
+  g.classList.toggle('collapsed');
+  t.textContent = g.classList.contains('collapsed') ? '展开 ▼' : '收起 ▲';
+}
+
+// ====== 新增项目 ======
+function openAddProjectModal() {
+  document.getElementById('modalContent').innerHTML =
+    '<h3>新增预估项目 — '+state[currentRegion].name+'</h3>'+
+    '<div class="fill-notice" style="margin-bottom:14px;"><strong>说明：</strong>用于录入可预估的新增项目（如即将上线、新签约项目）。新增项目的计划金额会自动汇总到区域计划覆盖率中。如后续判断该项目不成立，可随时删除。</div>'+
+    '<div class="form-group">'+
+      '<label>项目名称（必填）</label>'+
+      '<input type="text" id="newProjName" placeholder="如：XX大学（预计26.X上线）">'+
+    '</div>'+
+    '<div class="form-group">'+
+      '<label>H2预估线上金额（万元，必填）</label>'+
+      '<input type="number" id="newProjAmount" placeholder="请输入预估金额" min="0" step="1">'+
+    '</div>'+
+    '<div class="form-group">'+
+      '<label>具体执行动作（必填）</label>'+
+      '<textarea id="newProjActions" placeholder="请描述：预计何时上线、由谁负责推进、预估流量来源等"></textarea>'+
+    '</div>'+
+    '<div class="form-group">'+
+      '<label>跨部门协作（可选）</label>'+
+      '<div class="collab-options">'+DEPARTMENTS.map(d => '<span class="collab-chip" onclick="this.classList.toggle(\'selected\')">'+d+'</span>').join('')+'</div>'+
+    '</div>'+
+    '<div class="btn-row">'+
+      '<button class="btn-cancel" onclick="closeModal()">取消</button>'+
+      '<button class="btn-submit" onclick="addProject()">确认新增</button>'+
+    '</div>';
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function addProject() {
+  const name = document.getElementById('newProjName').value.trim();
+  const amount = parseFloat(document.getElementById('newProjAmount').value) || 0;
+  const actions = document.getElementById('newProjActions').value.trim();
+  const collabs = [];
+  document.querySelectorAll('#modalContent .collab-chip.selected').forEach(c => collabs.push(c.textContent));
+
+  if (!name) { alert('请填写项目名称'); return; }
+  if (amount <= 0) { alert('请填写H2预估线上金额'); return; }
+  if (!actions) { alert('请填写具体执行动作'); return; }
+
+  let now = new Date();
+  let timeStr = (now.getMonth()+1)+'/'+now.getDate()+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+
+  const newProj = {
+    name: name,
+    h1Online: 0, h1Total: 0, rate: 0, h2Natural: 0, h1_25_online: 0,
+    type: 'new_low', isNew: true,
+    status: 'filling',
+    planAmount: amount, planActions: actions, planDate: timeStr,
+    auditNote: '', history: [{time:timeStr, action:'新增预估项目', detail:'预估金额'+fmtWan(amount)+'，'+actions.substring(0,50)+(actions.length>50?'...':'')}],
+    collaborate: collabs
+  };
+  state[currentRegion].projects.push(newProj);
+  closeModal();
+  // 跳到最后一页让用户看到新增的项目
+  let total = state[currentRegion].projects.length;
+  currentPage = Math.ceil(total / PAGE_SIZE);
+  renderRegionView();
+  renderRegionList();
+  renderKPI();
+  renderTaskSummary();
+  alert('已新增预估项目「'+name+'」，预估金额'+fmtWan(amount)+'已计入区域计划覆盖率。');
+}
+
+function deleteProject(pidx) {
+  const p = state[currentRegion].projects[pidx];
+  if (!p.isNew) { alert('仅可删除新增的预估项目，存量项目不可删除。'); return; }
+  if (!confirm('确认删除新增项目「'+p.name+'」？\n\n删除后其计划金额'+fmtWan(p.planAmount)+'将从区域计划中扣除。')) return;
+  state[currentRegion].projects.splice(pidx, 1);
+  renderRegionView();
+  renderRegionList();
+  renderKPI();
+  renderTaskSummary();
+}
+
+// ====== 钉钉通知推送 ======
+var DINGTALK_BACKEND = 'http://localhost:3000';
+var DINGTALK_TOKEN = 'kubazha-2026-h2-notify';
+
+async function notifyDingTalk(taskTitle, taskContent) {
+  try {
+    var res = await fetch(DINGTALK_BACKEND + '/api/notify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + DINGTALK_TOKEN
+      },
+      body: JSON.stringify({
+        group: 'all',
+        taskTitle: taskTitle,
+        taskContent: taskContent
+      })
+    });
+    return await res.json();
+  } catch (e) {
+    return { ok: false, error: '无法连接通知服务。请确认已双击「启动钉钉通知服务.command」并保持窗口开启。' };
+  }
+}
+
+// ====== 任务下发 ======
+async function dispatchRegion(rc) {
+  state[rc].projects.forEach(p => {
+    if (p.status === 'pending') p.status = 'dispatched';
+  });
+  refresh();
+
+  var taskTitle = 'H2任务下发 — ' + state[rc].name + '区域';
+  var unfilled = state[rc].projects.filter(p => p.status === 'dispatched').length;
+  var taskContent = '总部已向' + state[rc].name + '区域下发H2线上目标任务，共' + unfilled + '个项目待填报。\n\n请区域负责人尽快进入工作台，逐个项目填报H2计划。';
+
+  var result = await notifyDingTalk(taskTitle, taskContent);
+
+  if (result.ok) {
+    alert('已向' + state[rc].name + '区域下发H2任务。\n\n' + result.message + '，区域负责人将在钉钉群收到通知，点击消息中的链接即可打开工作台填报。');
+  } else {
+    alert('系统内已向' + state[rc].name + '区域下发任务。\n\n钉钉通知未发送：' + result.error);
+  }
+}
+
+async function urgeRegion(rc) {
+  let now = new Date();
+  let timeStr = (now.getMonth()+1)+'/'+now.getDate()+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  let unfilled = state[rc].projects.filter(p => p.status === 'dispatched' || p.status === 'pending').length;
+  urgeLog.unshift({time:timeStr, region:state[rc].name, msg:'已催办：请尽快填报'+unfilled+'个项目的H2计划'});
+  refresh();
+
+  var taskTitle = '催办提醒 — ' + state[rc].name + '区域';
+  var taskContent = '【催办】' + state[rc].name + '区域还有 ' + unfilled + ' 个项目尚未填报H2计划。\n\n请区域负责人尽快进入工作台完成填报。';
+  var result = await notifyDingTalk(taskTitle, taskContent);
+
+  if (result.ok) {
+    alert('已向' + state[rc].name + '区域发送催办，区域负责人将在钉钉群收到提醒。');
+  } else {
+    alert('系统内已记录催办。\n\n钉钉通知未发送：' + result.error);
+  }
+}
+
+function goAudit(rc) {
+  selectRegion(rc);
+  setFilter('review');
+}
+
+// ====== 填报弹窗 ======
+function openFillModal(rc, pidx) {
+  const p = state[rc].projects[pidx];
+  selectedCollab = p.collaborate ? [...p.collaborate] : [];
+  
+  let collabHtml = DEPARTMENTS.map(d => 
+    '<span class="collab-chip '+(selectedCollab.includes(d)?'selected':'')+'" onclick="toggleCollab(\''+d+'\')">'+d+'</span>'
+  ).join('');
+  
+  // 月度拆解表格：7月填实际，8-12月填目标
+  let monthRows = '';
+  for (let m = 7; m <= 12; m++) {
+    let isJuly = m === 7;
+    let targetInput = isJuly ? '<span class="muted">—</span>' : 
+      '<input type="number" id="target'+m+'" value="'+(p.monthlyTargets[m] > 0 ? p.monthlyTargets[m] : '')+'" min="0" step="1" oninput="syncMonthlyTotal()" placeholder="目标">';
+    let actualInput = isJuly ? 
+      '<input type="number" id="actual'+m+'" value="'+(p.monthlyActuals[m] > 0 ? p.monthlyActuals[m] : '')+'" min="0" step="1" placeholder="实际">' : 
+      '<span class="muted">月底回填</span>';
+    let statusCell = isJuly ? '<span class="muted">已结束</span>' : '<span id="diff'+m+'">—</span>';
+    monthRows += '<tr><td>'+m+'月'+(isJuly?'（已结束）':'')+'</td><td>'+targetInput+'</td><td>'+actualInput+'</td><td>'+statusCell+'</td></tr>';
+  }
+  
+  document.getElementById('modalContent').innerHTML = 
+    '<h3>填报 — '+p.name+'</h3>'+
+    '<div style="background:#f5f5f5;border-radius:6px;padding:10px;margin-bottom:14px;font-size:13px;">'+
+      '<div>项目类型：'+getTypeLabel(p.type)+'</div>'+
+      '<div>H1线上额：'+fmtWan(p.h1Online)+' | 线上率：'+fmtPct(p.rate)+'</div>'+
+      '<div>H2自然流量预估：'+fmtWan(p.h2Natural)+'</div>'+
+    '</div>'+
+    '<div class="form-group">'+
+      '<label>H2计划线上金额（万元）<span style="font-weight:normal;color:#999;"> — 月度目标之和自动汇总</span></label>'+
+      '<input type="number" id="planAmount" value="'+(p.planAmount > 0 ? p.planAmount : '')+'" placeholder="0" min="0" step="1" oninput="syncPlanFromTotal()">'+
+      '<div style="font-size:11px;color:#999;margin-top:4px;">参考自然流量：'+p.h2Natural.toFixed(0)+'万</div>'+
+    '</div>'+
+    '<div class="form-group">'+
+      '<label>月度拆解</label>'+
+      '<table class="monthly-table"><thead><tr><th>月份</th><th>目标金额（万）</th><th>实际金额（万）</th><th>状态</th></tr></thead><tbody>'+monthRows+'</tbody></table>'+
+      '<div class="monthly-total">月度目标合计：<strong id="monthlyTotal">0</strong> 万</div>'+
+    '</div>'+
+    '<div class="form-group">'+
+      '<label>具体执行动作（必填）</label>'+
+      '<textarea id="planActions" placeholder="请描述：做什么、谁负责、什么时候完成、需要什么支持">'+(p.planActions||'')+'</textarea>'+
+    '</div>'+
+    '<div class="form-group">'+
+      '<label>跨部门协作（方案用尽仍无法完成目标时勾选）</label>'+
+      '<div class="collab-options">'+collabHtml+'</div>'+
+      '<div id="collabHint" style="font-size:11px;color:#999;margin-top:4px;"></div>'+
+    '</div>'+
+    '<div class="btn-row">'+
+      '<button class="btn-cancel" onclick="closeModal()">取消</button>'+
+      '<button class="btn-submit" onclick="submitFill(\''+rc+'\','+pidx+')">提交填报</button>'+
+    '</div>';
+  
+  document.getElementById('modalOverlay').classList.add('show');
+  syncMonthlyTotal();
+  updateCollabHint();
+}
+
+function syncMonthlyTotal() {
+  let total = 0;
+  for (let m = 8; m <= 12; m++) {
+    total += parseFloat(document.getElementById('target'+m).value) || 0;
+  }
+  document.getElementById('monthlyTotal').textContent = total.toFixed(0);
+  // 同步更新总计划金额（以月度之和为准）
+  document.getElementById('planAmount').value = total > 0 ? total.toFixed(0) : '';
+}
+
+function syncPlanFromTotal() {
+  const total = parseFloat(document.getElementById('planAmount').value) || 0;
+  // 按当前各月目标的比例分配，若都为0则平均分配
+  let currentTotal = 0;
+  let currents = {};
+  for (let m = 8; m <= 12; m++) {
+    currents[m] = parseFloat(document.getElementById('target'+m).value) || 0;
+    currentTotal += currents[m];
+  }
+  
+  if (currentTotal === 0) {
+    for (let m = 8; m <= 12; m++) {
+      document.getElementById('target'+m).value = total > 0 ? (total / 5).toFixed(0) : '';
+    }
+  } else {
+    for (let m = 8; m <= 12; m++) {
+      document.getElementById('target'+m).value = total > 0 ? (total * currents[m] / currentTotal).toFixed(0) : '';
+    }
+  }
+  syncMonthlyTotal();
+}
+
+function getTypeLabel(type) {
+  const map = {declining:'存量流失', growing:'增长标杆', old_system:'老系统', new_low:'新项目', stable:'稳健', dormant:'休眠'};
+  return map[type] || '稳健';
+}
+
+function toggleCollab(d) {
+  let idx = selectedCollab.indexOf(d);
+  if (idx >= 0) selectedCollab.splice(idx, 1);
+  else selectedCollab.push(d);
+  document.querySelectorAll('.collab-chip').forEach((c,i) => {
+    c.classList.toggle('selected', selectedCollab.includes(DEPARTMENTS[i]));
+  });
+  updateCollabHint();
+}
+
+function updateCollabHint() {
+  const hints = {
+    '销售部': '需销售部协助挖掘新高校/新项目',
+    '产品部': '需产品部配合功能开发或优化',
+    '营销部': '需营销部支持活动策划',
+    '技术部': '需技术部协助系统对接',
+    '客服部': '需客服部提供驻场支持',
+    '多部门联动': '需多部门联合攻坚',
+  };
+  let hint = selectedCollab.map(d => '• '+hints[d]).join(' ');
+  document.getElementById('collabHint').innerHTML = hint;
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+function submitFill(rc, pidx) {
+  const amount = parseFloat(document.getElementById('planAmount').value) || 0;
+  const actions = document.getElementById('planActions').value.trim();
+  
+  if (amount <= 0) { alert('请填写H2计划线上金额'); return; }
+  if (!actions) { alert('请填写具体执行动作'); return; }
+  
+  // 校验月度目标之和
+  let monthlyTotal = 0;
+  for (let m = 8; m <= 12; m++) {
+    monthlyTotal += parseFloat(document.getElementById('target'+m).value) || 0;
+  }
+  if (Math.abs(monthlyTotal - amount) > 1) {
+    alert('月度目标合计（'+monthlyTotal.toFixed(0)+'万）与H2计划金额（'+amount.toFixed(0)+'万）不一致，请调整。');
+    return;
+  }
+  
+  let now = new Date();
+  let timeStr = (now.getMonth()+1)+'/'+now.getDate()+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  
+  const p = state[rc].projects[pidx];
+  p.planAmount = amount;
+  p.planActions = actions;
+  p.collaborate = [...selectedCollab];
+  p.planDate = timeStr;
+  p.status = 'review'; // 提交后进入待审核
+  
+  // 保存月度目标与7月实际
+  for (let m = 8; m <= 12; m++) {
+    p.monthlyTargets[m] = parseFloat(document.getElementById('target'+m).value) || 0;
+  }
+  p.monthlyActuals[7] = parseFloat(document.getElementById('actual7').value) || 0;
+  
+  p.history.push({time:timeStr, action:'填报提交', detail:'计划金额'+fmtWan(amount)+'，执行动作：'+actions.substring(0,50)+(actions.length>50?'...':'')});
+  
+  closeModal();
+  refresh();
+}
+
+// ====== 汇总提交 ======
+function submitRegionPlan(rc) {
+  const r = state[rc];
+  const target = REGION_TARGETS[rc];
+  let planSum = 0;
+  r.projects.forEach(p => { if(p.planAmount>0) planSum += p.planAmount; });
+  let coverPct = target > 0 ? planSum/target*100 : 0;
+  
+  if (coverPct < 100) {
+    let gap = target - planSum;
+    if (!confirm('当前计划覆盖金额'+fmtWan(planSum)+'，目标'+fmtWan(target)+'，缺口'+fmtWan(gap)+'（覆盖率'+fmtPct(coverPct)+'）。\n\n覆盖率不足100%，提交后可能被审核打回。是否继续提交？')) {
+      return;
+    }
+  }
+  
+  // 将所有filling状态的项目提交为review
+  r.projects.forEach(p => {
+    if (p.status === 'filling') p.status = 'review';
+  });
+  
+  alert(state[rc].name+'区域计划已汇总提交，计划覆盖'+fmtWan(planSum)+'，覆盖率'+fmtPct(coverPct)+'。等待总部审核。');
+  refresh();
+}
+
+// ====== 审核弹窗 ======
+function openAuditModal(rc) {
+  const r = state[rc];
+  const reviewProjects = r.projects.map((p, i) => ({...p, pidx: i})).filter(p => p.status === 'review');
+  
+  if (reviewProjects.length === 0) {
+    alert(r.name + '区域暂无待审核项目。');
+    return;
+  }
+  
+  let cardsHtml = reviewProjects.map(p => {
+    let projTarget = p.h2Natural;
+    let pCover = projTarget > 0 ? p.planAmount/projTarget*100 : 0;
+    let pCoverCls = pCover >= 100 ? 'good' : pCover >= 70 ? 'warn' : 'bad';
+    
+    // 月度目标表格
+    let monthRows = '';
+    for (let m = 8; m <= 12; m++) {
+      monthRows += '<tr><td>'+m+'月</td><td>'+fmtWan(p.monthlyTargets[m] || 0)+'</td></tr>';
+    }
+    if (p.monthlyActuals[7] > 0) {
+      monthRows += '<tr style="background:#e8f5e9;"><td>7月（实际）</td><td>'+fmtWan(p.monthlyActuals[7])+'</td></tr>';
+    }
+    
+    let collabHtml = (p.collaborate && p.collaborate.length > 0) ? 
+      '<div style="margin-top:8px;"><strong>跨部门协作：</strong>'+p.collaborate.join('、')+'</div>' : '';
+    
+    return '<div class="audit-card" style="border:1px solid #e0e0e0;border-radius:8px;padding:14px;margin-bottom:14px;background:#fafafa;">'+ 
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'+ 
+        '<div><strong style="font-size:15px;">'+p.name+'</strong> <span class="type-tag tt-'+p.type+'">'+getTypeLabel(p.type)+'</span></div>'+ 
+        '<div><span class="coverage '+pCoverCls+'">覆盖率 '+fmtPct(pCover)+'</span></div>'+ 
+      '</div>'+ 
+      '<div style="font-size:13px;color:#333;margin-bottom:10px;">'+ 
+        '<strong>H2计划金额：</strong>'+fmtWan(p.planAmount)+' &nbsp;|&nbsp; <strong>H2自然流量：</strong>'+fmtWan(p.h2Natural)+ 
+      '</div>'+ 
+      '<table class="monthly-table" style="margin-bottom:10px;"><thead><tr><th>月份</th><th>目标金额</th></tr></thead><tbody>'+monthRows+'</tbody></table>'+ 
+      '<div style="background:#fff;border-radius:6px;padding:10px;font-size:13px;margin-bottom:10px;border:1px solid #eee;">'+ 
+        '<strong>执行动作：</strong><br>'+(p.planActions || '未填写').replace(/\n/g,'<br>')+ 
+      '</div>'+ 
+      collabHtml+ 
+      '<div class="btn-row" style="margin-top:12px;">'+ 
+        '<button class="btn-cancel" onclick="auditProject(\''+rc+'\','+p.pidx+',false); openAuditModal(\''+rc+'\');">打回</button>'+ 
+        '<button class="btn-submit" onclick="auditProject(\''+rc+'\','+p.pidx+',true); openAuditModal(\''+rc+'\');">通过</button>'+ 
+      '</div>'+ 
+    '</div>';
+  }).join('');
+  
+  document.getElementById('modalContent').innerHTML = 
+    '<h3>'+r.name+'区域 — 项目审核 <span style="font-size:13px;color:#999;font-weight:normal;">('+reviewProjects.length+'个待审核)</span></h3>'+ 
+    '<div style="max-height:60vh;overflow-y:auto;padding-right:6px;">'+cardsHtml+'</div>'+ 
+    '<div class="btn-row" style="margin-top:16px;">'+ 
+      '<button class="btn-cancel" onclick="closeModal()">关闭</button>'+ 
+    '</div>';
+  
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+// ====== 审核操作 ======
+function auditProject(rc, pidx, pass) {
+  const p = state[rc].projects[pidx];
+  let now = new Date();
+  let timeStr = (now.getMonth()+1)+'/'+now.getDate()+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  
+  if (pass) {
+    p.status = 'passed';
+    p.history.push({time:timeStr, action:'审核通过', detail:'计划金额'+fmtWan(p.planAmount)+'，执行方案符合要求'});
+  } else {
+    // 自动生成打回理由
+    const target = REGION_TARGETS[rc];
+    let regionPlanSum = 0;
+    state[rc].projects.forEach(pp => { if(pp.planAmount>0) regionPlanSum += pp.planAmount; });
+    let projTarget = p.h2Natural;
+    let gap = projTarget - p.planAmount;
+    let reason = '计划覆盖金额仅'+fmtWan(p.planAmount)+'，';
+    if (projTarget > 0) {
+      reason += '参考自然流量'+fmtWan(projTarget)+'，缺口'+fmtWan(gap)+'。';
+    }
+    if (p.collaborate.length === 0 && gap > 100) {
+      reason += '请补充执行方案或申请跨部门协作。';
+    }
+    p.status = 'rejected';
+    p.auditNote = reason;
+    p.history.push({time:timeStr, action:'审核打回', detail:reason});
+  }
+  refresh();
+}
+
+// ====== 执行跟踪弹窗 ======
+function openTrackModal(rc, pidx) {
+  const p = state[rc].projects[pidx];
+  
+  // 月度跟踪表格
+  let monthRows = '';
+  for (let m = 7; m <= 12; m++) {
+    let isJuly = m === 7;
+    let target = p.monthlyTargets[m] || 0;
+    let actual = p.monthlyActuals[m] || 0;
+    let targetCell = isJuly ? '<span class="muted">—</span>' : fmtWan(target);
+    let actualCell = isJuly ? 
+      '<span>'+fmtWan(actual)+'</span>' : 
+      '<input type="number" id="trackActual'+m+'" value="'+(actual > 0 ? actual : '')+'" min="0" step="1" oninput="checkTrackMonth('+m+','+target+')" placeholder="实际">';
+    let diffHtml = isJuly ? '<span class="muted">已结束</span>' : '<span id="trackDiff'+m+'">—</span>';
+    let reasonArea = isJuly ? '' : 
+      '<div id="trackReasonBox'+m+'" style="display:none;margin-top:6px;padding:10px;background:#fff3e0;border-radius:4px;font-size:12px;">'+ 
+        '<div style="margin-bottom:8px;"><strong>未达标原因（必填）：</strong><input type="text" id="trackReason'+m+'" value="'+(p.monthlyReasons[m]||'')+'" style="width:100%;padding:5px 8px;font-size:12px;margin-top:4px;" placeholder="请说明本月未达标原因"></div>'+ 
+        '<div><strong>下月补差方案（必填）：</strong><input type="text" id="trackRecovery'+m+'" value="'+(p.monthlyRecoveries[m]||'')+'" style="width:100%;padding:5px 8px;font-size:12px;margin-top:4px;" placeholder="请说明如何在后续月份补足差额"></div>'+ 
+      '</div>';
+    monthRows += '<tr><td>'+m+'月</td><td>'+targetCell+'</td><td>'+actualCell+'</td><td>'+diffHtml+'</td></tr>'+ 
+      (isJuly ? '' : '<tr id="trackReasonRow'+m+'" style="display:none;"><td colspan="4" style="padding:0;border:none;">'+reasonArea+'</td></tr>');
+  }
+  
+  document.getElementById('modalContent').innerHTML = 
+    '<h3>执行跟踪 — '+p.name+'</h3>'+ 
+    '<div style="background:#f5f5f5;border-radius:6px;padding:10px;margin-bottom:14px;font-size:13px;">'+ 
+      '<div>H2计划金额：'+fmtWan(p.planAmount)+' | H2自然流量：'+fmtWan(p.h2Natural)+'</div>'+ 
+      '<div>执行动作：'+p.planActions.substring(0,60)+(p.planActions.length>60?'...':'')+'</div>'+ 
+    '</div>'+ 
+    '<div class="form-group">'+ 
+      '<label>月度目标 vs 实际</label>'+ 
+      '<table class="monthly-table"><thead><tr><th>月份</th><th>目标金额</th><th>实际金额</th><th>差额</th></tr></thead><tbody>'+monthRows+'</tbody></table>'+ 
+    '</div>'+ 
+    '<div class="btn-row">'+ 
+      '<button class="btn-cancel" onclick="closeModal()">取消</button>'+ 
+      '<button class="btn-submit" onclick="submitTrack(\''+rc+'\','+pidx+')">保存跟踪</button>'+ 
+    '</div>';
+  
+  document.getElementById('modalOverlay').classList.add('show');
+  // 初始化各月状态
+  for (let m = 8; m <= 12; m++) {
+    checkTrackMonth(m, p.monthlyTargets[m] || 0);
+  }
+}
+
+function checkTrackMonth(m, target) {
+  let actualEl = document.getElementById('trackActual'+m);
+  let diffEl = document.getElementById('trackDiff'+m);
+  let reasonRow = document.getElementById('trackReasonRow'+m);
+  if (!actualEl || !diffEl || !reasonRow) return;
+  
+  let actual = parseFloat(actualEl.value) || 0;
+  let diff = actual - target;
+  diffEl.textContent = (diff >= 0 ? '+' : '') + fmtWan(diff);
+  diffEl.className = diff >= 0 ? 'good' : 'bad';
+  
+  // 实际<目标时显示原因和补差方案输入框
+  reasonRow.style.display = diff < 0 ? 'table-row' : 'none';
+}
+
+function submitTrack(rc, pidx) {
+  const p = state[rc].projects[pidx];
+  
+  // 保存实际金额、原因、补差方案
+  for (let m = 8; m <= 12; m++) {
+    let actual = parseFloat(document.getElementById('trackActual'+m).value) || 0;
+    let target = p.monthlyTargets[m] || 0;
+    p.monthlyActuals[m] = actual;
+    
+    if (actual < target) {
+      let reason = document.getElementById('trackReason'+m).value.trim();
+      let recovery = document.getElementById('trackRecovery'+m).value.trim();
+      if (!reason || !recovery) {
+        alert(m+'月实际金额低于目标，请填写未达标原因和下月补差方案。');
+        return;
+      }
+      p.monthlyReasons[m] = reason;
+      p.monthlyRecoveries[m] = recovery;
+    } else {
+      p.monthlyReasons[m] = '';
+      p.monthlyRecoveries[m] = '';
+    }
+  }
+  
+  let now = new Date();
+  let timeStr = (now.getMonth()+1)+'/'+now.getDate()+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  p.history.push({time:timeStr, action:'执行跟踪更新', detail:'更新了月度实际金额'});
+  
+  closeModal();
+  refresh();
+}
+
+// ====== 导出 ======
+function exportData() {
+  let data = {
+    exportTime: new Date().toISOString(),
+    fullYearTarget: FULL_YEAR_TARGET,
+    h1Done: H1_DONE,
+    h2Target: H2_TARGET,
+    h2Natural: H2_NATURAL,
+    h2Gap: H2_GAP,
+    regions: state,
+    regionTargets: REGION_TARGETS,
+    urgeLog: urgeLog,
+  };
+  let blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement('a');
+  a.href = url;
+  a.download = 'kubazha_h2_tasks_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ====== 刷新 ======
+function refresh() {
+  renderKPI();
+  renderRegionList();
+  renderTaskSummary();
+  renderAlerts();
+  if (currentView === 'hq') {
+    renderHQView();
+    document.getElementById('bottomPanelTitle').innerHTML = '自动预警与洞察';
+    document.getElementById('alertArea').style.display = '';
+    document.getElementById('planArea').style.display = 'none';
+  } else {
+    renderRegionView();
+    let rname = state[currentRegion].name;
+    document.getElementById('bottomPanelTitle').innerHTML = '方案规划与实施 — '+rname;
+    document.getElementById('alertArea').style.display = 'none';
+    document.getElementById('planArea').style.display = '';
+    renderPlans();
+  }
+  
+  // 更新催办记录
+  let logHtml = '';
+  if (urgeLog.length === 0) {
+    logHtml = '<div style="color:#999;font-size:12px;text-align:center;padding:12px;">暂无催办记录</div>';
+  } else {
+    logHtml = urgeLog.map(l => 
+      '<div class="ul-item"><div class="ul-time">'+l.time+'</div><div>'+l.region+'：'+l.msg+'</div></div>'
+    ).join('');
+  }
+  document.getElementById('urgeLog').innerHTML = logHtml;
+}
+
+// 初始化（懒加载：进入模块时由 initTaskDispatch() 调用）
+// refresh();
+
+// 钉钉通知服务状态检查
+async function checkDingTalkStatus() {
+  var dot = document.querySelector('.dt-dot');
+  var text = document.getElementById('dtText');
+  if (!dot) return;
+  try {
+    var res = await fetch('http://localhost:3000/api/health');
+    var data = await res.json();
+    if (data.ok) {
+      dot.className = 'dt-dot online';
+      text.textContent = '钉钉服务已连接';
+    } else { throw new Error('not ok'); }
+  } catch (e) {
+    dot.className = 'dt-dot offline';
+    text.textContent = '钉钉服务未启动';
+  }
+}
+// 钉钉状态轮询移入 initTaskDispatch()
+
+
+// ====== 整合到运营工作台：角色权限接入 ======
+// 6 个地理区域 ↔ 6 位区域主管
+var TASK_LEADER_REGION = {'田晓燕':'jzh','周滨':'bj','高欢庆':'dbxb','刘金玲':'tj','陈宝华':'gdfj','张璟':'xn'};
+// 总部视角 = 管理员权限；区域视角 = 区域负责人权限
+function taskUserCanHQ() { return !!(CURRENT_USER && CURRENT_USER.role === 'admin'); }
+function taskUserRegion() { return TASK_LEADER_REGION[(CURRENT_USER && CURRENT_USER.name) || ''] || null; }
+// 模块懒加载入口（由 refreshCurrentModule 调用）
+function initTaskDispatch() {
+  var canHQ = taskUserCanHQ();
+  if (canHQ) {
+    currentView = 'hq';
+  } else {
+    var myRc = taskUserRegion();
+    if (myRc) currentRegion = myRc;
+    currentView = 'region';
+  }
+  var btns = document.querySelectorAll('#modTaskDispatch .view-btn');
+  for (var i = 0; i < btns.length; i++) {
+    var b = btns[i];
+    b.style.display = (i === 0 && !canHQ) ? 'none' : '';
+    b.classList.toggle('active', (i === 0 && currentView === 'hq') || (i === 1 && currentView === 'region'));
+  }
+  refresh();
+  checkDingTalkStatus();
+  if (!window.__dtStatusInterval) {
+    window.__dtStatusInterval = setInterval(checkDingTalkStatus, 30000);
+  }
+}
 </script>
 
 <!-- 新增活动弹窗 -->
