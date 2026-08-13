@@ -622,7 +622,7 @@ function calcObjectiveScore(p, role) {
     var flowRatioR = regionBaseFlow > 0 ? regionActualFlow / (regionBaseFlow * 1.15) : 1;
     var flowResult = calcItemScoreByRatio(flowRatioR, 45);
     s += flowResult.score;
-    details.push({name:"①区域流量同比增长", val:(regionActualFlow/10000).toFixed(1)+"万",
+    details.push({name:"①区域流量", val:(regionActualFlow/10000).toFixed(1)+"万",
       ratio:flowResult.ratio, score:flowResult.score, max:45,
       target:"基期"+(regionBaseFlow/10000).toFixed(1)+"万×1.15"});
 
@@ -886,9 +886,9 @@ function updatePerformanceContent() {
     var objMax = objResult.details.reduce(function(s,d){return s+d.max;},0);
     var roleFields = SUBJECTIVE_FIELDS[p.role] || [];
     out += '<div class="score-card">';
-    // 卡片标题：名字 + 岗位 · 区域 + 右侧显示项目学校
+    // 卡片标题：名字 + 岗位 · 区域 + 右侧显示项目学校（区域主管不显示具体项目学校）
     var schools = p._schools || [];
-    var schoolDisplay = schools.length > 0 ? '<span style="float:right;font-size:11px;color:#666;max-width:180px;text-align:right;line-height:1.4">'+schools.join('<br>')+'</span>' : '';
+    var schoolDisplay = (p.role !== "区域主管" && schools.length > 0) ? '<span style="float:right;font-size:11px;color:#666;max-width:180px;text-align:right;line-height:1.4">'+schools.join('<br>')+'</span>' : '';
     out += '<h4>'+p.name+' <span class="sub-text">'+p.role+' · '+p.region+'</span>'+schoolDisplay+'</h4>';
 
     // 客观分明细 - 显示完成率 + 得分靠右
