@@ -200,6 +200,29 @@ tr:hover td{background:#f8fafc}
 .mkt-modal-footer{padding:12px 16px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:10px}
 .mkt-btn-secondary{padding:7px 14px;background:#f1f5f9;color:#475569;border:none;border-radius:6px;font-size:12px;cursor:pointer}
 .mkt-btn-primary{padding:7px 14px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer}
+
+/* ===== 三角色登录 ===== */
+#loginScreen{position:fixed;top:0;left:0;right:0;bottom:0;background:#eef2f7;z-index:10000;display:flex;align-items:center;justify-content:center}
+.login-card{background:#fff;border-radius:16px;padding:32px 36px;width:400px;max-width:92vw;box-shadow:0 12px 40px rgba(15,23,42,0.10);border:1px solid #e2e8f0}
+.login-card h2{font-size:20px;color:#1a1a1a;margin:0 0 4px}
+.login-sub{font-size:12px;color:#64748b;margin-bottom:22px;line-height:1.6}
+.login-field{margin-bottom:13px}
+.login-field label{display:block;font-size:12px;color:#475569;margin-bottom:5px;font-weight:500}
+.login-field select,.login-field input{width:100%;padding:8px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;box-sizing:border-box;font-family:inherit;background:#fff}
+.login-field select:focus,.login-field input:focus{outline:none;border-color:#1a73e8}
+.login-btn{width:100%;padding:10px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:14px;cursor:pointer;margin-top:4px;font-weight:500}
+.login-btn:hover{background:#1765cc}
+.login-tip{font-size:11px;color:#94a3b8;margin-top:14px;line-height:1.7;background:#f8fafc;padding:9px 11px;border-radius:6px}
+.user-badge{display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;margin-left:auto;white-space:nowrap}
+.user-badge .role-tag{padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600;color:#fff}
+.role-tag.admin{background:#7c3aed}.role-tag.leader{background:#0f6e56}.role-tag.staff{background:#185fa5}
+.logout-btn{padding:4px 10px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;font-size:11px;color:#475569;cursor:pointer}
+.logout-btn:hover{background:#f1f5f9}
+.no-perm{background:#fff;border:1px dashed #cbd5e1;border-radius:10px;padding:42px;text-align:center;color:#64748b;font-size:13px}
+.scope-note{display:inline-block;font-size:11px;color:#185fa5;background:#e6f1fb;border:1px solid #b5d4f4;border-radius:4px;padding:2px 8px;margin-left:8px}
+.role-no-perm-block{margin-top:14px}
+.mkt-readonly-val{font-weight:600;color:#334155}
+input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
 </style>
 </head>
 <body>
@@ -208,10 +231,11 @@ tr:hover td{background:#f8fafc}
 <div class="top-bar">
   <h1>📊 运营管理工作台</h1>
   <div class="month-filter" id="monthFilter"></div>
+  <div class="user-badge" id="userBadge"></div>
 </div>
 
 <!-- 主体：左导航 + 右内容 -->
-<div class="main-body">
+<div class="main-body" id="mainBody">
 
   <!-- 左侧导航 -->
   <div class="sidebar">
@@ -806,6 +830,239 @@ function statusClass(v, target) {
 function statusDot(cls) { return '<span class="status-dot status-'+cls+'"></span>'; }
 
 
+/* ===== 三角色登录与权限系统 ===== */
+var CURRENT_USER = null;
+var ACCOUNTS = null;
+var ROLE_LABEL = { admin: '管理员', leader: '区域主管', staff: '运营专员' };
+
+function ensureAccounts() {
+  if (ACCOUNTS) return ACCOUNTS;
+  ACCOUNTS = { admin: ['admin'], leader: [], staff: [] };
+  var lset = {}, sset = {};
+  var months = Object.keys(WORKBENCH_DATA.monthly_data || {});
+  months.forEach(function(m) {
+    var md = WORKBENCH_DATA.monthly_data[m];
+    Object.keys(md.regions || {}).forEach(function(k) { if (k !== '合计') lset[k] = 1; });
+    (md.people || []).forEach(function(p) { if (p.name) sset[p.name] = 1; });
+  });
+  // 营销活动 leader 可能带"驻场运营"等前缀，不作为独立账号（避免冗余），由名称模糊匹配覆盖
+  ACCOUNTS.leader = Object.keys(lset).sort();
+  ACCOUNTS.staff = Object.keys(sset).sort();
+  return ACCOUNTS;
+}
+
+// 活动负责人名称匹配（兼容"驻场运营曾巧"等带前缀写法）
+function leaderNameMatch(a, name) {
+  if (!a || !a.leader || !name) return false;
+  if (a.leader === name) return true;
+  return a.leader.indexOf(name) >= 0 || name.indexOf(a.leader) >= 0;
+}
+
+function getPwd(name, role) {
+  try { return localStorage.getItem('wb_pwd_' + role + '_' + name) || '123456'; }
+  catch (e) { return '123456'; }
+}
+
+function renderLoginAccounts() {
+  var role = $('loginRole').value;
+  var sel = $('loginAccount');
+  if (!sel) return;
+  var prev = sel.value;
+  sel.innerHTML = '';
+  ensureAccounts()[role].forEach(function(n) {
+    var opt = document.createElement('option');
+    opt.value = n; opt.textContent = n;
+    sel.appendChild(opt);
+  });
+  if (ensureAccounts()[role].indexOf(prev) >= 0) sel.value = prev;
+}
+
+function doLogin() {
+  var role = $('loginRole').value;
+  var name = $('loginAccount').value;
+  var pwd = $('loginPwd').value || '';
+  if (!name) { alert('请选择账号'); return; }
+  if (pwd !== getPwd(name, role)) { alert('密码错误（演示初始密码 123456）'); return; }
+  CURRENT_USER = { name: name, role: role };
+  try { localStorage.setItem('wb_session_v1', JSON.stringify(CURRENT_USER)); } catch (e) {}
+  enterApp();
+}
+
+function logout() {
+  CURRENT_USER = null;
+  try { localStorage.removeItem('wb_session_v1'); } catch (e) {}
+  showLogin();
+}
+
+function showLogin() {
+  var ls = $('loginScreen'); if (ls) ls.style.display = 'flex';
+  var mb = $('mainBody'); if (mb) mb.style.display = 'none';
+  var pw = $('loginPwd'); if (pw) pw.value = '';
+  renderLoginAccounts();
+}
+
+function enterApp() {
+  var ls = $('loginScreen'); if (ls) ls.style.display = 'none';
+  var mb = $('mainBody'); if (mb) mb.style.display = 'flex';
+  refreshUserBadge();
+  applyNavByRole();
+  refreshCurrentModule();
+}
+
+function refreshUserBadge() {
+  var b = $('userBadge');
+  if (!b) return;
+  if (!CURRENT_USER) { b.innerHTML = ''; return; }
+  b.innerHTML = '<span class="role-tag ' + CURRENT_USER.role + '">' + ROLE_LABEL[CURRENT_USER.role] + '</span>' +
+    '<span>' + CURRENT_USER.name + '</span>' +
+    '<button class="logout-btn" onclick="logout()">退出</button>';
+}
+
+function isAdmin() { return !!(CURRENT_USER && CURRENT_USER.role === 'admin'); }
+function isLeader() { return !!(CURRENT_USER && CURRENT_USER.role === 'leader'); }
+function isStaff() { return !!(CURRENT_USER && CURRENT_USER.role === 'staff'); }
+
+// 学校→归属区域主管（SCHOOL_PROFILES.region 映射主管名；再回退到 people 的 school 匹配）
+function belongsToLeader(leaderName, school) {
+  if (!school) return false;
+  var months = Object.keys(WORKBENCH_DATA.monthly_data || {});
+  var i, j;
+  for (i = 0; i < SCHOOL_PROFILES.length; i++) {
+    if (SCHOOL_PROFILES[i].name === school) {
+      var reg = SCHOOL_PROFILES[i].region;
+      for (j = 0; j < months.length; j++) {
+        var regs = WORKBENCH_DATA.monthly_data[months[j]].regions || {};
+        var keys = Object.keys(regs);
+        for (var k = 0; k < keys.length; k++) {
+          if (keys[k] !== '合计' && regs[keys[k]].region === reg && keys[k] === leaderName) return true;
+        }
+      }
+    }
+  }
+  for (j = 0; j < months.length; j++) {
+    var ps = WORKBENCH_DATA.monthly_data[months[j]].people || [];
+    for (var q = 0; q < ps.length; q++) {
+      var p = ps[q];
+      if (p.leader === leaderName && p.school && (p.school.indexOf(school) >= 0 || school.indexOf(p.school) >= 0)) return true;
+    }
+  }
+  return false;
+}
+
+// 人员集合作用域
+function scopePeople(list) {
+  if (!CURRENT_USER || isAdmin()) return list || [];
+  if (isLeader()) return (list || []).filter(function(p) { return p.leader === CURRENT_USER.name; });
+  return (list || []).filter(function(p) { return p.name === CURRENT_USER.name; });
+}
+// 区域对象作用域
+function scopeRegions(regions) {
+  if (!CURRENT_USER || isAdmin()) return regions || {};
+  if (isLeader()) {
+    var out = {};
+    if (regions && regions[CURRENT_USER.name]) out[CURRENT_USER.name] = regions[CURRENT_USER.name];
+    return out;
+  }
+  return {};
+}
+// 营销活动作用域
+function scopeActivities(list) {
+  if (!CURRENT_USER || isAdmin()) return list || [];
+  if (isLeader()) return (list || []).filter(function(a) {
+    return a.leader === CURRENT_USER.name || belongsToLeader(CURRENT_USER.name, a.school);
+  });
+  return (list || []).filter(function(a) { return leaderNameMatch(a, CURRENT_USER.name); });
+}
+// 可编辑活动
+function canEditActivity(a) {
+  if (!a) return false;
+  if (isAdmin()) return true;
+  if (isLeader()) return a.leader === CURRENT_USER.name || belongsToLeader(CURRENT_USER.name, a.school);
+  return leaderNameMatch(a, CURRENT_USER.name);
+}
+// 学校对象作用域（leader 仅本区域学校）
+function scopeSchools(list) {
+  if (!CURRENT_USER || isAdmin()) return list || [];
+  if (isLeader()) return (list || []).filter(function(s) { return belongsToLeader(CURRENT_USER.name, s.name || s.school); });
+  return [];
+}
+// 校园行事件作用域（CAMPUS_EVENTS 有 region 字段，模糊匹配区域名）
+function scopeEvents(list) {
+  if (!CURRENT_USER || isAdmin()) return list || [];
+  if (isLeader()) {
+    var myRegion = null;
+    var months = Object.keys(WORKBENCH_DATA.monthly_data || {});
+    for (var j = 0; j < months.length; j++) {
+      var regs = WORKBENCH_DATA.monthly_data[months[j]].regions || {};
+      if (regs[CURRENT_USER.name]) { myRegion = regs[CURRENT_USER.name].region; break; }
+    }
+    if (myRegion) return (list || []).filter(function(e) {
+      return e.region && (e.region.indexOf(myRegion) >= 0 || myRegion.indexOf(e.region) >= 0);
+    });
+    return (list || []).filter(function(e) { return belongsToLeader(CURRENT_USER.name, e.school); });
+  }
+  return [];
+}
+// 按当前角色范围汇总某月 KPI（flow 单位:元）
+function scopeTotals(month) {
+  var md = WORKBENCH_DATA.monthly_data[month];
+  if (!md) return { flow: 0, touch: 0, train: 0, campus: 0, projects: 0, user_pool: 0 };
+  if (!CURRENT_USER || isAdmin()) return WORKBENCH_DATA.totals[month] || { flow: 0, touch: 0, train: 0, campus: 0, projects: 0, user_pool: 0 };
+  var people = scopePeople(md.people || []);
+  var t = { flow: 0, touch: 0, train: 0, campus: 0, projects: 0, user_pool: 0 };
+  var seen = {};
+  people.forEach(function(p) {
+    if (p._synthetic) return;
+    t.flow += (p.actual_order || p.flow || 0);
+    t.touch += (p.touch || 0);
+    t.train += (p.train || 0);
+    t.campus += (p.campus || 0);
+    t.user_pool += (p.user_pool || 0);
+    if (p.school && !seen[p.school]) { seen[p.school] = 1; t.projects++; }
+  });
+  return t;
+}
+// 聚合记录(getPersonLevelPeople 输出)按角色范围过滤
+function scopePersonLevel(list) {
+  if (!CURRENT_USER || isAdmin()) return list || [];
+  if (isLeader()) {
+    var ln = CURRENT_USER.name;
+    return (list || []).filter(function(rec) {
+      if (rec.name === ln) return true;
+      return (rec._projects || []).some(function(p) { return (p.leader || '') === ln; });
+    });
+  }
+  return (list || []).filter(function(rec) { return rec.name === CURRENT_USER.name; });
+}
+// 学校是否在当前角色范围内
+function inSchoolScope(school) {
+  if (!CURRENT_USER || isAdmin()) return true;
+  if (isLeader()) return belongsToLeader(CURRENT_USER.name, school);
+  return false;
+}
+function noPermHtml(msg) {
+  return '<div class="no-perm">🔒 ' + (msg || '当前角色无权访问该模块') + '</div>';
+}
+function scopeNoteHtml() {
+  if (!CURRENT_USER || isAdmin()) return '';
+  return '<span class="scope-note">当前可见范围：' + ROLE_LABEL[CURRENT_USER.role] + ' · ' + CURRENT_USER.name + '</span>';
+}
+function applyNavByRole() {
+  if (!CURRENT_USER) return;
+  var hide = [];
+  if (isStaff()) hide = ['modPerformance', 'modUserPool', 'modCampus'];
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    var p = item.dataset.panel;
+    item.style.display = hide.indexOf(p) >= 0 ? 'none' : '';
+  });
+  if (isStaff() && hide.indexOf(currentModule) >= 0) {
+    currentModule = 'modOverview';
+    document.querySelectorAll('.nav-item').forEach(function(i) { i.classList.toggle('active', i.dataset.panel === currentModule); });
+    document.querySelectorAll('.module-panel').forEach(function(p) { p.classList.remove('active'); });
+    $(currentModule).classList.add('active');
+  }
+}
+
 function renderMonthBtns() {
   var container = $("monthFilter");
   var months = WORKBENCH_DATA.available_months || ["4月","5月","6月","7月"];
@@ -828,6 +1085,10 @@ var currentModule = "modOverview";
 
 function switchModule(el) {
   var panelId = el.dataset.panel;
+  if (isStaff() && ['modPerformance','modUserPool','modCampus'].indexOf(panelId) >= 0) {
+    alert('运营专员仅可查看本人项目数据，无权访问该模块');
+    return;
+  }
   document.querySelectorAll(".nav-item").forEach(function(item){ item.classList.remove("active"); });
   el.classList.add("active");
   document.querySelectorAll(".module-panel").forEach(function(p){ p.classList.remove("active"); });
@@ -851,41 +1112,55 @@ function refreshCurrentModule() {
 function initOverview() {
   var md = WORKBENCH_DATA.monthly_data[currentMonth];
   if(!md) return;
-  var total = WORKBENCH_DATA.totals[currentMonth] || {};
+  var total = scopeTotals(currentMonth);
+  var scopeNote = scopeNoteHtml();
+  var noteHtml = scopeNote ? '<span style="float:right;font-size:11px;color:#1a73e8">'+scopeNote+'</span>' : '';
+  var titleEl = document.querySelector('#modOverview .module-title');
+  if (titleEl) titleEl.innerHTML = '📈 总体概况' + noteHtml;
   
-  // KPI卡片 - 用正确的字段名: flow, touch, train, campus
+  // KPI卡片 - 用正确的字段名: flow, touch, train, campus（按角色范围汇总）
   $("overviewKPIs").innerHTML =
     '<div class="kpi-card"><div class="label">当月总流量(万)</div><div class="value">'+fmt((total.flow||0)/10000)+'</div><div class="trend up">本月累计</div></div>' +
     '<div class="kpi-card"><div class="label">有效触达</div><div class="value">'+fmt(total.touch)+'</div><div class="trend">目标: ≥'+(total.projects * 100 || 3800)+'次</div></div>' +
     '<div class="kpi-card"><div class="label">培训场次</div><div class="value">'+fmt(total.train)+'</div><div class="trend up">累计覆盖</div></div>' +
     '<div class="kpi-card"><div class="label">校园行场次</div><div class="value">'+fmt(total.campus)+'</div><div class="trend up">活跃学校</div></div>';
 
-  // 表格 - 过滤掉"合计"行
-  var regions = md.regions || {};
+  // 表格 - 按角色范围过滤区域
+  var regions = scopeRegions(md.regions || {});
   var regionNames = Object.keys(regions).filter(function(name){ return name !== '合计'; });
   var tbody = "";
   regionNames.forEach(function(name) {
     var r = regions[name];
     tbody += "<tr><td>"+r.region+"</td><td>"+name+"</td><td>"+r.projects+"</td><td>"+r.members.length+"</td><td>"+fmt(r.user_pool)+"</td><td>"+fmt(r.touch)+"</td><td>"+fmt(r.train)+"</td><td>"+fmt(r.campus)+"</td><td>"+fmt((r.flow||0)/10000)+"</td></tr>";
   });
+  if (!regionNames.length) tbody = "<tr><td colspan='9' style='text-align:center;color:#999;padding:16px'>当前角色无可查看的区域数据</td></tr>";
   $("overviewTable").innerHTML = tbody;
 
-  // 趋势图 - 各月 flow (单位:万，需除以10000)
+  // 趋势图 - 各月 flow (单位:万，按角色范围)
   var months = Object.keys(WORKBENCH_DATA.totals).sort();
-  var flowData = months.map(function(m){ return (WORKBENCH_DATA.totals[m].flow || 0) / 10000; });
+  var flowData = months.map(function(m){ return (scopeTotals(m).flow || 0) / 10000; });
   renderLineChart("overviewTrendChart", "月度总流量趋势(万)", months, flowData, "#1a73e8");
 
-  // 区域流量饼图 - 过滤"合计"，按流量降序排列，标题带月份
+  // 区域流量饼图 - 过滤"合计"，按流量降序排列
   var regionArr = regionNames.map(function(k){ return {key:k, name:regions[k].region, flow:(regions[k].flow||0)/10000}; });
   regionArr.sort(function(a,b){ return b.flow - a.flow; });
-  renderPieChart("overviewRegionChart", "各区域" + currentMonth + "流量(万)",
-    regionArr.map(function(r){ return r.name; }),
-    regionArr.map(function(r){ return r.flow; })
-  );
+  if (regionArr.length === 0) {
+    var rc = $("overviewRegionChart");
+    if (rc && rc.parentNode) rc.parentNode.innerHTML = noPermHtml('当前角色无区域汇总数据');
+  } else {
+    renderPieChart("overviewRegionChart", "各区域" + currentMonth + "流量(万)",
+      regionArr.map(function(r){ return r.name; }),
+      regionArr.map(function(r){ return r.flow; })
+    );
+  }
 }
 
 
 function initPerformance() {
+  var noteHtml = scopeNoteHtml() ? '<span style="float:right;font-size:11px;color:#1a73e8">'+scopeNoteHtml()+'</span>' : '';
+  var titleEl = document.querySelector('#modPerformance .module-title');
+  if (titleEl) titleEl.innerHTML = '🎯 绩效评估' + noteHtml;
+  if (isStaff()) { $("perfContent").innerHTML = noPermHtml('运营专员仅可查看本人项目数据，绩效评估由区域主管/管理员查看'); return; }
   var tabs = [{"id":"all","name":"全部"},{"id":"leaders","name":"区域主管"},{"id":"managers","name":"营销负责人"},{"id":"staff","name":"运营专员"},{"id":"ranking","name":"绩效排名"},{"id":"evalChart","name":"绩效评估"}];
   $("perfTabs").innerHTML = tabs.map(function(t){
     return '<button class="tab-btn'+(t.id===currentViewMode?' active':'')+'" data-tab="'+t.id+'" onclick="switchPerfTab(this.dataset.tab)">'+t.name+'</button>';
@@ -916,7 +1191,7 @@ function updatePerformanceContent() {
     return;
   }
 
-  var allPeople = getPersonLevelPeople(md);
+  var allPeople = scopePersonLevel(getPersonLevelPeople(md));
   var filtered = allPeople;
   if(currentViewMode === "leaders") filtered = allPeople.filter(function(p){ return p.role === "区域主管"; });
   else if(currentViewMode === "managers") filtered = allPeople.filter(function(p){ return p.role === "项目营销负责人"; });
@@ -1000,7 +1275,7 @@ function calcSubjectiveTotal(person, role) {
 
 // 绩效排名视图（排行榜）
 function renderRankingView(md) {
-  var people = getPersonLevelPeople(md);
+  var people = scopePersonLevel(getPersonLevelPeople(md));
 
   var scored = people.map(function(p) {
     var objResult = calcObjectiveScore(p, p.role);
@@ -1051,7 +1326,7 @@ function renderRankingView(md) {
 
 // 绩效评估图表视图
 function renderEvalChartView(md) {
-  var people = getPersonLevelPeople(md);
+  var people = scopePersonLevel(getPersonLevelPeople(md));
 
   var scored = people.map(function(p) {
     var objResult = calcObjectiveScore(p, p.role);
@@ -1117,7 +1392,10 @@ function renderEvalChartView(md) {
 function initWorkAnalysis() {
   var md = WORKBENCH_DATA.monthly_data[currentMonth];
   if(!md) return;
-  var regions = md.regions || {};
+  var noteHtml = scopeNoteHtml() ? '<span style="float:right;font-size:11px;color:#1a73e8">'+scopeNoteHtml()+'</span>' : '';
+  var titleEl = document.querySelector('#modWorkAnalysis .module-title');
+  if (titleEl) titleEl.innerHTML = '📊 运营工作分析' + noteHtml;
+  var regions = scopeRegions(md.regions || {});
   var regionEntries = Object.keys(regions).filter(function(k){ return k !== '合计'; }).map(function(k){
     return { key:k, name:regions[k].region, data:regions[k] };
   });
@@ -1125,16 +1403,23 @@ function initWorkAnalysis() {
   // 月份标签
   $("waMonthLabel").textContent = currentMonth;
 
-  // 填充区域下拉（保留第一个"全部区域"选项）
+  // 填充区域下拉（leader 仅本区域，staff 无区域选项）
   var sel = $("waRegionSelect");
-  sel.innerHTML = '<option value="all">全部区域（汇总）</option>' + regionEntries.map(function(e){
+  sel.innerHTML = '<option value="all">'+(isStaff()?'我的项目':'全部区域（汇总）')+'</option>' + regionEntries.map(function(e){
     return '<option value="'+e.key+'">'+e.name+' ('+e.key+')</option>';
   }).join("");
   sel.onchange = function(){ renderWADrill(currentMonth); };
 
-  // KPI：当月总流量增量 + 各运营动作汇总
-  var total = WORKBENCH_DATA.totals[currentMonth] || {};
-  var totalIncrement = regionEntries.reduce(function(s,e){ return s + regionFlowIncrement(currentMonth, e.key); }, 0);
+  // KPI：当月总流量增量 + 各运营动作汇总（按角色范围）
+  var total = scopeTotals(currentMonth);
+  var totalIncrement;
+  if (regionEntries.length > 0) {
+    totalIncrement = regionEntries.reduce(function(s,e){ return s + regionFlowIncrement(currentMonth, e.key); }, 0);
+  } else if (CURRENT_USER && !isAdmin()) {
+    totalIncrement = scopePeople(md.people || []).reduce(function(s,p){ return s + calcFlowIncrement(p); }, 0) / 10000;
+  } else {
+    totalIncrement = 0;
+  }
   $("waKPIs").innerHTML =
     '<div class="kpi-card"><div class="label">当月总流量增量(万)</div><div class="value">'+fmt(totalIncrement)+'</div><div class="trend up">环比上月</div></div>' +
     '<div class="kpi-card"><div class="label">用户池累计</div><div class="value">'+fmt(total.user_pool)+'</div><div class="trend">新增用户</div></div>' +
@@ -1149,46 +1434,60 @@ function initWorkAnalysis() {
   var positiveTotal = regionIncrements.reduce(function(s, r){ return s + Math.max(r.increment, 0); }, 0);
   var pieLabels = regionIncrements.map(function(r){ return r.name; });
   var pieData = regionIncrements.map(function(r){ return Math.max(r.increment, 0); });
-  renderPieChart("waRegionPieChart", currentMonth + " 各区域流量增量贡献占比", pieLabels, pieData, true);
-  if(allCharts["waRegionPieChart"]) {
-    allCharts["waRegionPieChart"].options.onClick = function(evt, items){
-      if(!items || !items.length) return;
-      var idx = items[0].index;
-      var match = regionIncrements[idx];
-      if(match){ sel.value = match.key; renderWADrill(currentMonth); }
-    };
-    allCharts["waRegionPieChart"].update();
+  if (regionEntries.length === 0) {
+    var pc = $("waRegionPieChart");
+    if (pc && pc.parentNode) pc.parentNode.innerHTML = noPermHtml('当前角色无区域汇总数据');
+    var rl = $("waRegionRankList");
+    if (rl) rl.innerHTML = '<div style="font-size:11px;color:#999;padding:8px">当前角色无区域排名数据</div>';
+  } else {
+    renderPieChart("waRegionPieChart", currentMonth + " 各区域流量增量贡献占比", pieLabels, pieData, true);
+    if(allCharts["waRegionPieChart"]) {
+      allCharts["waRegionPieChart"].options.onClick = function(evt, items){
+        if(!items || !items.length) return;
+        var idx = items[0].index;
+        var match = regionIncrements[idx];
+        if(match){ sel.value = match.key; renderWADrill(currentMonth); }
+      };
+      allCharts["waRegionPieChart"].update();
+    }
   }
 
   // 右侧：按增量金额排序的区域列表
   regionIncrements.sort(function(a, b){ return b.increment - a.increment; });
-  var rankHtml = regionIncrements.map(function(r, i){
-    var isPositive = r.increment >= 0;
-    var color = isPositive ? '#16a34a' : '#dc2626';
-    var pct = positiveTotal > 0 ? (Math.max(r.increment, 0) / positiveTotal * 100).toFixed(1) + '%' : '0%';
-    var arrow = isPositive ? '↑' : (r.increment < 0 ? '↓' : '—');
-    return '<div class="region-rank-row" data-key="'+r.key+'" style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'transparent\'">' +
-      '<div style="display:flex;align-items:center;gap:6px">' +
-        '<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:'+(i<3?'#1a73e8':'#e5e7eb')+';color:'+(i<3?'#fff':'#666')+';font-size:10px;font-weight:600">'+(i+1)+'</span>' +
-        '<span style="font-size:12px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px" title="'+r.name+'">'+r.name+'</span>' +
-      '</div>' +
-      '<div style="text-align:right">' +
-        '<div style="font-size:12px;font-weight:600;color:'+color+'">'+arrow+' '+fmt(r.increment)+'万</div>' +
-        '<div style="font-size:10px;color:#888">占比 '+pct+'</div>' +
-      '</div>' +
-    '</div>';
-  }).join("");
-  $("waRegionRankList").innerHTML = rankHtml;
-  // 绑定点击下钻
-  $("waRegionRankList").querySelectorAll(".region-rank-row").forEach(function(row){
-    row.addEventListener("click", function(){
-      sel.value = this.getAttribute("data-key");
-      renderWADrill(currentMonth);
+  if (regionEntries.length > 0) {
+    var rankHtml = regionIncrements.map(function(r, i){
+      var isPositive = r.increment >= 0;
+      var color = isPositive ? '#16a34a' : '#dc2626';
+      var pct = positiveTotal > 0 ? (Math.max(r.increment, 0) / positiveTotal * 100).toFixed(1) + '%' : '0%';
+      var arrow = isPositive ? '↑' : (r.increment < 0 ? '↓' : '—');
+      return '<div class="region-rank-row" data-key="'+r.key+'" style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'transparent\'">' +
+        '<div style="display:flex;align-items:center;gap:6px">' +
+          '<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:'+(i<3?'#1a73e8':'#e5e7eb')+';color:'+(i<3?'#fff':'#666')+';font-size:10px;font-weight:600">'+(i+1)+'</span>' +
+          '<span style="font-size:12px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px" title="'+r.name+'">'+r.name+'</span>' +
+        '</div>' +
+        '<div style="text-align:right">' +
+          '<div style="font-size:12px;font-weight:600;color:'+color+'">'+arrow+' '+fmt(r.increment)+'万</div>' +
+          '<div style="font-size:10px;color:#888">占比 '+pct+'</div>' +
+        '</div>' +
+      '</div>';
+    }).join("");
+    $("waRegionRankList").innerHTML = rankHtml;
+    // 绑定点击下钻
+    $("waRegionRankList").querySelectorAll(".region-rank-row").forEach(function(row){
+      row.addEventListener("click", function(){
+        sel.value = this.getAttribute("data-key");
+        renderWADrill(currentMonth);
+      });
     });
-  });
+  }
 
   // 图2：运营动作 vs 流量增量(万) 关系图
-  renderWorkIncrementChart("waIncrementChart", currentMonth + " 运营动作 vs 流量增量(万)", regionEntries);
+  if (regionEntries.length === 0) {
+    var ic = $("waIncrementChart");
+    if (ic && ic.parentNode) ic.parentNode.innerHTML = noPermHtml('当前角色无区域对比数据');
+  } else {
+    renderWorkIncrementChart("waIncrementChart", currentMonth + " 运营动作 vs 流量增量(万)", regionEntries);
+  }
 
   // 区域下钻表
   renderWADrill(currentMonth);
@@ -1256,7 +1555,7 @@ function renderWADrill(month) {
   if(!md) return;
   var sel = $("waRegionSelect");
   var scope = sel ? sel.value : "all";
-  var people = (md.people||[]).filter(function(p){ return !p._synthetic; });
+  var people = scopePeople(md.people || []).filter(function(p){ return !p._synthetic; });
   if(scope !== "all") {
     people = people.filter(function(p){ return p.leader === scope; });
   }
@@ -1264,8 +1563,11 @@ function renderWADrill(month) {
   people.sort(function(a,b){ return calcFlowIncrement(b) - calcFlowIncrement(a); });
 
   var titleEl = $("waDrillTitle");
-  if(scope === "all") titleEl.textContent = "全部区域（"+people.length+"个项目）";
-  else {
+  if(scope === "all") {
+    if (isStaff()) titleEl.textContent = "我的项目（"+people.length+"个）";
+    else if (isLeader()) titleEl.textContent = "本区域项目（"+people.length+"个）";
+    else titleEl.textContent = "全部区域（"+people.length+"个项目）";
+  } else {
     var reg = md.regions[scope];
     titleEl.textContent = (reg?reg.region:scope) + " （"+people.length+"个项目）";
   }
@@ -1294,6 +1596,22 @@ function calcAvgSettle(people) {
 
 // ========== 用户池CRM ==========
 function initUserPool() {
+  var noteHtml = scopeNoteHtml() ? '<span style="float:right;font-size:11px;color:#1a73e8">'+scopeNoteHtml()+'</span>' : '';
+  var titleEl = document.querySelector('#modUserPool .module-title');
+  if (titleEl) titleEl.innerHTML = '👥 用户池CRM' + noteHtml;
+  var poolRoot = $("userPoolTabs").parentNode;
+  var oldBlock = poolRoot.querySelector('.role-no-perm-block');
+  if (oldBlock) oldBlock.remove();
+  if (isStaff()) {
+    document.querySelectorAll('#userPoolTabs, #modUserPool .upool-tab-content').forEach(function(el){ el.style.display = 'none'; });
+    var np = document.createElement('div');
+    np.className = 'role-no-perm-block';
+    np.innerHTML = noPermHtml('运营专员仅可查看本人项目数据，用户池由区域主管/管理员查看');
+    poolRoot.appendChild(np);
+    return;
+  }
+  document.querySelectorAll('#userPoolTabs, #modUserPool .upool-tab-content').forEach(function(el){ el.style.display = ''; });
+
   // 绑定Tab切换
   document.querySelectorAll("#userPoolTabs .tab-btn").forEach(function(btn){
     btn.onclick = function(){
@@ -1306,16 +1624,21 @@ function initUserPool() {
     };
   });
 
-  // 填充学校筛选下拉框
+  // 填充学校筛选下拉框（按角色范围）
   var ss = $("upSchoolSelect");
   var vsf = $("visitSchoolFilter");
-  SCHOOL_PROFILES.forEach(function(s){
+  ss.innerHTML = "<option value='all'>全部学校</option>";
+  vsf.innerHTML = "<option value='all'>全部学校</option>";
+  scopeSchools(SCHOOL_PROFILES).forEach(function(s){
     ss.innerHTML += "<option value='"+s.name+"'>"+s.name+"</option>";
     vsf.innerHTML += "<option value='"+s.name+"'>"+s.name+"</option>";
   });
-  // 走访人筛选
+  // 走访人筛选（按范围内的走访记录）
   var vpf = $("visitPersonFilter");
-  [...new Set(VISIT_RECORDS.map(function(v){return v.person;}))].forEach(function(p){
+  var vpSet = {};
+  VISIT_RECORDS.forEach(function(v){ if (inSchoolScope(v.school)) vpSet[v.person] = 1; });
+  vpf.innerHTML = "<option value='all'>全部走访人</option>";
+  Object.keys(vpSet).forEach(function(p){
     vpf.innerHTML += "<option value='"+p+"'>"+p+"</option>";
   });
 
@@ -1337,6 +1660,7 @@ function renderUpSchoolList() {
   var levelFilter = $("upLevelFilter").value;
 
   var filtered = USER_POOL_CRM.filter(function(u){
+    if(!inSchoolScope(u.school)) return false;
     if(schoolFilter!=="all" && u.school!==schoolFilter) return false;
     if(levelFilter!=="all" && u.level!==levelFilter) return false;
     return true;
@@ -1361,28 +1685,30 @@ function renderUpSchoolList() {
 
 // --- Tab2: 等级分析 ---
 function renderUpAnalysis() {
-  var totalUsers = USER_POOL_CRM.length;
-  var sCount = USER_POOL_CRM.filter(function(u){return u.level==="S";}).length;
-  var aCount = USER_POOL_CRM.filter(function(u){return u.level==="A";}).length;
-  var bCount = USER_POOL_CRM.filter(function(u){return u.level==="B";}).length;
-  var cCount = USER_POOL_CRM.filter(function(u){return u.level==="C";}).length;
-  var sOrder = USER_POOL_CRM.filter(function(u){return u.level==="S";}).reduce(function(s,u){return s+u.order;},0);
-  var aOrder = USER_POOL_CRM.filter(function(u){return u.level==="A";}).reduce(function(s,u){return s+u.order;},0);
-  var bOrder = USER_POOL_CRM.filter(function(u){return u.level==="B";}).reduce(function(s,u){return s+u.order;},0);
-  var cOrder = USER_POOL_CRM.filter(function(u){return u.level==="C";}).reduce(function(s,u){return s+u.order;},0);
+  var scoped = USER_POOL_CRM.filter(function(u){ return inSchoolScope(u.school); });
+  var totalUsers = scoped.length;
+  var sCount = scoped.filter(function(u){return u.level==="S";}).length;
+  var aCount = scoped.filter(function(u){return u.level==="A";}).length;
+  var bCount = scoped.filter(function(u){return u.level==="B";}).length;
+  var cCount = scoped.filter(function(u){return u.level==="C";}).length;
+  var sOrder = scoped.filter(function(u){return u.level==="S";}).reduce(function(s,u){return s+u.order;},0);
+  var aOrder = scoped.filter(function(u){return u.level==="A";}).reduce(function(s,u){return s+u.order;},0);
+  var bOrder = scoped.filter(function(u){return u.level==="B";}).reduce(function(s,u){return s+u.order;},0);
+  var cOrder = scoped.filter(function(u){return u.level==="C";}).reduce(function(s,u){return s+u.order;},0);
+  var schoolCount = new Set(scoped.map(function(u){return u.school;})).size;
 
   $("upAnaKPIs").innerHTML =
-    '<div class="kpi-card"><div class="label">总用户数</div><div class="value">'+totalUsers+'</div><div class="trend">21所学校</div></div>' +
-    '<div class="kpi-card"><div class="label">⭐ S级高价值</div><div class="value" style="color:#ef4444">'+sCount+'</div><div class="trend">占比'+(sCount/totalUsers*100).toFixed(1)+'%</div></div>' +
-    '<div class="kpi-card"><div class="label">人均下单</div><div class="value">'+fmt(USER_POOL_CRM.reduce(function(s,u){return s+u.order;},0)/totalUsers)+'万</div><div class="trend">元</div></div>' +
-    '<div class="kpi-card"><div class="label">总下单金额</div><div class="value">'+fmt(USER_POOL_CRM.reduce(function(s,u){return s+u.order;},0))+'万</div><div class="trend up">累计</div></div>';
+    '<div class="kpi-card"><div class="label">总用户数</div><div class="value">'+totalUsers+'</div><div class="trend">'+schoolCount+'所学校</div></div>' +
+    '<div class="kpi-card"><div class="label">⭐ S级高价值</div><div class="value" style="color:#ef4444">'+sCount+'</div><div class="trend">占比'+(totalUsers>0?(sCount/totalUsers*100).toFixed(1):0)+'%</div></div>' +
+    '<div class="kpi-card"><div class="label">人均下单</div><div class="value">'+fmt(totalUsers>0?scoped.reduce(function(s,u){return s+u.order;},0)/totalUsers:0)+'万</div><div class="trend">元</div></div>' +
+    '<div class="kpi-card"><div class="label">总下单金额</div><div class="value">'+fmt(scoped.reduce(function(s,u){return s+u.order;},0))+'万</div><div class="trend up">累计</div></div>';
 
   // 等级分布饼图
   renderPieChart("upLevelPieChart","用户等级分布",["S级 高价值("+sCount+")","A级 优质("+aCount+")","B级 潜力("+bCount+")","C级 普通("+cCount+")"],[sCount,aCount,bCount,cCount]);
 
   // 各学校用户量柱状图
   var schoolUserCounts = {};
-  USER_POOL_CRM.forEach(function(u){ schoolUserCounts[u.school] = (schoolUserCounts[u.school]||0)+1; });
+  scoped.forEach(function(u){ schoolUserCounts[u.school] = (schoolUserCounts[u.school]||0)+1; });
   var scNames = Object.keys(schoolUserCounts).sort(function(a,b){return schoolUserCounts[b]-schoolUserCounts[a];});
   if(allCharts.upSchoolBarChart) allCharts.upSchoolBarChart.destroy();
   allCharts.upSchoolBarChart = new Chart($("upSchoolBarChart"),{
@@ -1396,15 +1722,15 @@ function renderUpAnalysis() {
 
   // 等级统计表
   $("upLevelTable").innerHTML =
-    "<tr><td><span style='color:#ef4444;font-weight:700'>● S</span> 高价值</td><td>"+sCount+"</td><td>"+(sCount/totalUsers*100).toFixed(1)+"%</td><td>"+(sCount?sOrder/sCount:0).toFixed(1)+"</td><td>核心决策者/大额采购/长期合作</td></tr>" +
-    "<tr><td><span style='color:#f59e0b;font-weight:700'>● A</span> 优质</td><td>"+aCount+"</td><td>"+(aCount/totalUsers*100).toFixed(1)+"%</td><td>"+(aCount?aOrder/aCount:0).toFixed(1)+"</td><td>有明确需求/中等采购/活跃互动</td></tr>" +
-    "<tr><td><span style='color:#3b82f6;font-weight:700'>● B</span> 潜力</td><td>"+bCount+"</td><td>"+(bCount/totalUsers*100).toFixed(1)+"%</td><td>"+(bCount?bOrder/bCount:0).toFixed(1)+"</td><td>初步触达/小额试单/待培育</td></tr>" +
-    "<tr><td><span style='color:#6b7280;font-weight:700'>● C</span> 普通</td><td>"+cCount+"</td><td>"+(cCount/totalUsers*100).toFixed(1)+"%</td><td>"+(cCount?cOrder/cCount:0).toFixed(1)+"</td><td>仅登记信息/未转化/需激活</td></tr>";
+    "<tr><td><span style='color:#ef4444;font-weight:700'>● S</span> 高价值</td><td>"+sCount+"</td><td>"+(totalUsers>0?(sCount/totalUsers*100).toFixed(1):0)+"%</td><td>"+(sCount?sOrder/sCount:0).toFixed(1)+"</td><td>核心决策者/大额采购/长期合作</td></tr>" +
+    "<tr><td><span style='color:#f59e0b;font-weight:700'>● A</span> 优质</td><td>"+aCount+"</td><td>"+(totalUsers>0?(aCount/totalUsers*100).toFixed(1):0)+"%</td><td>"+(aCount?aOrder/aCount:0).toFixed(1)+"</td><td>有明确需求/中等采购/活跃互动</td></tr>" +
+    "<tr><td><span style='color:#3b82f6;font-weight:700'>● B</span> 潜力</td><td>"+bCount+"</td><td>"+(totalUsers>0?(bCount/totalUsers*100).toFixed(1):0)+"%</td><td>"+(bCount?bOrder/bCount:0).toFixed(1)+"</td><td>初步触达/小额试单/待培育</td></tr>" +
+    "<tr><td><span style='color:#6b7280;font-weight:700'>● C</span> 普通</td><td>"+cCount+"</td><td>"+(totalUsers>0?(cCount/totalUsers*100).toFixed(1):0)+"%</td><td>"+(cCount?cOrder/cCount:0).toFixed(1)+"</td><td>仅登记信息/未转化/需激活</td></tr>";
 }
 
 // --- Tab3: S级重点关注 ---
 function renderUpVIP() {
-  var vipUsers = USER_POOL_CRM.filter(function(u){return u.level==="S";}).sort(function(a,b){return b.order-a.order;});
+  var vipUsers = USER_POOL_CRM.filter(function(u){ return u.level==="S" && inSchoolScope(u.school); }).sort(function(a,b){return b.order-a.order;});
 
   $("upVipKPIs").innerHTML =
     '<div class="kpi-card"><div class="label">S级用户总数</div><div class="value" style="color:#ef4444">'+vipUsers.length+'</div><div class="trend">高价值客户</div></div>' +
@@ -1439,6 +1765,7 @@ function renderUpVisits() {
   var pf = $("visitPersonFilter").value;
 
   var filtered = VISIT_RECORDS.filter(function(v){
+    if(!inSchoolScope(v.school)) return false;
     if(sf!=="all" && v.school!==sf) return false;
     if(pf!=="all" && v.person!==pf) return false;
     return true;
@@ -1474,6 +1801,9 @@ function renderUpVisits() {
 
 
 function initMarketing() {
+  var noteHtml = scopeNoteHtml() ? '<span style="float:right;font-size:11px;color:#1a73e8">'+scopeNoteHtml()+'</span>' : '';
+  var titleEl = document.querySelector('#modMarketing .module-title');
+  if (titleEl) titleEl.innerHTML = '📢 营销活动管理' + noteHtml;
   initMarketingTabs();
   initMarketingFilters();
   loadMarketingData();
@@ -1502,8 +1832,8 @@ function initMarketingTabs() {
 }
 
 function initMarketingFilters() {
-  // 填充学校筛选器（重建选项，保留当前选中值）
-  var schools = Array.from(new Set(MARKETING_ACTIVITIES.map(function(a){ return a.school; }))).sort();
+  // 填充学校筛选器（按角色范围，保留当前选中值）
+  var schools = Array.from(new Set(scopeActivities(MARKETING_ACTIVITIES).map(function(a){ return a.school; }))).sort();
   var schoolSel = $('planSchoolFilter');
   if(schoolSel) {
     var cur = schoolSel.value;
@@ -1529,7 +1859,7 @@ function initMarketingFilters() {
 function getFilteredActivities(monthEl, statusEl) {
   var month = monthEl ? $(monthEl).value : 'all';
   var status = statusEl ? $(statusEl).value : 'all';
-  return MARKETING_ACTIVITIES.filter(function(a){
+  return scopeActivities(MARKETING_ACTIVITIES).filter(function(a){
     return (month === 'all' || a.month === month) && (status === 'all' || a.status === status);
   });
 }
@@ -1638,7 +1968,7 @@ function loadMarketingData() {
 
 function updateActualExpense(id, val) {
   var a = findMarketingActivity(id);
-  if (!a) return;
+  if (!a || !canEditActivity(a)) return;
   var n = parseFloat(val);
   a.actual_expense = isNaN(n) ? 0 : n;
   recalcActivityProgress(a);
@@ -1650,7 +1980,7 @@ function updateActualExpense(id, val) {
 
 function updateActualOutput(id, field, val) {
   var a = findMarketingActivity(id);
-  if (!a || !a.actual_output) return;
+  if (!a || !canEditActivity(a) || !a.actual_output) return;
   if (field === 'order_no') a.actual_output.order_no = val;
   else {
     var n = parseFloat(val);
@@ -1662,7 +1992,7 @@ function updateActualOutput(id, field, val) {
 
 function updateTaskContent(id, idx, val) {
   var a = findMarketingActivity(id);
-  if (!a || !a.tasks[idx]) return;
+  if (!a || !canEditActivity(a) || !a.tasks[idx]) return;
   a.tasks[idx].content = val;
   a.tasks[idx].matter = val;
   saveMarketingData();
@@ -1670,14 +2000,14 @@ function updateTaskContent(id, idx, val) {
 
 function updateTaskDate(id, idx, val) {
   var a = findMarketingActivity(id);
-  if (!a || !a.tasks[idx]) return;
+  if (!a || !canEditActivity(a) || !a.tasks[idx]) return;
   a.tasks[idx].completeDate = val;
   saveMarketingData();
 }
 
 function toggleTaskComplete(id, idx, checked) {
   var a = findMarketingActivity(id);
-  if (!a || !a.tasks[idx]) return;
+  if (!a || !canEditActivity(a) || !a.tasks[idx]) return;
   var t = a.tasks[idx];
   if (checked && !t.completeDate) {
     alert('必须填写完成日期才能表明已完成');
@@ -1722,6 +2052,14 @@ function openAddActivityModal() {
   $('addActivityModal').classList.add('active');
   var month = $('planMonthFilter') && $('planMonthFilter').value !== 'all' ? $('planMonthFilter').value : '8月';
   $('naMonth').value = month;
+  // 非管理员：负责人锁定为当前登录人（只能新增自己/本区域的活动）
+  if (CURRENT_USER && !isAdmin()) {
+    $('naLeader').value = CURRENT_USER.name;
+    $('naLeader').readOnly = true;
+  } else {
+    $('naLeader').value = '';
+    $('naLeader').readOnly = false;
+  }
 }
 
 function closeAddActivityModal() {
@@ -1739,6 +2077,14 @@ function submitAddActivity() {
   if (!theme || !leader || !school || !goal || !expected) {
     alert('请填写活动名称、负责人、活动学校、目标、预计产出（学院选填）');
     return;
+  }
+  // 权限：非管理员只能新增自己/本区域的活动（leader 强制本人，学校须在本区域）
+  if (CURRENT_USER && !isAdmin()) {
+    leader = CURRENT_USER.name;
+    if (!belongsToLeader(CURRENT_USER.name, school)) {
+      alert('您只能新增本' + (isLeader() ? '区域' : '人') + '负责范围内的活动，请选择范围内的学校');
+      return;
+    }
   }
   var maxId = MARKETING_ACTIVITIES.reduce(function(m, a) { return Math.max(m, a.id || 0); }, 0);
   var tasks = getDefaultActivityTasks();
@@ -1778,16 +2124,25 @@ function renderMarketingPlan() {
   var month = $('planMonthFilter').value;
   var school = $('planSchoolFilter').value;
   var status = $('planStatusFilter').value;
-  var list = MARKETING_ACTIVITIES.filter(function(a){
+  var list = scopeActivities(MARKETING_ACTIVITIES).filter(function(a){
     return (month === 'all' || a.month === month) && (school === 'all' || a.school === school) && (status === 'all' || a.status === status);
   });
 
   var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:10px">';
   list.forEach(function(a){
+    var editable = canEditActivity(a);
     var barClass = a.progress >= 0.8 ? '' : (a.progress >= 0.5 ? 'warn' : 'bad');
     var statusClass = a.status === '已完成' ? 'mkt-status-done' : (a.status === '进行中' ? 'mkt-status-ongoing' : 'mkt-status-pending');
     var out = a.actual_output || {};
     var execRate = a.budget > 0 ? (a.actual_expense / a.budget * 100) : 0;
+    var outInput = function(field, val, suffix){
+      if (editable) return '<input type="number" class="mkt-input-number" value="'+(val||0)+'" onchange="updateActualOutput('+a.id+',\''+field+'\',this.value)"> '+suffix;
+      return '<span class="mkt-readonly-val">'+(val||0)+'</span> '+suffix;
+    };
+    var outText = function(field, val, suffix){
+      if (editable) return '<input type="text" class="mkt-input-text" value="'+esc(val||'')+'" onchange="updateActualOutput('+a.id+',\''+field+'\',this.value)"> '+suffix;
+      return '<span class="mkt-readonly-val">'+esc(val||'')+'</span> '+suffix;
+    };
     html += '<div class="mkt-card">' +
       '<div class="mkt-card-header"><div class="mkt-card-title">'+esc(a.theme)+'</div><span class="mkt-card-school">'+esc(a.school)+' '+a.month+'</span></div>' +
       '<div class="mkt-card-meta"><span>👤 '+esc(a.leader)+'</span><span>🎯 '+esc(a.participants)+'</span><span class="mkt-status-badge '+statusClass+'">'+a.status+'</span></div>' +
@@ -1797,16 +2152,16 @@ function renderMarketingPlan() {
       '<div class="mkt-editable-section">' +
         '<div class="mkt-editable-section-title">📊 实际产出</div>' +
         '<div class="mkt-output-grid">' +
-          '<div class="mkt-output-row">活动触达 <input type="number" class="mkt-input-number" value="'+(out.touch||0)+'" onchange="updateActualOutput('+a.id+',\'touch\',this.value)"> 人</div>' +
-          '<div class="mkt-output-row">有效问卷 <input type="number" class="mkt-input-number" value="'+(out.valid_survey||0)+'" onchange="updateActualOutput('+a.id+',\'valid_survey\',this.value)"> 份</div>' +
-          '<div class="mkt-output-row">新增平台活跃用户 <input type="number" class="mkt-input-number" value="'+(out.active_users||0)+'" onchange="updateActualOutput('+a.id+',\'active_users\',this.value)"> 人</div>' +
-          '<div class="mkt-output-row">建立“平台采购”用户池 <input type="number" class="mkt-input-number" value="'+(out.user_pool||0)+'" onchange="updateActualOutput('+a.id+',\'user_pool\',this.value)"> 用户</div>' +
+          '<div class="mkt-output-row">活动触达 '+outInput('touch', out.touch, '人')+'</div>' +
+          '<div class="mkt-output-row">有效问卷 '+outInput('valid_survey', out.valid_survey, '份')+'</div>' +
+          '<div class="mkt-output-row">新增平台活跃用户 '+outInput('active_users', out.active_users, '人')+'</div>' +
+          '<div class="mkt-output-row">建立“平台采购”用户池 '+outInput('user_pool', out.user_pool, '用户')+'</div>' +
         '</div>' +
-        '<div class="mkt-output-row">提升本月线上流量至 <input type="number" class="mkt-input-number" value="'+(out.online_flow_wan||0)+'" onchange="updateActualOutput('+a.id+',\'online_flow_wan\',this.value)"> 万（提供订单号：<input type="text" class="mkt-input-text" value="'+esc(out.order_no||'')+'" onchange="updateActualOutput('+a.id+',\'order_no\',this.value)">）</div>' +
+        '<div class="mkt-output-row">提升本月线上流量至 '+outInput('online_flow_wan', out.online_flow_wan, '万')+'（提供订单号：'+outText('order_no', out.order_no, '')+'）</div>' +
       '</div>' +
       '<div class="mkt-budget-box">' +
         '<div class="mkt-budget-item"><span class="label">预算:</span><span class="value">¥'+fmt(a.budget)+'</span><span class="mkt-budget-locked">🔒 已提交</span></div>' +
-        '<div class="mkt-budget-item mkt-budget-actual"><span class="label">实际花销:</span>¥<input type="number" value="'+(a.actual_expense||0)+'" onchange="updateActualExpense('+a.id+',this.value)"></div>' +
+        '<div class="mkt-budget-item mkt-budget-actual"><span class="label">实际花销:</span>' + (editable ? '¥<input type="number" value="'+(a.actual_expense||0)+'" onchange="updateActualExpense('+a.id+',this.value)">' : '¥<span class="mkt-readonly-val">'+fmt(a.actual_expense)+'</span>') + '</div>' +
         '<div class="mkt-budget-item"><span class="label">执行率:</span><span class="value">'+fmt(execRate)+'%</span></div>' +
       '</div>' +
       '<div class="mkt-task-list">';
@@ -1814,17 +2169,21 @@ function renderMarketingPlan() {
       if(!t.stage && !t.matter && !t.content) return;
       var rowClass = t.completed ? 'mkt-task-item mkt-task-completed' : 'mkt-task-item';
       var showStage = t.stage || '其他';
-      // 活动策划/系统功能/供应商招商及要求/活动筹备/走访准备/活动宣传 及其子任务内容均可编辑
-      var isEditableStage = true;
+      // 活动策划/系统功能/供应商招商及要求/活动筹备/走访准备/活动宣传 及其子任务内容均可编辑（权限内）
       var contentHtml;
-      if (isEditableStage) {
+      if (editable) {
         contentHtml = '<div class="mkt-task-edit"><textarea onchange="updateTaskContent('+a.id+','+idx+',this.value)">'+esc(t.content || '')+'</textarea></div>';
       } else {
         contentHtml = '<span class="mkt-task-matter">'+esc(t.content || '')+'</span>';
       }
-      html += '<div class="'+rowClass+'"><span class="mkt-task-stage">'+(t.stage||'-')+'</span>'+contentHtml+'<span class="mkt-task-owner">'+(t.owner||'')+'</span>' +
-        '<span class="mkt-task-meta"><input type="date" class="mkt-task-date" value="'+(t.completeDate||'')+'" onchange="updateTaskDate('+a.id+','+idx+',this.value)">' +
-        '<label class="mkt-task-done-wrap"><input type="checkbox" '+(t.completed?'checked':'')+' onchange="toggleTaskComplete('+a.id+','+idx+',this.checked)">已完成</label></span></div>';
+      var metaHtml;
+      if (editable) {
+        metaHtml = '<span class="mkt-task-meta"><input type="date" class="mkt-task-date" value="'+(t.completeDate||'')+'" onchange="updateTaskDate('+a.id+','+idx+',this.value)">' +
+          '<label class="mkt-task-done-wrap"><input type="checkbox" '+(t.completed?'checked':'')+' onchange="toggleTaskComplete('+a.id+','+idx+',this.checked)">已完成</label></span>';
+      } else {
+        metaHtml = '<span class="mkt-task-meta" style="font-size:10px;color:'+(t.completed?'#16a34a':'#999')+'">'+(t.completed ? ('✅ '+(t.completeDate||'已完成')) : '· '+ (t.status||'未开始'))+'</span>';
+      }
+      html += '<div class="'+rowClass+'"><span class="mkt-task-stage">'+(t.stage||'-')+'</span>'+contentHtml+'<span class="mkt-task-owner">'+(t.owner||'')+'</span>' + metaHtml + '</div>';
     });
     html += '</div></div>';
   });
@@ -1833,7 +2192,7 @@ function renderMarketingPlan() {
 }
 
 function renderMarketingBudget() {
-  var list = MARKETING_ACTIVITIES.filter(function(a){ return a.budget > 0 || a.actual_expense > 0; });
+  var list = scopeActivities(MARKETING_ACTIVITIES).filter(function(a){ return a.budget > 0 || a.actual_expense > 0; });
   var totalBudget = list.reduce(function(s,a){ return s + (a.budget||0); }, 0);
   var totalActual = list.reduce(function(s,a){ return s + (a.actual_expense||0); }, 0);
   var overBudget = list.filter(function(a){ return a.actual_expense > a.budget && a.budget > 0; }).length;
@@ -1873,7 +2232,7 @@ function renderMarketingBudget() {
 }
 
 function renderMarketingAssist() {
-  var list = MARKETING_ASSIST;
+  var list = MARKETING_ASSIST.filter(function(a){ return inSchoolScope(a.school); });
   var needCount = list.filter(function(a){
     return (a.supplier && a.supplier !== '无') || (a.customer_service && a.customer_service !== '无') || (a.product && a.product !== '无') || (a.marketing && a.marketing !== '无');
   }).length;
@@ -2051,6 +2410,21 @@ var currentCampusTab = "campusCalendar";
 var currentUpTab = "upSchools";
 
 function initCampus() {
+  var noteHtml = scopeNoteHtml() ? '<span style="float:right;font-size:11px;color:#1a73e8">'+scopeNoteHtml()+'</span>' : '';
+  var titleEl = document.querySelector('#modCampus .module-title');
+  if (titleEl) titleEl.innerHTML = '🏫 校园行管理中心' + noteHtml;
+  var root = $("campusTabs").parentNode;
+  var oldBlock = root.querySelector('.role-no-perm-block');
+  if (oldBlock) oldBlock.remove();
+  if (isStaff()) {
+    document.querySelectorAll('#campusTabs, #modCampus .campus-tab-content').forEach(function(el){ el.style.display = 'none'; });
+    var np = document.createElement('div');
+    np.className = 'role-no-perm-block';
+    np.innerHTML = noPermHtml('运营专员仅可查看本人项目数据，校园行管理由区域主管/管理员查看');
+    root.appendChild(np);
+    return;
+  }
+  document.querySelectorAll('#campusTabs, #modCampus .campus-tab-content').forEach(function(el){ el.style.display = ''; });
   // 绑定Tab切换
   document.querySelectorAll("#campusTabs .tab-btn").forEach(function(btn){
     btn.onclick = function(){
@@ -2076,20 +2450,21 @@ function renderCampusSubTab() {
 
 // --- 日历视图 ---
 function renderCalView() {
-  var doneCount = CAMPUS_EVENTS.filter(function(e){return e.status==="done";}).length;
-  var pendingCount = CAMPUS_EVENTS.filter(function(e){return e.status==="pending";}).length;
+  var scopedEvents = scopeEvents(CAMPUS_EVENTS);
+  var doneCount = scopedEvents.filter(function(e){return e.status==="done";}).length;
+  var pendingCount = scopedEvents.filter(function(e){return e.status==="pending";}).length;
   $("campusCalKPIs").innerHTML =
-    '<div class="kpi-card"><div class="label">总场次</div><div class="value">'+CAMPUS_EVENTS.length+'</div><div class="trend">历史+计划</div></div>' +
-    '<div class="kpi-card"><div class="label">✅ 已实施</div><div class="value">'+doneCount+'</div><div class="trend up">完成率'+(doneCount/(doneCount+pendingCount)*100).toFixed(0)+'%</div></div>' +
+    '<div class="kpi-card"><div class="label">总场次</div><div class="value">'+scopedEvents.length+'</div><div class="trend">历史+计划</div></div>' +
+    '<div class="kpi-card"><div class="label">✅ 已实施</div><div class="value">'+doneCount+'</div><div class="trend up">完成率'+(doneCount+pendingCount>0?(doneCount/(doneCount+pendingCount)*100).toFixed(0):0)+'%</div></div>' +
     '<div class="kpi-card"><div class="label">⏳ 计划中</div><div class="value">'+pendingCount+'</div><div class="trend">下半年排期</div></div>' +
-    '<div class="kpi-card"><div class="label">覆盖学校</div><div class="value">'+new Set(CAMPUS_EVENTS.map(function(e){return e.school;})).size+'</div><div class="trend">所</div></div>';
+    '<div class="kpi-card"><div class="label">覆盖学校</div><div class="value">'+new Set(scopedEvents.map(function(e){return e.school;})).size+'</div><div class="trend">所</div></div>';
 
   renderCalTable();
 
   // 月度趋势图
   var months = ["4月","5月","6月","7月","8月","9月","10月","11月"];
-  var doneByMonth = months.map(function(m){ return CAMPUS_EVENTS.filter(function(e){return e.month===m && e.status==="done";}).length; });
-  var pendingByMonth = months.map(function(m){ return CAMPUS_EVENTS.filter(function(e){return e.month===m && e.status==="pending";}).length; });
+  var doneByMonth = months.map(function(m){ return scopedEvents.filter(function(e){return e.month===m && e.status==="done";}).length; });
+  var pendingByMonth = months.map(function(m){ return scopedEvents.filter(function(e){return e.month===m && e.status==="pending";}).length; });
   if(allCharts.campusCalChart) allCharts.campusCalChart.destroy();
   allCharts.campusCalChart = new Chart($("campusCalChart"),{
     type:'bar',
@@ -2105,7 +2480,7 @@ function renderCalView() {
 
   // 模式分布饼图
   var modeCounts = {};
-  CAMPUS_EVENTS.filter(function(e){return e.status==="done";}).forEach(function(e){ modeCounts[e.mode] = (modeCounts[e.mode]||0)+1; });
+  scopedEvents.filter(function(e){return e.status==="done";}).forEach(function(e){ modeCounts[e.mode] = (modeCounts[e.mode]||0)+1; });
   var modeLabels = Object.keys(modeCounts);
   renderPieChart("campusModeDistChart","活动模式分布",modeLabels,modeLabels.map(function(k){return modeCounts[k];}));
 
@@ -2117,7 +2492,7 @@ function renderCalView() {
 function renderCalTable() {
   var mf = $("calMonthFilter").value;
   var sf = $("calStatusFilter").value;
-  var filtered = CAMPUS_EVENTS.filter(function(e){
+  var filtered = scopeEvents(CAMPUS_EVENTS).filter(function(e){
     if(mf!=="all" && e.month!==mf) return false;
     if(sf!=="all" && e.status!==sf) return false;
     return true;
@@ -2164,7 +2539,8 @@ function closeModeDetail() {
 
 // --- 单场效果追踪 ---
 function renderTracking() {
-  var doneEvents = CAMPUS_EVENTS.filter(function(e){return e.status==="done";});
+  var scopedEvents = scopeEvents(CAMPUS_EVENTS);
+  var doneEvents = scopedEvents.filter(function(e){return e.status==="done";});
   var totalTouch = doneEvents.reduce(function(s,e){return s+(e.touch||0);},0);
   var totalUserNew = doneEvents.reduce(function(s,e){return s+(e.userNew||0);},0);
   var totalOrderUsers = doneEvents.reduce(function(s,e){return s+(e.orderUsers||0);},0);
@@ -2185,9 +2561,9 @@ function renderTracking() {
 
   // 趋势图 - 按月份汇总（转化率 = 下单人数/触达数）
   var months = ["4月","5月","6月","7月"];
-  var touchByMonth = months.map(function(m){ return CAMPUS_EVENTS.filter(function(e){return e.month===m&&e.status==="done";}).reduce(function(s,e){return s+(e.touch||0);},0); });
+  var touchByMonth = months.map(function(m){ return scopedEvents.filter(function(e){return e.month===m&&e.status==="done";}).reduce(function(s,e){return s+(e.touch||0);},0); });
   var convertByMonth = months.map(function(m){
-    var evts = CAMPUS_EVENTS.filter(function(e){return e.month===m&&e.status==="done";});
+    var evts = scopedEvents.filter(function(e){return e.month===m&&e.status==="done";});
     var t = evts.reduce(function(s,e){return s+(e.touch||0);},0);
     var o = evts.reduce(function(s,e){return s+(e.orderUsers||0);},0);
     return t > 0 ? +(o/t*100).toFixed(1) : 0;
@@ -2227,11 +2603,12 @@ function renderTracking() {
 
 // --- 学校画像 ---
 function renderSchoolProfiles() {
+  var scopedSchools = scopeSchools(SCHOOL_PROFILES);
   // 区域筛选下拉框填充
   var rFilter = $("schoolRegionFilter");
   var curVal = rFilter.value;
   rFilter.innerHTML = "<option value='all'>全部区域</option>";
-  var regions = [...new Set(SCHOOL_PROFILES.map(function(s){return s.region;}))];
+  var regions = [...new Set(scopedSchools.map(function(s){return s.region;}))];
   regions.forEach(function(r){ rFilter.innerHTML += "<option value='"+r+"'>"+r+"</option>"; });
   rFilter.value = curVal;
 
@@ -2244,7 +2621,7 @@ function renderSchoolProfiles() {
 function renderSchoolGrid() {
   var keyword = $("schoolSearch").value.toLowerCase();
   var rf = $("schoolRegionFilter").value;
-  var filtered = SCHOOL_PROFILES.filter(function(s){
+  var filtered = scopeSchools(SCHOOL_PROFILES).filter(function(s){
     if(rf!=="all" && s.region!==rf) return false;
     if(keyword && !s.name.toLowerCase().includes(keyword)) return false;
     return true;
@@ -2469,7 +2846,15 @@ function renderPieChart(canvasId, title, labels, data, hideLabels) {
 
 document.addEventListener("DOMContentLoaded", function() {
   renderMonthBtns();
-  refreshCurrentModule();
+  // 三角色登录：恢复上次会话，未登录则显示登录页
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem('wb_session_v1') || 'null'); } catch (e) {}
+  if (saved && saved.name && saved.role) {
+    CURRENT_USER = { name: saved.name, role: saved.role };
+    enterApp();
+  } else {
+    showLogin();
+  }
 });
 
 </script>
@@ -2520,6 +2905,32 @@ document.addEventListener("DOMContentLoaded", function() {
       <button class="mkt-btn-secondary" onclick="closeAddActivityModal()">取消</button>
       <button class="mkt-btn-primary" onclick="submitAddActivity()">提交创建</button>
     </div>
+  </div>
+</div>
+
+<!-- 登录页 -->
+<div id="loginScreen">
+  <div class="login-card">
+    <h2>📊 运营管理工作台</h2>
+    <div class="login-sub">请选择角色登录。<br>演示账号初始密码统一为 <strong style="color:#1a73e8">123456</strong></div>
+    <div class="login-field">
+      <label>角色</label>
+      <select id="loginRole" onchange="renderLoginAccounts()">
+        <option value="admin">管理员</option>
+        <option value="leader">区域主管</option>
+        <option value="staff">运营专员</option>
+      </select>
+    </div>
+    <div class="login-field">
+      <label>账号</label>
+      <select id="loginAccount"></select>
+    </div>
+    <div class="login-field">
+      <label>密码</label>
+      <input type="password" id="loginPwd" placeholder="初始密码 123456">
+    </div>
+    <button class="login-btn" onclick="doLogin()">登 录</button>
+    <div class="login-tip">💡 演示版说明：本版为「本地演示版」，登录与权限过滤完整可用，数据保存在当前浏览器（localStorage），用于体验三角色各自可见的数据范围；多人实时共享数据需后续接入云数据库。</div>
   </div>
 </div>
 </body>
