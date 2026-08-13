@@ -224,7 +224,7 @@ tr:hover td{background:#f8fafc}
               <li>【新项目】按环比计算</li>
             </ul>
             <div class="rule-note">
-              <strong>流量增量</strong>：每个项目按「实际订单金额 − 基期流量」计算；<strong class="rule-highlight">区域负责人</strong>的增量 = 其区域内所有项目增量之和。
+              <strong>流量增量</strong>：每个项目按「实际订单金额 − 基期流量」计算；<strong class="rule-highlight">区域负责人</strong>的增量 = 其区域内所有项目增量之和；区域评分①的基期 = 区域内各项目基期之和（每项目同期为 0/缺失时同样用上月流量，逐项目回退）。
             </div>
           </div>
           <div class="rule-section">
@@ -615,10 +615,9 @@ function calcObjectiveScore(p, role) {
       return (pp.leader||"") === p.name;
     });
 
-    // ---- ① 区域整体流量同比增长率(45分): 完成率=区域总流量/(基期×1.15)；基期=区域内各项目同期流量之和(区域同期全为0时回退用上月流量之和) ----
+    // ---- ① 区域整体流量同比增长率(45分): 完成率=区域总流量/(基期×1.15)；基期=区域内各项目基期之和(每项目:同期流量>0用同期,同期为0/缺失用上月流量——逐项目回退) ----
     var regionActualFlow = regionPeople.reduce(function(a,pp){ return a + (pp.actual_order||0); }, 0);
-    var regionBaseFlow = regionPeople.reduce(function(a,pp){ return a + (parseFloat(pp.base_flow_yoy)||0); }, 0);
-    if(regionBaseFlow <= 0) regionBaseFlow = regionPeople.reduce(function(a,pp){ return a + (parseFloat(pp.prev_flow)||0); }, 0);
+    var regionBaseFlow = regionPeople.reduce(function(a,pp){ return a + getBaseFlow(pp); }, 0);
     var flowRatioR = regionBaseFlow > 0 ? regionActualFlow / (regionBaseFlow * 1.15) : 1;
     var flowResult = calcItemScoreByRatio(flowRatioR, 45);
     s += flowResult.score;
