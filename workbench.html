@@ -894,6 +894,34 @@ function logout() {
   showLogin();
 }
 
+// ===== 修改密码（本地版：保存在当前浏览器 localStorage） =====
+function openChangePwd() {
+  if (!CURRENT_USER) return;
+  $('cpRole').textContent = ROLE_LABEL[CURRENT_USER.role];
+  $('cpName').textContent = CURRENT_USER.name;
+  $('cpOldPwd').value = '';
+  $('cpNewPwd').value = '';
+  $('cpNewPwd2').value = '';
+  $('changePwdModal').classList.add('active');
+}
+function closeChangePwd() {
+  $('changePwdModal').classList.remove('active');
+}
+function saveChangePwd() {
+  if (!CURRENT_USER) return;
+  var oldPwd = $('cpOldPwd').value || '';
+  var newPwd = $('cpNewPwd').value || '';
+  var newPwd2 = $('cpNewPwd2').value || '';
+  if (oldPwd !== getPwd(CURRENT_USER.name, CURRENT_USER.role)) { alert('原密码不正确'); return; }
+  if (newPwd.length < 4) { alert('新密码至少 4 位'); return; }
+  if (newPwd !== newPwd2) { alert('两次输入的新密码不一致'); return; }
+  try {
+    localStorage.setItem('wb_pwd_' + CURRENT_USER.role + '_' + CURRENT_USER.name, newPwd);
+  } catch (e) { alert('保存失败，请重试'); return; }
+  alert('✅ 密码修改成功，下次登录请使用新密码');
+  closeChangePwd();
+}
+
 function showLogin() {
   var ls = $('loginScreen'); if (ls) ls.style.display = 'flex';
   var mb = $('mainBody'); if (mb) mb.style.display = 'none';
@@ -915,6 +943,7 @@ function refreshUserBadge() {
   if (!CURRENT_USER) { b.innerHTML = ''; return; }
   b.innerHTML = '<span class="role-tag ' + CURRENT_USER.role + '">' + ROLE_LABEL[CURRENT_USER.role] + '</span>' +
     '<span>' + CURRENT_USER.name + '</span>' +
+    '<button class="logout-btn" onclick="openChangePwd()">修改密码</button>' +
     '<button class="logout-btn" onclick="logout()">退出</button>';
 }
 
@@ -2931,6 +2960,38 @@ document.addEventListener("DOMContentLoaded", function() {
     </div>
     <button class="login-btn" onclick="doLogin()">登 录</button>
     <div class="login-tip">💡 演示版说明：本版为「本地演示版」，登录与权限过滤完整可用，数据保存在当前浏览器（localStorage），用于体验三角色各自可见的数据范围；多人实时共享数据需后续接入云数据库。</div>
+  </div>
+</div>
+
+<!-- 修改密码弹窗 -->
+<div id="changePwdModal" class="mkt-modal-overlay" onclick="if(event.target===this)closeChangePwd()">
+  <div class="mkt-modal" style="width:420px">
+    <div class="mkt-modal-header">
+      <span class="mkt-modal-title">🔑 修改密码</span>
+      <button class="mkt-modal-close" onclick="closeChangePwd()">×</button>
+    </div>
+    <div class="mkt-modal-body">
+      <div class="login-field">
+        <label>当前账号</label>
+        <div style="padding:8px 10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;font-size:13px;color:#334155"><span id="cpRole" style="color:#1a73e8;font-weight:600"></span> · <span id="cpName" style="font-weight:600"></span></div>
+      </div>
+      <div class="login-field">
+        <label>原密码</label>
+        <input type="password" id="cpOldPwd" placeholder="请输入原密码">
+      </div>
+      <div class="login-field">
+        <label>新密码</label>
+        <input type="password" id="cpNewPwd" placeholder="至少 4 位">
+      </div>
+      <div class="login-field">
+        <label>确认新密码</label>
+        <input type="password" id="cpNewPwd2" placeholder="再次输入新密码">
+      </div>
+    </div>
+    <div class="mkt-modal-footer">
+      <button class="mkt-btn-secondary" onclick="closeChangePwd()">取消</button>
+      <button class="mkt-btn-primary" onclick="saveChangePwd()">保存</button>
+    </div>
   </div>
 </div>
 </body>
