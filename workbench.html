@@ -182,6 +182,24 @@ tr:hover td{background:#f8fafc}
 .mkt-task-completed .mkt-task-stage{color:#16a34a}
 .mkt-task-completed .mkt-task-owner{color:#86efac}
 .mkt-section-rate{font-size:11px;color:#64748b;margin-left:auto}
+
+/* 新增活动弹窗 */
+.mkt-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:9999}
+.mkt-modal-overlay.active{display:flex}
+.mkt-modal{background:#fff;border-radius:12px;width:520px;max-width:92vw;max-height:86vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 50px rgba(0,0,0,0.2)}
+.mkt-modal-header{padding:14px 16px;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center}
+.mkt-modal-title{font-size:15px;font-weight:600;color:#1a1a1a}
+.mkt-modal-close{background:none;border:none;font-size:20px;color:#64748b;cursor:pointer;line-height:1}
+.mkt-modal-body{padding:16px;overflow-y:auto}
+.mkt-form-row{margin-bottom:12px}
+.mkt-form-row label{display:block;font-size:12px;color:#475569;margin-bottom:5px;font-weight:500}
+.mkt-form-row input,.mkt-form-row textarea,.mkt-form-row select{width:100%;padding:7px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;box-sizing:border-box;font-family:inherit}
+.mkt-form-row textarea{min-height:60px;resize:vertical}
+.mkt-form-row input:focus,.mkt-form-row textarea:focus,.mkt-form-row select:focus{outline:none;border-color:#1a73e8;background:#fff}
+.mkt-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.mkt-modal-footer{padding:12px 16px;border-top:1px solid #e2e8f0;display:flex;justify-content:flex-end;gap:10px}
+.mkt-btn-secondary{padding:7px 14px;background:#f1f5f9;color:#475569;border:none;border-radius:6px;font-size:12px;cursor:pointer}
+.mkt-btn-primary{padding:7px 14px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:12px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -414,6 +432,7 @@ tr:hover td{background:#f8fafc}
           <select id="planStatusFilter" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px">
             <option value="all">全部状态</option><option value="已完成">已完成</option><option value="进行中">进行中</option><option value="未开始">未开始</option>
           </select>
+          <button id="addActivityBtn" onclick="openAddActivityModal()" style="padding:6px 14px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;margin-left:auto">+ 新增活动</button>
         </div>
         <div id="marketingPlanList"></div>
       </div>
@@ -1483,16 +1502,20 @@ function initMarketingTabs() {
 }
 
 function initMarketingFilters() {
-  // 填充学校筛选器
+  // 填充学校筛选器（重建选项，保留当前选中值）
   var schools = Array.from(new Set(MARKETING_ACTIVITIES.map(function(a){ return a.school; }))).sort();
   var schoolSel = $('planSchoolFilter');
-  if(schoolSel && schoolSel.options.length <= 1) {
+  if(schoolSel) {
+    var cur = schoolSel.value;
+    schoolSel.innerHTML = '<option value="all">全部学校</option>';
     schools.forEach(function(s){
       var opt = document.createElement('option');
       opt.value = s;
       opt.textContent = s;
       schoolSel.appendChild(opt);
     });
+    if (schools.indexOf(cur) >= 0) schoolSel.value = cur;
+    else schoolSel.value = 'all';
   }
   // 绑定change事件
   var bind = function(id, fn){ var el=$(id); if(el) el.onchange = fn; };
@@ -1524,9 +1547,9 @@ function renderMarketingDashboard() {
     '<div class="kpi-card"><div class="label">总预算(万)</div><div class="value">'+fmt(totalBudget/10000)+'</div><div class="trend">累计</div></div>' +
     '<div class="kpi-card"><div class="label">整体执行率</div><div class="value">'+fmt(totalProgress*100)+'%</div><div class="trend '+(totalProgress>=0.8?'up':(totalProgress>=0.5?'':'down'))+'">'+(totalProgress>=0.8?'良好':'需跟进')+'</div></div>';
   
-  // 活动列表
+  // 活动列表（最新创建的排前面，保证新活动在看板可见）
   var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px">';
-  list.slice(0, 12).forEach(function(a){
+  list.slice().sort(function(x, y){ return (y.id||0) - (x.id||0); }).forEach(function(a){
     var barClass = a.progress >= 0.8 ? '' : (a.progress >= 0.5 ? 'warn' : 'bad');
     var statusClass = a.status === '已完成' ? 'mkt-status-done' : (a.status === '进行中' ? 'mkt-status-ongoing' : 'mkt-status-pending');
     html += '<div class="mkt-card">' +
@@ -1666,6 +1689,86 @@ function toggleTaskComplete(id, idx, checked) {
   t.status = checked ? '已完成' : '进行中';
   recalcActivityProgress(a);
   saveMarketingData();
+  renderMarketingPlan();
+  renderMarketingDashboard();
+  renderMarketingBudget();
+}
+
+/* ========== 新增活动 ========== */
+function getDefaultActivityTasks() {
+  // 与截图模板一致：活动策划/系统功能/供应商招商及要求/活动筹备/走访准备/活动宣传 六类
+  return [
+    { stage: '活动策划', owner: '', progress: 0, status: '未开始', content: '与学院沟通摆展时间、地点', matter: '与学院沟通摆展时间、地点', completeDate: '', completed: false },
+    { stage: '系统功能', owner: '', progress: 0, status: '未开始', content: '', matter: '', completeDate: '', completed: false },
+    { stage: '供应商招商及要求', owner: '', progress: 0, status: '未开始', content: '', matter: '', completeDate: '', completed: false },
+    { stage: '活动筹备', owner: '', progress: 0, status: '未开始', content: '活动礼品采购（摆展+走访礼品）', matter: '活动礼品采购（摆展+走访礼品）', completeDate: '', completed: false },
+    { stage: '', owner: '', progress: 0, status: '未开始', content: '活动场地安排', matter: '活动场地安排', completeDate: '', completed: false },
+    { stage: '', owner: '', progress: 0, status: '未开始', content: '物料准备', matter: '物料准备', completeDate: '', completed: false },
+    { stage: '', owner: '', progress: 0, status: '未开始', content: '内容（例如）', matter: '内容（例如）', completeDate: '', completed: false },
+    { stage: '', owner: '', progress: 0, status: '未开始', content: '主题易拉宝', matter: '主题易拉宝', completeDate: '', completed: false },
+    { stage: '', owner: '', progress: 0, status: '未开始', content: '宣传海报', matter: '宣传海报', completeDate: '', completed: false },
+    { stage: '', owner: '', progress: 0, status: '未开始', content: '三折页', matter: '三折页', completeDate: '', completed: false },
+    { stage: '', owner: '', progress: 0, status: '未开始', content: '单页', matter: '单页', completeDate: '', completed: false },
+    { stage: '走访准备', owner: '', progress: 0, status: '未开始', content: '【课题组基础画像数据】', matter: '【课题组基础画像数据】', completeDate: '', completed: false },
+    { stage: '', owner: '', progress: 0, status: '未开始', content: '采购人数据分析（线上+自购）', matter: '采购人数据分析（线上+自购）', completeDate: '', completed: false },
+    { stage: '', owner: '', progress: 0, status: '未开始', content: '高价值走访对象详细信息、地址', matter: '高价值走访对象详细信息、地址', completeDate: '', completed: false },
+    { stage: '', owner: '', progress: 0, status: '未开始', content: '不同角色话术准备', matter: '不同角色话术准备', completeDate: '', completed: false },
+    { stage: '活动宣传', owner: '', progress: 0, status: '未开始', content: '线上平台，咨询群发通知公告；库巴扎公众号发宣传文；朋友圈', matter: '线上平台，咨询群发通知公告；库巴扎公众号发宣传文；朋友圈', completeDate: '', completed: false },
+    { stage: '', owner: '', progress: 0, status: '未开始', content: '供应商送货携带', matter: '供应商送货携带', completeDate: '', completed: false }
+  ];
+}
+
+function openAddActivityModal() {
+  $('addActivityModal').classList.add('active');
+  var month = $('planMonthFilter') && $('planMonthFilter').value !== 'all' ? $('planMonthFilter').value : '8月';
+  $('naMonth').value = month;
+}
+
+function closeAddActivityModal() {
+  $('addActivityModal').classList.remove('active');
+}
+
+function submitAddActivity() {
+  var theme = ($('naTheme').value || '').trim();
+  var leader = ($('naLeader').value || '').trim();
+  var school = ($('naSchool').value || '').trim();
+  var college = ($('naCollege').value || '').trim();
+  var month = $('naMonth').value;
+  var goal = ($('naGoal').value || '').trim();
+  var expected = ($('naExpected').value || '').trim();
+  if (!theme || !leader || !school || !goal || !expected) {
+    alert('请填写活动名称、负责人、活动学校、目标、预计产出（学院选填）');
+    return;
+  }
+  var maxId = MARKETING_ACTIVITIES.reduce(function(m, a) { return Math.max(m, a.id || 0); }, 0);
+  var tasks = getDefaultActivityTasks();
+  var a = {
+    id: maxId + 1,
+    theme: college ? theme + '（' + college + '）' : theme,
+    school: school,
+    college: college,
+    leader: leader,
+    participants: '',
+    month: month,
+    status: '未开始',
+    progress: 0,
+    goal: goal,
+    expected: expected,
+    budget: 0,
+    actual_expense: 0,
+    budget_locked: false,
+    actual_output: { touch: 0, valid_survey: 0, active_users: 0, user_pool: 0, online_flow_wan: 0, order_no: '' },
+    tasks: tasks
+  };
+  MARKETING_ACTIVITIES.push(a);
+  saveMarketingData();
+  closeAddActivityModal();
+  // 清空表单
+  ['naTheme','naLeader','naSchool','naCollege','naGoal','naExpected'].forEach(function(id){ $(id).value = ''; });
+  // 刷新学校筛选下拉
+  initMarketingFilters();
+  // 新活动默认未开始，若当前筛选状态不为 all 则切到 all 以可见
+  if ($('planStatusFilter').value !== 'all') $('planStatusFilter').value = 'all';
   renderMarketingPlan();
   renderMarketingDashboard();
   renderMarketingBudget();
@@ -2370,5 +2473,54 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 </script>
+
+<!-- 新增活动弹窗 -->
+<div id="addActivityModal" class="mkt-modal-overlay" onclick="if(event.target===this)closeAddActivityModal()">
+  <div class="mkt-modal">
+    <div class="mkt-modal-header">
+      <span class="mkt-modal-title">➕ 新增活动</span>
+      <button class="mkt-modal-close" onclick="closeAddActivityModal()">×</button>
+    </div>
+    <div class="mkt-modal-body">
+      <div class="mkt-form-grid">
+        <div class="mkt-form-row" style="grid-column:1/-1">
+          <label>活动名称 <span style="color:#ef4444">*</span></label>
+          <input id="naTheme" placeholder="例如：库巴扎实验物资采购进校园—XX大学站">
+        </div>
+        <div class="mkt-form-row">
+          <label>负责人 <span style="color:#ef4444">*</span></label>
+          <input id="naLeader" placeholder="请输入负责人姓名">
+        </div>
+        <div class="mkt-form-row">
+          <label>活动学校 <span style="color:#ef4444">*</span></label>
+          <input id="naSchool" placeholder="请输入学校名称">
+        </div>
+        <div class="mkt-form-row">
+          <label>学院</label>
+          <input id="naCollege" placeholder="请输入学院（选填）">
+        </div>
+        <div class="mkt-form-row">
+          <label>月份</label>
+          <select id="naMonth">
+            <option value="8月">8月</option><option value="7月">7月</option><option value="6月">6月</option>
+            <option value="5月">5月</option><option value="4月">4月</option>
+          </select>
+        </div>
+        <div class="mkt-form-row" style="grid-column:1/-1">
+          <label>目标 <span style="color:#ef4444">*</span></label>
+          <textarea id="naGoal" placeholder="本次活动的核心目标"></textarea>
+        </div>
+        <div class="mkt-form-row" style="grid-column:1/-1">
+          <label>预计产出 <span style="color:#ef4444">*</span></label>
+          <textarea id="naExpected" placeholder="预计产出描述，如：触达500人、问卷200份等"></textarea>
+        </div>
+      </div>
+    </div>
+    <div class="mkt-modal-footer">
+      <button class="mkt-btn-secondary" onclick="closeAddActivityModal()">取消</button>
+      <button class="mkt-btn-primary" onclick="submitAddActivity()">提交创建</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
