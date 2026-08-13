@@ -242,7 +242,6 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
     <div class="sidebar-title">功能模块</div>
     <div class="nav-item active" data-panel="modOverview" onclick="switchModule(this)"><span class="nav-icon">📈</span>总体概况</div>
     <div class="nav-item" data-panel="modPerformance" onclick="switchModule(this)"><span class="nav-icon">🎯</span>绩效评估</div>
-    <div class="nav-item" data-panel="modWorkAnalysis" onclick="switchModule(this)"><span class="nav-icon">📊</span>运营工作分析</div>
     <div class="nav-item" data-panel="modUserPool" onclick="switchModule(this)"><span class="nav-icon">👥</span>用户池管理</div>
     <div class="nav-item" data-panel="modMarketing" onclick="switchModule(this)"><span class="nav-icon">📢</span>营销活动管理</div>
     <div class="nav-item" data-panel="modCampus" onclick="switchModule(this)"><span class="nav-icon">🏫</span>校园行管理</div>
@@ -254,9 +253,50 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
     <!-- 模块1: 总体概况 -->
     <div class="module-panel active" id="modOverview">
       <div class="module-title">📈 总体概况</div>
+      <div style="font-size:12px;color:#666;margin-bottom:12px">当前分析月份：<strong id="ovMonthLabel" style="color:#1a73e8"></strong>（可在顶部切换月份）</div>
       <div class="kpi-row" id="overviewKPIs"></div>
       <table><thead><tr><th>区域</th><th>负责人</th><th>项目数</th><th>运营人数</th><th>用户池</th><th>有效触达</th><th>培训场次</th><th>校园行场次</th><th>流量(万)</th></tr></thead><tbody id="overviewTable"></tbody></table>
-      <div class="chart-row" style="grid-template-columns:1fr"><div class="chart-container" style="height:380px"><canvas id="overviewRegionChart"></canvas></div></div>
+
+      <!-- 各区域流量 + 排名 -->
+      <div class="chart-row" style="grid-template-columns:1.4fr 0.6fr">
+        <div class="chart-container" style="height:380px"><canvas id="overviewRegionChart"></canvas></div>
+        <div class="chart-container" style="height:380px;overflow:auto;padding:10px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#333">各区域流量排名（万）</div>
+          <div id="overviewRegionRank"></div>
+        </div>
+      </div>
+
+      <!-- 各区域流量增量贡献占比 + 增量排名 -->
+      <div class="chart-row" style="grid-template-columns:1.4fr 0.6fr">
+        <div class="chart-container" style="height:420px"><canvas id="overviewIncrementPieChart"></canvas></div>
+        <div class="chart-container" style="height:420px;overflow:auto;padding:10px">
+          <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#333">各区域流量增量排名（万）</div>
+          <div id="overviewIncrementRank"></div>
+        </div>
+      </div>
+
+      <!-- 运营动作 vs 流量增量 -->
+      <div class="chart-row" style="grid-template-columns:1fr">
+        <div class="chart-container" style="height:360px"><canvas id="overviewIncrementChart"></canvas></div>
+      </div>
+
+      <!-- 区域下钻分析 -->
+      <div style="margin-top:20px">
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;flex-wrap:wrap">
+          <h4 style="margin:0;font-size:15px">🔍 区域下钻分析 — <span id="overviewDrillTitle" style="color:#1a73e8"></span></h4>
+          <label style="font-size:12px;color:#666">选择区域：</label>
+          <select id="overviewRegionSelect" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;min-width:170px">
+            <option value="all">全部区域（汇总）</option>
+          </select>
+        </div>
+        <div style="font-size:11px;color:#888;margin-bottom:10px">💡 点击左侧饼图或右侧排名，可快速定位到对应区域并下钻查看各项目明细</div>
+        <table>
+          <thead><tr><th>项目/学校</th><th>负责人</th><th>区域</th><th>用户池</th><th>有效触达</th><th>培训场次</th><th>校园行场次</th><th>流量(万)</th><th>流量增量(万)</th></tr></thead>
+          <tbody id="overviewDrillTable"></tbody>
+        </table>
+      </div>
+
+      <!-- 月度总流量趋势 -->
       <div class="chart-row" style="grid-template-columns:1fr"><div class="chart-container" style="height:320px"><canvas id="overviewTrendChart"></canvas></div></div>
     </div>
 
@@ -326,40 +366,10 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
       <div id="perfContent"></div>
     </div>
 
-    <!-- 模块3: 运营工作分析 -->
-    <div class="module-panel" id="modWorkAnalysis">
+    <!-- 模块3: 运营工作分析（已合并到总体概况，保留隐藏避免旧链接/缓存报错） -->
+    <div class="module-panel" id="modWorkAnalysis" style="display:none">
       <div class="module-title">📊 运营工作分析</div>
-
-      <div style="display:flex;gap:12px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
-        <span style="font-size:12px;color:#666">分析月份：<strong id="waMonthLabel" style="color:#1a73e8"></strong>（可在顶部切换月份）</span>
-        <label style="font-size:12px;color:#666">选择区域下钻：</label>
-        <select id="waRegionSelect" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;min-width:170px">
-          <option value="all">全部区域（汇总）</option>
-        </select>
-      </div>
-
       <div class="kpi-row" id="waKPIs"></div>
-
-      <div class="chart-row" style="grid-template-columns:1.4fr 0.6fr">
-        <div class="chart-container" style="height:420px"><canvas id="waRegionPieChart"></canvas></div>
-        <div class="chart-container" style="height:420px;overflow:auto;padding:10px">
-          <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#333">各区域流量增量排名（万）</div>
-          <div id="waRegionRankList"></div>
-        </div>
-      </div>
-
-      <div class="chart-row" style="grid-template-columns:1fr">
-        <div class="chart-container" style="height:360px"><canvas id="waIncrementChart"></canvas></div>
-      </div>
-
-      <div style="margin-top:20px">
-        <h4 style="margin:0 0 6px;font-size:15px">🔍 区域下钻分析 — <span id="waDrillTitle" style="color:#1a73e8"></span></h4>
-        <div style="font-size:11px;color:#888;margin-bottom:10px">💡 点击左侧饼图或右侧排名，可快速定位到对应区域并下钻查看各项目明细</div>
-        <table>
-          <thead><tr><th>项目/学校</th><th>负责人</th><th>区域</th><th>用户池</th><th>有效触达</th><th>培训场次</th><th>校园行场次</th><th>流量(万)</th><th>流量增量(万)</th></tr></thead>
-          <tbody id="waDrillTable"></tbody>
-        </table>
-      </div>
     </div>
 
     <!-- 模块4: 用户池CRM -->
@@ -1167,7 +1177,6 @@ function refreshCurrentModule() {
   switch(currentModule) {
     case "modOverview": initOverview(); break;
     case "modPerformance": initPerformance(); break;
-    case "modWorkAnalysis": initWorkAnalysis(); break;
     case "modUserPool": initUserPool(); break;
     case "modMarketing": initMarketing(); break;
     case "modCampus": initCampus(); break;
@@ -1183,17 +1192,35 @@ function initOverview() {
   var noteHtml = scopeNote ? '<span style="float:right;font-size:11px;color:#1a73e8">'+scopeNote+'</span>' : '';
   var titleEl = document.querySelector('#modOverview .module-title');
   if (titleEl) titleEl.innerHTML = '📈 总体概况' + noteHtml;
-  
-  // KPI卡片 - 用正确的字段名: flow, touch, train, campus（按角色范围汇总）
+
+  // 月份标签
+  $("ovMonthLabel").textContent = currentMonth;
+
+  // 计算当月总流量增量（复用工作分析口径）
+  var regions = scopeRegions(md.regions || {});
+  var regionEntries = Object.keys(regions).filter(function(k){ return k !== '合计'; }).map(function(k){
+    return { key:k, name:regions[k].region, data:regions[k] };
+  });
+  var totalIncrement;
+  if (regionEntries.length > 0) {
+    totalIncrement = regionEntries.reduce(function(s,e){ return s + regionFlowIncrement(currentMonth, e.key); }, 0);
+  } else if (CURRENT_USER && !isAdmin()) {
+    totalIncrement = scopePeople(md.people || []).reduce(function(s,p){ return s + calcFlowIncrement(p); }, 0) / 10000;
+  } else {
+    totalIncrement = 0;
+  }
+
+  // KPI卡片 - 标题随当前月份变化，并在总流量与有效触达之间增加当月增量
+  var monthPrefix = currentMonth;
   $("overviewKPIs").innerHTML =
-    '<div class="kpi-card"><div class="label">当月总流量(万)</div><div class="value">'+fmt((total.flow||0)/10000)+'</div><div class="trend up">本月累计</div></div>' +
-    '<div class="kpi-card"><div class="label">有效触达</div><div class="value">'+fmt(total.touch)+'</div><div class="trend">目标: ≥'+(total.projects * 100 || 3800)+'次</div></div>' +
-    '<div class="kpi-card"><div class="label">培训场次</div><div class="value">'+fmt(total.train)+'</div><div class="trend up">累计覆盖</div></div>' +
-    '<div class="kpi-card"><div class="label">校园行场次</div><div class="value">'+fmt(total.campus)+'</div><div class="trend up">活跃学校</div></div>';
+    '<div class="kpi-card"><div class="label">' + monthPrefix + '总流量(万)</div><div class="value">'+fmt((total.flow||0)/10000)+'</div><div class="trend up">本月累计</div></div>' +
+    '<div class="kpi-card"><div class="label">' + monthPrefix + '总流量增量(万)</div><div class="value" style="color:'+(totalIncrement>=0?'#16a34a':'#dc2626')+'">'+(totalIncrement>=0?'+':'')+fmt(totalIncrement)+'</div><div class="trend">环比上月</div></div>' +
+    '<div class="kpi-card"><div class="label">' + monthPrefix + '有效触达</div><div class="value">'+fmt(total.touch)+'</div><div class="trend">目标: ≥'+(total.projects * 100 || 3800)+'次</div></div>' +
+    '<div class="kpi-card"><div class="label">' + monthPrefix + '培训场次</div><div class="value">'+fmt(total.train)+'</div><div class="trend up">累计覆盖</div></div>' +
+    '<div class="kpi-card"><div class="label">' + monthPrefix + '校园行场次</div><div class="value">'+fmt(total.campus)+'</div><div class="trend up">活跃学校</div></div>';
 
   // 表格 - 按角色范围过滤区域
-  var regions = scopeRegions(md.regions || {});
-  var regionNames = Object.keys(regions).filter(function(name){ return name !== '合计'; });
+  var regionNames = regionEntries.map(function(e){ return e.key; });
   var tbody = "";
   regionNames.forEach(function(name) {
     var r = regions[name];
@@ -1202,23 +1229,149 @@ function initOverview() {
   if (!regionNames.length) tbody = "<tr><td colspan='9' style='text-align:center;color:#999;padding:16px'>当前角色无可查看的区域数据</td></tr>";
   $("overviewTable").innerHTML = tbody;
 
-  // 趋势图 - 各月 flow (单位:万，按角色范围)
-  var months = Object.keys(WORKBENCH_DATA.totals).sort();
-  var flowData = months.map(function(m){ return (scopeTotals(m).flow || 0) / 10000; });
-  renderLineChart("overviewTrendChart", "月度总流量趋势(万)", months, flowData, "#1a73e8");
+  // 填充区域下钻下拉
+  var sel = $("overviewRegionSelect");
+  sel.innerHTML = '<option value="all">'+(isStaff()?'我的项目':'全部区域（汇总）')+'</option>' + regionEntries.map(function(e){
+    return '<option value="'+e.key+'">'+e.name+' ('+e.key+')</option>';
+  }).join("");
+  sel.onchange = function(){ renderOverviewDrill(currentMonth); };
 
-  // 区域流量饼图 - 过滤"合计"，按流量降序排列
-  var regionArr = regionNames.map(function(k){ return {key:k, name:regions[k].region, flow:(regions[k].flow||0)/10000}; });
+  // 区域流量饼图 + 排名
+  var regionArr = regionEntries.map(function(e){ return {key:e.key, name:e.name, flow:(e.data.flow||0)/10000}; });
   regionArr.sort(function(a,b){ return b.flow - a.flow; });
   if (regionArr.length === 0) {
     var rc = $("overviewRegionChart");
     if (rc && rc.parentNode) rc.parentNode.innerHTML = noPermHtml('当前角色无区域汇总数据');
+    $("overviewRegionRank").innerHTML = '<div style="font-size:11px;color:#999;padding:8px">当前角色无区域排名数据</div>';
   } else {
     renderPieChart("overviewRegionChart", "各区域" + currentMonth + "流量(万)",
       regionArr.map(function(r){ return r.name; }),
       regionArr.map(function(r){ return r.flow; })
     );
+    renderOverviewRegionRank(regionArr);
   }
+
+  // 区域流量增量贡献占比 + 增量排名
+  var regionIncrements = regionEntries.map(function(e){
+    return { key:e.key, name:e.name, increment: regionFlowIncrement(currentMonth, e.key) };
+  });
+  if (regionEntries.length === 0) {
+    var pc = $("overviewIncrementPieChart");
+    if (pc && pc.parentNode) pc.parentNode.innerHTML = noPermHtml('当前角色无区域汇总数据');
+    $("overviewIncrementRank").innerHTML = '<div style="font-size:11px;color:#999;padding:8px">当前角色无区域排名数据</div>';
+  } else {
+    var positiveTotal = regionIncrements.reduce(function(s, r){ return s + Math.max(r.increment, 0); }, 0);
+    var pieLabels = regionIncrements.map(function(r){ return r.name; });
+    var pieData = regionIncrements.map(function(r){ return Math.max(r.increment, 0); });
+    renderPieChart("overviewIncrementPieChart", currentMonth + " 各区域流量增量贡献占比", pieLabels, pieData, true);
+    if(allCharts["overviewIncrementPieChart"]) {
+      allCharts["overviewIncrementPieChart"].options.onClick = function(evt, items){
+        if(!items || !items.length) return;
+        var idx = items[0].index;
+        var match = regionIncrements[idx];
+        if(match){ sel.value = match.key; renderOverviewDrill(currentMonth); }
+      };
+      allCharts["overviewIncrementPieChart"].update();
+    }
+    renderOverviewIncrementRank(regionIncrements);
+  }
+
+  // 运营动作 vs 流量增量组合图
+  if (regionEntries.length === 0) {
+    var ic = $("overviewIncrementChart");
+    if (ic && ic.parentNode) ic.parentNode.innerHTML = noPermHtml('当前角色无区域对比数据');
+  } else {
+    renderWorkIncrementChart("overviewIncrementChart", currentMonth + " 运营动作 vs 流量增量(万)", regionEntries);
+  }
+
+  // 区域下钻表
+  renderOverviewDrill(currentMonth);
+
+  // 趋势图 - 各月 flow (单位:万，按角色范围)
+  var months = Object.keys(WORKBENCH_DATA.totals).sort();
+  var flowData = months.map(function(m){ return (scopeTotals(m).flow || 0) / 10000; });
+  renderLineChart("overviewTrendChart", "月度总流量趋势(万)", months, flowData, "#1a73e8");
+}
+
+function renderOverviewRegionRank(regionArr) {
+  $("overviewRegionRank").innerHTML = regionArr.map(function(r, i){
+    return '<div class="region-rank-row" data-key="'+r.key+'" style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'transparent\'">' +
+      '<div style="display:flex;align-items:center;gap:6px">' +
+        '<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:'+(i<3?'#1a73e8':'#e5e7eb')+';color:'+(i<3?'#fff':'#666')+';font-size:10px;font-weight:600">'+(i+1)+'</span>' +
+        '<span style="font-size:12px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px" title="'+r.name+'">'+r.name+'</span>' +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div style="font-size:12px;font-weight:600;color:#1a73e8">'+fmt(r.flow)+'万</div>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+  $("overviewRegionRank").querySelectorAll(".region-rank-row").forEach(function(row){
+    row.addEventListener("click", function(){
+      var sel = $("overviewRegionSelect");
+      sel.value = this.getAttribute("data-key");
+      renderOverviewDrill(currentMonth);
+    });
+  });
+}
+
+function renderOverviewIncrementRank(regionIncrements) {
+  regionIncrements.sort(function(a, b){ return b.increment - a.increment; });
+  var positiveTotal = regionIncrements.reduce(function(s, r){ return s + Math.max(r.increment, 0); }, 0);
+  $("overviewIncrementRank").innerHTML = regionIncrements.map(function(r, i){
+    var isPositive = r.increment >= 0;
+    var color = isPositive ? '#16a34a' : '#dc2626';
+    var pct = positiveTotal > 0 ? (Math.max(r.increment, 0) / positiveTotal * 100).toFixed(1) + '%' : '0%';
+    var arrow = isPositive ? '↑' : (r.increment < 0 ? '↓' : '—');
+    return '<div class="region-rank-row" data-key="'+r.key+'" style="display:flex;justify-content:space-between;align-items:center;padding:6px 8px;border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'#f8fafc\'" onmouseout="this.style.background=\'transparent\'">' +
+      '<div style="display:flex;align-items:center;gap:6px">' +
+        '<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:'+(i<3?'#1a73e8':'#e5e7eb')+';color:'+(i<3?'#fff':'#666')+';font-size:10px;font-weight:600">'+(i+1)+'</span>' +
+        '<span style="font-size:12px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px" title="'+r.name+'">'+r.name+'</span>' +
+      '</div>' +
+      '<div style="text-align:right">' +
+        '<div style="font-size:12px;font-weight:600;color:'+color+'">'+arrow+' '+fmt(r.increment)+'万</div>' +
+        '<div style="font-size:10px;color:#888">占比 '+pct+'</div>' +
+      '</div>' +
+    '</div>';
+  }).join("");
+  $("overviewIncrementRank").querySelectorAll(".region-rank-row").forEach(function(row){
+    row.addEventListener("click", function(){
+      var sel = $("overviewRegionSelect");
+      sel.value = this.getAttribute("data-key");
+      renderOverviewDrill(currentMonth);
+    });
+  });
+}
+
+function renderOverviewDrill(month) {
+  var md = WORKBENCH_DATA.monthly_data[month];
+  if(!md) return;
+  var sel = $("overviewRegionSelect");
+  var scope = sel ? sel.value : "all";
+  var people = scopePeople(md.people || []).filter(function(p){ return !p._synthetic; });
+  if(scope !== "all") {
+    people = people.filter(function(p){ return p.leader === scope; });
+  }
+  people.sort(function(a,b){ return calcFlowIncrement(b) - calcFlowIncrement(a); });
+
+  var titleEl = $("overviewDrillTitle");
+  if(scope === "all") {
+    if (isStaff()) titleEl.textContent = "我的项目（"+people.length+"个）";
+    else if (isLeader()) titleEl.textContent = "本区域项目（"+people.length+"个）";
+    else titleEl.textContent = "全部区域（"+people.length+"个项目）";
+  } else {
+    var reg = md.regions[scope];
+    titleEl.textContent = (reg?reg.region:scope) + " （"+people.length+"个项目）";
+  }
+
+  var tbody = "";
+  people.forEach(function(p){
+    var increment = calcFlowIncrement(p) / 10000;
+    var incColor = increment >= 0 ? '#16a34a' : '#dc2626';
+    var incStr = (increment>=0?'+':'') + fmt(increment);
+    var actualWan = (p.actual_order || 0) / 10000;
+    tbody += "<tr><td>"+(p.school||"")+"</td><td>"+(p.name||"")+"</td><td>"+(p.region||"")+"</td><td>"+fmt(p.user_pool)+"</td><td>"+fmt(p.touch)+"</td><td>"+fmt(p.train)+"</td><td>"+fmt(p.campus)+"</td><td>"+fmt(actualWan)+"</td><td style='color:"+incColor+";font-weight:600'>"+incStr+"</td></tr>";
+  });
+  $("overviewDrillTable").innerHTML = tbody;
 }
 
 
