@@ -562,7 +562,6 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
 <!-- 顶部栏 -->
 <div class="top-bar">
   <h1>📊 运营管理工作台</h1>
-  <div class="month-filter" id="monthFilter"></div>
   <div class="user-badge" id="userBadge"></div>
 </div>
 
@@ -586,6 +585,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
     <!-- 模块1: 总体概况 -->
     <div class="module-panel active" id="modOverview">
       <div class="module-title">📈 总体概况<span id="ovMonthLabel" style="float:right;font-size:12px;color:#1a73e8;font-weight:500"></span></div>
+      <div class="month-filter" id="monthFilter" style="margin-bottom:12px"></div>
       <div class="ov-tab-bar" id="ovTabBar">
         <button class="ov-tab-btn active" data-ovtab="dashboard" onclick="switchOverviewTab(this)">📊 数据看板</button>
         <button class="ov-tab-btn" data-ovtab="increment" onclick="switchOverviewTab(this)">📈 增量分析</button>
@@ -649,6 +649,10 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
     <!-- 模块2: 绩效评估 -->
     <div class="module-panel" id="modPerformance">
       <div class="module-title">🎯 绩效评估</div>
+      <div style="margin-bottom:12px;display:flex;gap:10px;align-items:center">
+        <label style="font-size:12px;color:#666;font-weight:600">📅 考核月份：</label>
+        <select id="perfMonthSelect" style="padding:6px 14px;border:1px solid #1a73e8;border-radius:6px;font-size:12px;font-weight:600;color:#1a73e8;background:#fff;cursor:pointer;min-width:140px" onchange="changePerfMonth(this.value)"></select>
+      </div>
 
       <!-- 考核规则说明 -->
       <div class="rule-panel">
@@ -994,7 +998,8 @@ var WORKBENCH_DATA = {"available_months":["2026-04","2026-05","2026-06","2026-07
 };
 
 var currentMonth = "2026-07";
-var selectedMonths = []; // 多选月份（用于趋势图），默认全部
+var perfMonth = "2026-07"; // 绩效模块独立月份
+var selectedMonths = []; // 多选月份（用于总体概况），默认全部
 var currentOvTab = "dashboard"; // 总体概况当前子模块
 var currentViewMode = "all";
 var subjectiveScores = {};
@@ -1122,7 +1127,7 @@ function calcObjectiveScore(p, role) {
   role = role || p.role;
   var s = 0, details = [];
   var regionGrowth = null; // 区域主管专用：区域流量增长率，用于团队对赌封顶判断
-  var md = WORKBENCH_DATA.monthly_data[currentMonth];
+  var md = WORKBENCH_DATA.monthly_data[perfMonth];
   var regions = md ? md.regions : {};
 
   if(role === "区域主管") {
@@ -2032,6 +2037,12 @@ function initPerformance() {
   var noteHtml = scopeNoteHtml() ? '<span style="float:right;font-size:11px;color:#1a73e8">'+scopeNoteHtml()+'</span>' : '';
   var titleEl = document.querySelector('#modPerformance .module-title');
   if (titleEl) titleEl.innerHTML = '🎯 绩效评估' + noteHtml;
+  // 初始化绩效月份下拉
+  var sel = $('perfMonthSelect');
+  if (sel) {
+    var months = WORKBENCH_DATA.available_months || ['2026-04','2026-05','2026-06','2026-07'];
+    sel.innerHTML = months.map(function(m){ return '<option value="'+m+'"'+(m===perfMonth?' selected':'')+'>'+formatMonthLabel(m)+'</option>'; }).join('');
+  }
   if (isStaff()) { $("perfContent").innerHTML = noPermHtml('运营专员仅可查看本人项目数据，绩效评估由区域主管/管理员查看'); return; }
   var tabs = [{"id":"all","name":"全部"},{"id":"leaders","name":"区域主管"},{"id":"managers","name":"营销负责人"},{"id":"staff","name":"运营专员"},{"id":"ranking","name":"绩效排名"},{"id":"evalChart","name":"绩效评估"}];
   $("perfTabs").innerHTML = tabs.map(function(t){
@@ -2040,15 +2051,21 @@ function initPerformance() {
   updatePerformanceContent();
 }
 
+function changePerfMonth(m) {
+  perfMonth = m;
+  updatePerformanceContent();
+}
+
 function switchPerfTab(mode) {
   currentViewMode = mode;
   document.querySelectorAll("#perfTabs .tab-btn").forEach(function(b){ b.classList.remove("active"); });
-  event.target.classList.add("active");
+  var btn = document.querySelector('#perfTabs .tab-btn[data-tab="'+mode+'"]');
+  if (btn) btn.classList.add("active");
   updatePerformanceContent();
 }
 
 function updatePerformanceContent() {
-  var md = WORKBENCH_DATA.monthly_data[currentMonth];
+  var md = WORKBENCH_DATA.monthly_data[perfMonth];
   if(!md) return;
 
   // === 绩效排名视图 ===
