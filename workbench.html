@@ -1094,9 +1094,18 @@ function calcItemScoreByRatio(ratio, weight) {
   return {score: score, ratio: Math.round(ratio*100)};
 }
 
+// 基期强制用"上月流量"的项目名单（新政策，2026-08 用户确认：华中科技大学基期改为上月流量，不再用同期流量）
+// 命中名单或项目带 base_mode==="prev" 时，基期 = prev_flow（Excel 导入数据也自动适用名单规则）
+var PREV_FLOW_BASE_SCHOOLS = ["华中科技大学"];
+
 // 获取基期流量：优先同期流量，为0或没有则用上月流量
+// 例外：PREV_FLOW_BASE_SCHOOLS 名单内项目 / base_mode==="prev" 的项目，基期强制 = 上月流量(prev_flow)
 function getBaseFlow(p) {
   // base_flow_yoy = 同期流量, prev_flow = 上月流量
+  if (PREV_FLOW_BASE_SCHOOLS.indexOf(p.school || "") >= 0 || p.base_mode === "prev") {
+    if(p.prev_flow && p.prev_flow > 0) return p.prev_flow;
+    return 0;
+  }
   if(p.base_flow_yoy && p.base_flow_yoy > 0) return p.base_flow_yoy;
   if(p.prev_flow && p.prev_flow > 0) return p.prev_flow;
   return 0;
