@@ -7,6 +7,7 @@
 <title>运营管理工作台</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;background:#f0f2f5;color:#333;height:100vh;overflow:hidden;display:flex;flex-direction:column}
@@ -562,7 +563,11 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
 <!-- 顶部栏 -->
 <div class="top-bar">
   <h1>📊 运营管理工作台</h1>
-  <div class="user-badge" id="userBadge"></div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <button id="importBtn" onclick="document.getElementById('importFileInput').click()" style="padding:6px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#1557b0'" onmouseout="this.style.background='#1a73e8'">📥 导入月度数据</button>
+    <div class="user-badge" id="userBadge"></div>
+  </div>
+  <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleImportFile(this)">
 </div>
 
 <!-- 主体：左导航 + 右内容 -->
@@ -978,6 +983,41 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
   </div><!-- /content-area -->
 </div><!-- /main-body -->
 
+<!-- 导入数据弹窗 -->
+<div id="importModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center">
+  <div style="background:#fff;border-radius:12px;padding:28px;width:680px;max-height:85vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <h3 style="font-size:18px;color:#1a73e8">📥 导入月度数据</h3>
+      <span onclick="closeImportModal()" style="cursor:pointer;font-size:22px;color:#999;line-height:1">×</span>
+    </div>
+    <div id="importStep1">
+      <div style="background:#f0f7ff;border:1px solid #d0e3ff;border-radius:8px;padding:14px;margin-bottom:16px">
+        <div style="font-weight:600;font-size:13px;margin-bottom:8px">📋 Excel 模板格式要求：</div>
+        <div style="font-size:12px;color:#555;line-height:1.8">
+          第一行为表头，需包含以下列（列名可略有差异，系统自动识别）：<br>
+          <b>姓名/负责人</b> · <b>学校/项目</b> · 角色 · <b>区域主管</b> · 区域 · <b>用户池</b> · <b>有效触达</b> · <b>培训场次</b> · <b>校园行场次</b> · <b>实际订单金额</b> · 上月流量 · 同期流量 · 结算率<br>
+          <span style="color:#dc2626">加粗为必填列，其余可留空</span>。结算率填数字（如 0.99）或"未对接财务"。
+        </div>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">📅 数据所属月份：</label>
+        <select id="importMonthSelect" style="padding:8px 14px;border:1px solid #1a73e8;border-radius:6px;font-size:13px;font-weight:600;color:#1a73e8;background:#fff;cursor:pointer;min-width:160px"></select>
+        <span style="font-size:11px;color:#888;margin-left:8px">将作为新月份添加到看板（已存在的月份会被覆盖）</span>
+      </div>
+      <div id="importPreview" style="display:none;margin-bottom:16px">
+        <div style="font-weight:600;font-size:13px;margin-bottom:8px">📊 数据预览：</div>
+        <div id="importPreviewContent" style="max-height:240px;overflow:auto;border:1px solid #e0e0e0;border-radius:6px"></div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="closeImportModal()" style="padding:8px 20px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;background:#fff">取消</button>
+        <button id="importConfirmBtn" onclick="confirmImport()" style="padding:8px 20px;border:none;border-radius:6px;font-size:13px;cursor:pointer;background:#1a73e8;color:#fff;font-weight:600;display:none">确认导入</button>
+        <button onclick="downloadTemplate()" style="padding:8px 20px;border:1px solid #1a73e8;border-radius:6px;font-size:13px;cursor:pointer;background:#fff;color:#1a73e8;font-weight:600;margin-left:auto">📥 下载模板</button>
+      </div>
+    </div>
+    <div id="importResult" style="display:none"></div>
+  </div>
+</div>
+
 <script>
 var WORKBENCH_DATA = {"available_months":["2026-04","2026-05","2026-06","2026-07"],"monthly_data":{"2026-07":{"regions":{"陈宝华":{"region":"广东","user_pool":120,"touch":6,"train":9,"campus":1,"flow":3436617.13,"actual_order":3436617.13,"projects":4,"members":["南方医科大学","华南理工大学","广州中医药大学","广州大学"]},"周滨":{"region":"北京","user_pool":27,"touch":3,"train":13,"campus":0,"flow":21859653.72,"actual_order":21859653.72,"projects":9,"members":["中国农业大学","北京师范大学","清华大学","药物所","北京工商大学","北京中医药大学","北京林业大学","北京化工大学","北京科技大学"]},"高欢庆":{"region":"东北西北","user_pool":94,"touch":34,"train":16,"campus":0,"flow":17826365.35,"actual_order":17826365.35,"projects":9,"members":["西安交通大学","西北工业大学","中国医科大学第一附属医院","大连理工大学","中国医科大学（新）","中国医科大学（老）","哈尔滨工业大学","哈尔滨师范大学","东北大学"]},"田晓燕":{"region":"江浙沪","user_pool":20,"touch":6,"train":1,"campus":0,"flow":56208659.410000004,"actual_order":56208659.410000004,"projects":8,"members":["南京农业大学","南京中医药大学","南京工业大学","苏州大学","浙江大学","上海交医","同济大学","华师"]},"刘金玲":{"region":"天津","user_pool":7,"touch":0,"train":1,"campus":0,"flow":15704580.98,"actual_order":15704580.98,"projects":4,"members":["南开大学","天津医科大学","河北工业大学","天大化学品"]},"张璟":{"region":"西南海南湖北","user_pool":11,"touch":30,"train":5,"campus":0,"flow":7176638.84,"actual_order":7176638.84,"projects":4,"members":["华中科技大学","海南大学","四川大学","重庆大学"]}},"people":[{"name":"陈宝华","school":"南方医科大学","role":"区域主管","leader":"陈宝华","region":"广东","user_pool":30,"touch":0,"train":0,"campus":0,"actual_order":29881.21,"prev_flow":39737.28,"base_flow_yoy":12975.99,"settle_rate":"0.57"},{"name":"卢婉炫","school":"华南理工大学","role":"运营专员","leader":"陈宝华","region":"广东","user_pool":30,"touch":6,"train":4,"campus":1,"actual_order":732608.74,"prev_flow":478397.85,"base_flow_yoy":0,"settle_rate":"未对接财务"},{"name":"黄乐怡","school":"广州中医药大学","role":"项目营销负责人","leader":"陈宝华","region":"广东","user_pool":60,"touch":0,"train":5,"campus":0,"actual_order":1179000.8,"prev_flow":1660564.59,"base_flow_yoy":1329461.75,"settle_rate":"0.99"},{"name":"孙嘉睿","school":"广州大学","role":"项目营销负责人","leader":"陈宝华","region":"广东","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":1495126.38,"prev_flow":2485816.83,"base_flow_yoy":963980.27,"settle_rate":"0.97"},{"name":"代斯航","school":"中国农业大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":1,"campus":0,"actual_order":228859.17,"prev_flow":250461.4,"base_flow_yoy":177031.11,"settle_rate":"0.01"},{"name":"周滨","school":"北京师范大学","role":"区域主管","leader":"周滨","region":"北京","user_pool":0,"touch":2,"train":3,"campus":0,"actual_order":11219.85,"prev_flow":25052.57,"base_flow_yoy":0,"settle_rate":"0"},{"name":"王春光","school":"清华大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":12,"touch":0,"train":1,"campus":0,"actual_order":8442976.79,"prev_flow":8107793.41,"base_flow_yoy":8553936.11,"settle_rate":"0.82"},{"name":"郭芮影","school":"药物所","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":1,"train":6,"campus":0,"actual_order":4115287.5,"prev_flow":4408861.66,"base_flow_yoy":5825016.89,"settle_rate":"0.17"},{"name":"徐颖","school":"北京工商大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":2,"campus":0,"actual_order":779793.38,"prev_flow":709509.65,"base_flow_yoy":81021.07,"settle_rate":"0.2"},{"name":"周滨","school":"北京中医药大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":4751941.36,"prev_flow":7570638.93,"base_flow_yoy":2725819.85,"settle_rate":"0.21"},{"name":"张亚娟","school":"北京林业大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":199148.63,"prev_flow":369258.8,"base_flow_yoy":209971.55,"settle_rate":"0.33"},{"name":"张亚娟","school":"北京化工大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":15,"touch":0,"train":0,"campus":0,"actual_order":2490642.09,"prev_flow":2184655.2,"base_flow_yoy":1356476.05,"settle_rate":"0.55"},{"name":"张亚娟","school":"北京科技大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":839784.95,"prev_flow":770996.67,"base_flow_yoy":1147919.31,"settle_rate":"0.05"},{"name":"王书妍","school":"西安交通大学","role":"项目营销负责人","leader":"高欢庆","region":"东北西北","user_pool":20,"touch":33,"train":4,"campus":0,"actual_order":3979761.81,"prev_flow":5429400.83,"base_flow_yoy":4278366.24,"settle_rate":"0.91"},{"name":"王琛","school":"西北工业大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":33,"touch":1,"train":4,"campus":0,"actual_order":1127438.9,"prev_flow":1300414.02,"base_flow_yoy":1305704.52,"settle_rate":"0.98"},{"name":"郭旺","school":"中国医科大学第一附属医院","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":6162940.08,"prev_flow":5730253.42,"base_flow_yoy":0,"settle_rate":"未对接财务"},{"name":"郭旺","school":"大连理工大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":1442810.43,"prev_flow":1724043.2,"base_flow_yoy":2254678.16,"settle_rate":"未对接财务"},{"name":"王桐桐","school":"中国医科大学（新）","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":5,"touch":0,"train":7,"campus":0,"actual_order":2118104.9,"prev_flow":1568245.25,"base_flow_yoy":0,"settle_rate":"0.95"},{"name":"王桐桐","school":"中国医科大学（老）","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":2196917.54,"prev_flow":6586752.61,"base_flow_yoy":2125454.28,"settle_rate":"0.97"},{"name":"曹振华","school":"哈尔滨工业大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":32,"touch":0,"train":1,"campus":0,"actual_order":21689.01,"prev_flow":24670.83,"base_flow_yoy":0,"settle_rate":"0.7368"},{"name":"郭旺","school":"哈尔滨师范大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":318734.8,"prev_flow":678814.93,"base_flow_yoy":0,"settle_rate":"0.83"},{"name":"郭旺","school":"东北大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":4,"touch":0,"train":0,"campus":0,"actual_order":457967.88,"prev_flow":364929.31,"base_flow_yoy":251.12,"settle_rate":"0.81"},{"name":"郝丽娟","school":"南京农业大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":0,"train":1,"campus":0,"actual_order":6103297.94,"prev_flow":6847955.86,"base_flow_yoy":4461676.35,"settle_rate":"0.734"},{"name":"田晓燕","school":"南京中医药大学","role":"区域主管","leader":"田晓燕","region":"江浙沪","user_pool":20,"touch":4,"train":0,"campus":0,"actual_order":1129176.14,"prev_flow":2227616.82,"base_flow_yoy":1374045.14,"settle_rate":"0.11"},{"name":"郝丽娟","school":"南京工业大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":2616367.97,"prev_flow":2900427.84,"base_flow_yoy":2136550.18,"settle_rate":"未对接财务"},{"name":"田晓燕","school":"苏州大学","role":"区域主管","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":6559962.93,"prev_flow":8061417,"base_flow_yoy":6595287.25,"settle_rate":"0.655"},{"name":"周雨","school":"浙江大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":22625941.51,"prev_flow":22201389.45,"base_flow_yoy":22596411.86,"settle_rate":"0.08"},{"name":"刘笑含","school":"上海交医","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":5155227.47,"prev_flow":5946342.83,"base_flow_yoy":3167430.72,"settle_rate":"0.38"},{"name":"周雨","school":"同济大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":2,"train":0,"campus":0,"actual_order":11057682.31,"prev_flow":7119827.79,"base_flow_yoy":346690.57,"settle_rate":"0.53"},{"name":"刘笑含","school":"华师","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":961003.14,"prev_flow":1009498.99,"base_flow_yoy":1017633.3,"settle_rate":"0.82"},{"name":"郝倩","school":"南开大学","role":"项目营销负责人","leader":"刘金玲","region":"天津","user_pool":2,"touch":0,"train":0,"campus":0,"actual_order":7536812.92,"prev_flow":9662353.48,"base_flow_yoy":5779920.89,"settle_rate":"0.77"},{"name":"刘金玲","school":"天津医科大学","role":"区域主管","leader":"刘金玲","region":"天津","user_pool":0,"touch":0,"train":1,"campus":0,"actual_order":3799255.32,"prev_flow":3710814.17,"base_flow_yoy":2755458.6,"settle_rate":"0.5793"},{"name":"郭旺","school":"河北工业大学","role":"运营专员","leader":"刘金玲","region":"天津","user_pool":5,"touch":0,"train":0,"campus":0,"actual_order":306677.59,"prev_flow":322029.44,"base_flow_yoy":239849.32,"settle_rate":"未对接财务"},{"name":"李笑天","school":"天大化学品","role":"运营专员","leader":"刘金玲","region":"天津","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":4061835.15,"prev_flow":3968119.44,"base_flow_yoy":2746611.89,"settle_rate":"0.7"},{"name":"郭婷婷","school":"华中科技大学","role":"运营专员","leader":"张璟","region":"西南海南湖北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":2075997.17,"prev_flow":1753316.29,"base_flow_yoy":669589.86,"settle_rate":"1.59"},{"name":"吴海源","school":"海南大学","role":"运营专员","leader":"张璟","region":"西南海南湖北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":3432753.76,"prev_flow":5277721.29,"base_flow_yoy":2375403.89,"settle_rate":"1"},{"name":"曾巧","school":"四川大学","role":"运营专员","leader":"张璟","region":"西南海南湖北","user_pool":11,"touch":30,"train":5,"campus":0,"actual_order":1183019.39,"prev_flow":1006233.48,"base_flow_yoy":687490.47,"settle_rate":"0.42"},{"name":"张璟","school":"重庆大学","role":"区域主管","leader":"张璟","region":"西南海南湖北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":484868.52,"prev_flow":758843.34,"base_flow_yoy":712569.84,"settle_rate":"未财务对接"},{"name":"高欢庆","school":"东北西北区域","role":"区域主管","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":0,"prev_flow":0,"base_flow_yoy":0,"settle_rate":"","_synthetic":true}]},"2026-06":{"regions":{"陈宝华":{"region":"广东","user_pool":119,"touch":410,"train":16,"campus":11,"flow":4664516.55,"actual_order":4664516.55,"projects":4,"members":["南方医科大学","华南理工大学","广州中医药大学","广州大学"]},"周滨":{"region":"北京","user_pool":144,"touch":252,"train":19,"campus":6,"flow":24397228.29,"actual_order":24397228.29,"projects":9,"members":["中国农业大学","北京师范大学","清华大学","药物所","北京工商大学","北京中医药大学","北京林业大学","北京化工大学","北京科技大学"]},"高欢庆":{"region":"东北西北","user_pool":154,"touch":436,"train":25,"campus":21,"flow":17677270.98,"actual_order":17677270.98,"projects":9,"members":["西安交通大学","西北工业大学","中国医科大学第一附属医院","大连理工大学","中国医科大学（新）","中国医科大学（老）","哈尔滨工业大学","哈尔滨师范大学","东北大学"]},"田晓燕":{"region":"江浙沪","user_pool":83,"touch":387,"train":2,"campus":3,"flow":56314476.58,"actual_order":56314476.58,"projects":8,"members":["南京农业大学","南京中医药大学","南京工业大学","苏州大学","浙江大学","上海交医","同济大学","华师"]},"刘金玲":{"region":"天津","user_pool":7,"touch":0,"train":6,"campus":3,"flow":17663316.53,"actual_order":17663316.53,"projects":4,"members":["南开大学","天津医科大学","河北工业大学","天大化学品"]},"张璟":{"region":"西南海南湖北","user_pool":71,"touch":505,"train":13,"campus":3,"flow":8796114.4,"actual_order":8796114.4,"projects":4,"members":["华中科技大学","海南大学","四川大学","重庆大学"]}},"people":[{"name":"陈宝华","school":"南方医科大学","role":"区域主管","leader":"陈宝华","region":"广东","user_pool":10,"touch":364,"train":4,"campus":7,"actual_order":39737.28,"prev_flow":66107.23,"base_flow_yoy":20273.62,"settle_rate":"未对接财务"},{"name":"卢婉炫","school":"华南理工大学","role":"运营专员","leader":"陈宝华","region":"广东","user_pool":30,"touch":43,"train":4,"campus":1,"actual_order":478397.85,"prev_flow":418453.88,"base_flow_yoy":0,"settle_rate":"未对接财务"},{"name":"黄乐怡","school":"广州中医药大学","role":"项目营销负责人","leader":"陈宝华","region":"广东","user_pool":49,"touch":1,"train":4,"campus":2,"actual_order":1660564.59,"prev_flow":1295293.96,"base_flow_yoy":1371617.55,"settle_rate":"0.4"},{"name":"孙嘉睿","school":"广州大学","role":"项目营销负责人","leader":"陈宝华","region":"广东","user_pool":30,"touch":2,"train":4,"campus":1,"actual_order":2485816.83,"prev_flow":1895630.72,"base_flow_yoy":2332522.17,"settle_rate":"0.97"},{"name":"代斯航","school":"中国农业大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":78,"touch":2,"train":4,"campus":0,"actual_order":250461.4,"prev_flow":210146.76,"base_flow_yoy":10039.7,"settle_rate":"0.4"},{"name":"周滨","school":"北京师范大学","role":"区域主管","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":25052.57,"prev_flow":2834.28,"base_flow_yoy":0,"settle_rate":"0"},{"name":"王春光","school":"清华大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":15,"touch":10,"train":4,"campus":2,"actual_order":8107793.41,"prev_flow":7122100.84,"base_flow_yoy":8805803.18,"settle_rate":"0.85"},{"name":"郭芮影","school":"药物所","role":"运营专员","leader":"周滨","region":"北京","user_pool":33,"touch":180,"train":8,"campus":1,"actual_order":4408861.66,"prev_flow":4340511.11,"base_flow_yoy":5406927.83,"settle_rate":"0.34"},{"name":"徐颖","school":"北京工商大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":3,"touch":0,"train":3,"campus":0,"actual_order":709509.65,"prev_flow":12936.15,"base_flow_yoy":143025.8,"settle_rate":"0"},{"name":"周滨","school":"北京中医药大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":7570638.93,"prev_flow":4501877.22,"base_flow_yoy":8638964.98,"settle_rate":"0.72"},{"name":"张亚娟","school":"北京林业大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":369258.8,"prev_flow":251683.76,"base_flow_yoy":312245.24,"settle_rate":"0"},{"name":"张亚娟","school":"北京化工大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":2184655.2,"prev_flow":1482822.95,"base_flow_yoy":1217275.21,"settle_rate":"0.55"},{"name":"张亚娟","school":"北京科技大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":15,"touch":60,"train":0,"campus":3,"actual_order":770996.67,"prev_flow":798889.7,"base_flow_yoy":886367.23,"settle_rate":"0"},{"name":"王书妍","school":"西安交通大学","role":"项目营销负责人","leader":"高欢庆","region":"东北西北","user_pool":22,"touch":327,"train":4,"campus":1,"actual_order":5429400.83,"prev_flow":4159340.9,"base_flow_yoy":4017635.03,"settle_rate":"0.85"},{"name":"王琛","school":"西北工业大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":68,"touch":100,"train":4,"campus":1,"actual_order":1300414.02,"prev_flow":810738.42,"base_flow_yoy":652762.88,"settle_rate":"0.78"},{"name":"郭旺","school":"中国医科大学第一附属医院","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":0,"prev_flow":4988890.97,"base_flow_yoy":0,"settle_rate":"未对接财务"},{"name":"郭旺","school":"大连理工大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":15,"touch":0,"train":0,"campus":0,"actual_order":1724043.2,"prev_flow":1319285.66,"base_flow_yoy":2697376.46,"settle_rate":"未对接财务"},{"name":"王桐桐","school":"中国医科大学（新）","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":16,"touch":9,"train":13,"campus":19,"actual_order":1568245.25,"prev_flow":21947.13,"base_flow_yoy":0,"settle_rate":"0"},{"name":"王桐桐","school":"中国医科大学（老）","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":6586752.61,"prev_flow":4393923.46,"base_flow_yoy":4532397.86,"settle_rate":"0.94"},{"name":"曹振华","school":"哈尔滨工业大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":28,"touch":0,"train":4,"campus":0,"actual_order":24670.83,"prev_flow":12989.65,"base_flow_yoy":0,"settle_rate":"0.75"},{"name":"郭旺","school":"哈尔滨师范大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":678814.93,"prev_flow":332465.71,"base_flow_yoy":0,"settle_rate":"0.92"},{"name":"郭旺","school":"东北大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":5,"touch":0,"train":0,"campus":0,"actual_order":364929.31,"prev_flow":241469.03,"base_flow_yoy":86.4,"settle_rate":"0.8"},{"name":"郝丽娟","school":"南京农业大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":30,"touch":94,"train":1,"campus":2,"actual_order":6847955.86,"prev_flow":6309463.39,"base_flow_yoy":6020326.13,"settle_rate":"0.676"},{"name":"田晓燕","school":"南京中医药大学","role":"区域主管","leader":"田晓燕","region":"江浙沪","user_pool":23,"touch":4,"train":0,"campus":0,"actual_order":2227616.82,"prev_flow":2220543.19,"base_flow_yoy":2415750.88,"settle_rate":"0.38"},{"name":"郝丽娟","school":"南京工业大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":8,"touch":11,"train":1,"campus":0,"actual_order":2900427.84,"prev_flow":3382073.65,"base_flow_yoy":2364683.54,"settle_rate":"未对接财务"},{"name":"田晓燕","school":"苏州大学","role":"区域主管","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":63,"train":0,"campus":0,"actual_order":8061417,"prev_flow":6983017.9,"base_flow_yoy":8692158.31,"settle_rate":"0.751"},{"name":"周雨","school":"浙江大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":22201389.45,"prev_flow":19844337.12,"base_flow_yoy":0,"settle_rate":"0.2"},{"name":"刘笑含","school":"上海交医","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":202,"train":0,"campus":1,"actual_order":5946342.83,"prev_flow":5803028.33,"base_flow_yoy":3604331.18,"settle_rate":"0.52"},{"name":"周雨","school":"同济大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":22,"touch":13,"train":0,"campus":0,"actual_order":7119827.79,"prev_flow":4456569.22,"base_flow_yoy":366648.79,"settle_rate":"0.56"},{"name":"刘笑含","school":"华师","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":1009498.99,"prev_flow":1016888.35,"base_flow_yoy":909798.27,"settle_rate":"0.79"},{"name":"郝倩","school":"南开大学","role":"项目营销负责人","leader":"刘金玲","region":"天津","user_pool":1,"touch":0,"train":4,"campus":0,"actual_order":9662353.48,"prev_flow":17633506.08,"base_flow_yoy":8356538.06,"settle_rate":"0.8"},{"name":"刘金玲","school":"天津医科大学","role":"区域主管","leader":"刘金玲","region":"天津","user_pool":0,"touch":0,"train":2,"campus":3,"actual_order":3710814.17,"prev_flow":3704748.65,"base_flow_yoy":4187600.29,"settle_rate":"0.6209"},{"name":"郭旺","school":"河北工业大学","role":"运营专员","leader":"刘金玲","region":"天津","user_pool":6,"touch":0,"train":0,"campus":0,"actual_order":322029.44,"prev_flow":267529.09,"base_flow_yoy":334539.56,"settle_rate":"未对接财务"},{"name":"李笑天","school":"天大化学品","role":"运营专员","leader":"刘金玲","region":"天津","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":3968119.44,"prev_flow":5370000,"base_flow_yoy":3623223.1,"settle_rate":"1"},{"name":"郭婷婷","school":"华中科技大学","role":"运营专员","leader":"张璟","region":"西南海南湖北","user_pool":33,"touch":414,"train":2,"campus":0,"actual_order":1753316.29,"prev_flow":1543172.71,"base_flow_yoy":669023.25,"settle_rate":"0.84"},{"name":"吴海源","school":"海南大学","role":"运营专员","leader":"张璟","region":"西南海南湖北","user_pool":11,"touch":72,"train":4,"campus":0,"actual_order":5277721.29,"prev_flow":4210769.13,"base_flow_yoy":4416039.59,"settle_rate":"0.92"},{"name":"曾巧","school":"四川大学","role":"运营专员","leader":"张璟","region":"西南海南湖北","user_pool":27,"touch":19,"train":7,"campus":3,"actual_order":1006233.48,"prev_flow":779734.65,"base_flow_yoy":754193.52,"settle_rate":"0.21"},{"name":"张璟","school":"重庆大学","role":"区域主管","leader":"张璟","region":"西南海南湖北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":758843.34,"prev_flow":645267.14,"base_flow_yoy":957612.02,"settle_rate":"未财务对接"},{"name":"高欢庆","school":"东北西北区域","role":"区域主管","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":0,"prev_flow":0,"base_flow_yoy":0,"settle_rate":"","_synthetic":true}]},"2026-05":{"regions":{"陈宝华":{"region":"广东","user_pool":110,"touch":748,"train":17,"campus":6,"flow":3675485.79,"actual_order":3675485.79,"projects":4,"members":["南方医科大学","华南理工大学","广州中医药大学","广州大学"]},"周滨":{"region":"北京","user_pool":33,"touch":161,"train":20,"campus":4,"flow":18723802.77,"actual_order":18723802.77,"projects":9,"members":["中国农业大学","北京师范大学","清华大学","药物所","北京工商大学","北京中医药大学","北京林业大学","北京化工大学","北京科技大学"]},"高欢庆":{"region":"东北西北","user_pool":136,"touch":190,"train":14,"campus":1,"flow":16039581.9,"actual_order":16039581.9,"projects":9,"members":["西安交通大学","西北工业大学","中国医科大学第一附属医院","大连理工大学","中国医科大学（新）","中国医科大学（老）","哈尔滨工业大学","哈尔滨师范大学","东北大学"]},"田晓燕":{"region":"江浙沪","user_pool":60,"touch":254,"train":5,"campus":2,"flow":50015921.15,"actual_order":50015921.15,"projects":8,"members":["南京农业大学","南京中医药大学","南京工业大学","苏州大学","浙江大学","上海交医","同济大学","华师"]},"刘金玲":{"region":"天津","user_pool":4,"touch":15,"train":5,"campus":5,"flow":26975783.819999997,"actual_order":26975783.819999997,"projects":4,"members":["南开大学","天津医科大学","河北工业大学","天大化学品"]},"张璟":{"region":"西南海南湖北","user_pool":79,"touch":411,"train":26,"campus":4,"flow":6533676.49,"actual_order":6533676.49,"projects":4,"members":["华中科技大学","海南大学","四川大学","重庆大学"]}},"people":[{"name":"陈宝华","school":"南方医科大学","role":"区域主管","leader":"陈宝华","region":"广东","user_pool":21,"touch":135,"train":4,"campus":0,"actual_order":66107.23,"prev_flow":59146.36,"base_flow_yoy":15474.64,"settle_rate":""},{"name":"卢婉炫","school":"华南理工大学","role":"运营专员","leader":"陈宝华","region":"广东","user_pool":30,"touch":307,"train":4,"campus":4,"actual_order":418453.88,"prev_flow":464091.53,"base_flow_yoy":0,"settle_rate":"0"},{"name":"黄乐怡","school":"广州中医药大学","role":"项目营销负责人","leader":"陈宝华","region":"广东","user_pool":29,"touch":143,"train":5,"campus":0,"actual_order":1295293.96,"prev_flow":1008637.37,"base_flow_yoy":755612.99,"settle_rate":"没有对接财务"},{"name":"孙嘉睿","school":"广州大学","role":"项目营销负责人","leader":"陈宝华","region":"广东","user_pool":30,"touch":163,"train":4,"campus":2,"actual_order":1895630.72,"prev_flow":1174221.1,"base_flow_yoy":1995970.29,"settle_rate":"0.95"},{"name":"代斯航","school":"中国农业大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":16,"touch":115,"train":2,"campus":1,"actual_order":210146.76,"prev_flow":306905.72,"base_flow_yoy":10847.19,"settle_rate":"0.8643"},{"name":"周滨","school":"北京师范大学","role":"区域主管","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":2,"campus":0,"actual_order":2834.28,"prev_flow":10919,"base_flow_yoy":0,"settle_rate":"0.1121"},{"name":"王春光","school":"清华大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":17,"touch":23,"train":4,"campus":2,"actual_order":7122100.84,"prev_flow":7331479.87,"base_flow_yoy":5724471.32,"settle_rate":""},{"name":"郭芮影","school":"药物所","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":23,"train":7,"campus":0,"actual_order":4340511.11,"prev_flow":4757697.21,"base_flow_yoy":3076509.77,"settle_rate":"0.9191"},{"name":"徐颖","school":"北京工商大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":5,"campus":1,"actual_order":12936.15,"prev_flow":0,"base_flow_yoy":0,"settle_rate":"0.2557"},{"name":"周滨","school":"北京中医药大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":4501877.22,"prev_flow":5737990.3,"base_flow_yoy":4961062.02,"settle_rate":"0"},{"name":"张亚娟","school":"北京林业大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":251683.76,"prev_flow":0,"base_flow_yoy":0,"settle_rate":"0.7616"},{"name":"张亚娟","school":"北京化工大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":1482822.95,"prev_flow":1693343.17,"base_flow_yoy":1673879.33,"settle_rate":"0.0822"},{"name":"张亚娟","school":"北京科技大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":798889.7,"prev_flow":0,"base_flow_yoy":0,"settle_rate":"0.4155"},{"name":"王书妍","school":"西安交通大学","role":"项目营销负责人","leader":"高欢庆","region":"东北西北","user_pool":24,"touch":105,"train":3,"campus":0,"actual_order":4159340.9,"prev_flow":4078725.86,"base_flow_yoy":3671421.71,"settle_rate":"0"},{"name":"王琛","school":"西北工业大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":78,"touch":80,"train":5,"campus":0,"actual_order":810738.42,"prev_flow":663542.73,"base_flow_yoy":975357.48,"settle_rate":"0.93"},{"name":"郭旺","school":"中国医科大学第一附属医院","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":4988890.97,"prev_flow":5608725.58,"base_flow_yoy":0,"settle_rate":"0.61"},{"name":"郭旺","school":"大连理工大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":2,"train":0,"campus":0,"actual_order":1319285.66,"prev_flow":2083179.55,"base_flow_yoy":2192593.81,"settle_rate":"未对接财务"},{"name":"王桐桐","school":"中国医科大学（新）","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":3,"train":0,"campus":1,"actual_order":21947.13,"prev_flow":0,"base_flow_yoy":0,"settle_rate":"未对接财务"},{"name":"王桐桐","school":"中国医科大学（老）","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":4393923.46,"prev_flow":5553452.81,"base_flow_yoy":0,"settle_rate":"0"},{"name":"曹振华","school":"哈尔滨工业大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":34,"touch":0,"train":6,"campus":0,"actual_order":12989.65,"prev_flow":17948.14,"base_flow_yoy":0,"settle_rate":"0.97"},{"name":"郭旺","school":"哈尔滨师范大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":332465.71,"prev_flow":0,"base_flow_yoy":0,"settle_rate":"0.9211"},{"name":"郭旺","school":"东北大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":0,"prev_flow":0,"base_flow_yoy":0,"settle_rate":"0.5362"},{"name":"郝丽娟","school":"南京农业大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":26,"touch":84,"train":2,"campus":0,"actual_order":6309463.39,"prev_flow":6353608.25,"base_flow_yoy":5543015.88,"settle_rate":"（未开网络）"},{"name":"田晓燕","school":"南京中医药大学","role":"区域主管","leader":"田晓燕","region":"江浙沪","user_pool":34,"touch":131,"train":0,"campus":1,"actual_order":2220543.19,"prev_flow":2452379.59,"base_flow_yoy":1886207.27,"settle_rate":"0.25"},{"name":"郝丽娟","school":"南京工业大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":36,"train":3,"campus":0,"actual_order":3382073.65,"prev_flow":3323766.79,"base_flow_yoy":1955295.19,"settle_rate":"0.1218"},{"name":"田晓燕","school":"苏州大学","role":"区域主管","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":2,"train":0,"campus":1,"actual_order":6983017.9,"prev_flow":7909062.61,"base_flow_yoy":6039867.59,"settle_rate":"没有对接财务"},{"name":"周雨","school":"浙江大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":19844337.12,"prev_flow":20304198.64,"base_flow_yoy":0,"settle_rate":"0.212"},{"name":"刘笑含","school":"上海交医","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":5803028.33,"prev_flow":2534468.6,"base_flow_yoy":2921857.24,"settle_rate":"0.1763"},{"name":"周雨","school":"同济大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":1,"train":0,"campus":0,"actual_order":4456569.22,"prev_flow":808019.93,"base_flow_yoy":0,"settle_rate":"0.46"},{"name":"刘笑含","school":"华师","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":1016888.35,"prev_flow":1055629.11,"base_flow_yoy":784008.25,"settle_rate":"0.61"},{"name":"郝倩","school":"南开大学","role":"项目营销负责人","leader":"刘金玲","region":"天津","user_pool":4,"touch":15,"train":4,"campus":0,"actual_order":17633506.08,"prev_flow":17941652.14,"base_flow_yoy":7347941.32,"settle_rate":"0.79"},{"name":"刘金玲","school":"天津医科大学","role":"区域主管","leader":"刘金玲","region":"天津","user_pool":0,"touch":0,"train":0,"campus":4,"actual_order":3704748.65,"prev_flow":3797413.23,"base_flow_yoy":2825334.84,"settle_rate":"0.56"},{"name":"郭旺","school":"河北工业大学","role":"运营专员","leader":"刘金玲","region":"天津","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":267529.09,"prev_flow":893037.78,"base_flow_yoy":0,"settle_rate":"0.6369"},{"name":"李笑天","school":"天大化学品","role":"运营专员","leader":"刘金玲","region":"天津","user_pool":0,"touch":0,"train":1,"campus":1,"actual_order":5370000,"prev_flow":280176.13,"base_flow_yoy":5176429.57,"settle_rate":"未对接财务"},{"name":"郭婷婷","school":"华中科技大学","role":"运营专员","leader":"张璟","region":"西南海南湖北","user_pool":30,"touch":103,"train":10,"campus":0,"actual_order":1543172.71,"prev_flow":2212598.68,"base_flow_yoy":562780.3,"settle_rate":"未开始结算"},{"name":"吴海源","school":"海南大学","role":"运营专员","leader":"张璟","region":"西南海南湖北","user_pool":11,"touch":115,"train":4,"campus":1,"actual_order":4210769.13,"prev_flow":4238177.61,"base_flow_yoy":4744210.36,"settle_rate":"0.86"},{"name":"曾巧","school":"四川大学","role":"运营专员","leader":"张璟","region":"西南海南湖北","user_pool":38,"touch":193,"train":12,"campus":3,"actual_order":779734.65,"prev_flow":890120.67,"base_flow_yoy":616401.63,"settle_rate":"0.457"},{"name":"张璟","school":"重庆大学","role":"区域主管","leader":"张璟","region":"西南海南湖北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":0,"prev_flow":0,"base_flow_yoy":0,"settle_rate":"0.157"},{"name":"高欢庆","school":"东北西北区域","role":"区域主管","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":0,"prev_flow":0,"base_flow_yoy":0,"settle_rate":"","_synthetic":true}]},"2026-04":{"regions":{"高欢庆":{"region":"东北西北","user_pool":89,"touch":901,"train":19,"campus":8,"flow":18005574.669999998,"actual_order":18005574.669999998,"projects":6,"members":["西安交通大学","西北工业大学","哈尔滨工业大学","中国医科大学","中国医科大学第一附属医院","大连理工大学"]},"张璟":{"region":"西南海南湖北","user_pool":88,"touch":1225,"train":29,"campus":5,"flow":7340896.960000001,"actual_order":7340896.960000001,"projects":3,"members":["四川大学","华中科技大学","海南大学"]},"陈宝华":{"region":"广东","user_pool":105,"touch":2909,"train":10,"campus":0,"flow":2706096.3600000003,"actual_order":2706096.3600000003,"projects":4,"members":["广州大学","华南理工大学","南方医科大学","广州中医药大学"]},"田晓燕":{"region":"江浙沪","user_pool":81,"touch":546,"train":8,"campus":2,"flow":41151035.81,"actual_order":41151035.81,"projects":6,"members":["南京中医药大学","南京工业大学","南京农业大学","苏州大学","同济大学","浙江大学（不参加活动）"]},"刘金玲":{"region":"天津","user_pool":4,"touch":238,"train":5,"campus":2,"flow":22632103.150000002,"actual_order":22632103.150000002,"projects":3,"members":["南开大学","天津医科大学","河北工业"]},"周滨":{"region":"北京","user_pool":27,"touch":652,"train":12,"campus":2,"flow":14100344.97,"actual_order":14100344.97,"projects":7,"members":["中国农业大学","清华大学","药物所","北京师范大学（没开始做营销）","北京化工大学（没开始做营销）","北京林业大学（没开始做营销）","北京科技大学（不参加活动）"]}},"people":[{"name":"王书妍","school":"西安交通大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":16,"touch":418,"train":4,"campus":1,"actual_order":4078725.86,"prev_flow":3830841.69,"base_flow_yoy":0,"settle_rate":""},{"name":"王琛","school":"西北工业大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":73,"touch":280,"train":10,"campus":5,"actual_order":663542.73,"prev_flow":303456.02,"base_flow_yoy":0,"settle_rate":""},{"name":"曹振华","school":"哈尔滨工业大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":17948.14,"prev_flow":17043.54,"base_flow_yoy":0,"settle_rate":""},{"name":"王桐桐","school":"中国医科大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":3,"train":1,"campus":0,"actual_order":5553452.81,"prev_flow":4403561.27,"base_flow_yoy":0,"settle_rate":""},{"name":"郭旺","school":"中国医科大学第一附属医院","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":5608725.58,"prev_flow":3677460.01,"base_flow_yoy":0,"settle_rate":""},{"name":"郭旺","school":"大连理工大学","role":"运营专员","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":200,"train":4,"campus":2,"actual_order":2083179.55,"prev_flow":2524644.95,"base_flow_yoy":0,"settle_rate":""},{"name":"曾巧","school":"四川大学","role":"运营专员","leader":"张璟","region":"西南海南湖北","user_pool":38,"touch":507,"train":11,"campus":2,"actual_order":890120.67,"prev_flow":626797.72,"base_flow_yoy":0,"settle_rate":""},{"name":"郭婷婷","school":"华中科技大学","role":"运营专员","leader":"张璟","region":"西南海南湖北","user_pool":34,"touch":410,"train":10,"campus":0,"actual_order":2212598.68,"prev_flow":1832250.28,"base_flow_yoy":0,"settle_rate":""},{"name":"吴海源","school":"海南大学","role":"运营专员","leader":"张璟","region":"西南海南湖北","user_pool":16,"touch":308,"train":8,"campus":3,"actual_order":4238177.61,"prev_flow":3633059.55,"base_flow_yoy":0,"settle_rate":""},{"name":"孙嘉睿","school":"广州大学","role":"运营专员","leader":"陈宝华","region":"广东","user_pool":20,"touch":643,"train":0,"campus":0,"actual_order":1174221.1,"prev_flow":1520040.17,"base_flow_yoy":0,"settle_rate":""},{"name":"卢婉炫","school":"华南理工大学","role":"运营专员","leader":"陈宝华","region":"广东","user_pool":30,"touch":788,"train":4,"campus":0,"actual_order":464091.53,"prev_flow":580560.95,"base_flow_yoy":0,"settle_rate":""},{"name":"陈宝华","school":"南方医科大学","role":"区域主管","leader":"陈宝华","region":"广东","user_pool":23,"touch":877,"train":0,"campus":0,"actual_order":59146.36,"prev_flow":110879.03,"base_flow_yoy":0,"settle_rate":""},{"name":"黄乐怡","school":"广州中医药大学","role":"运营专员","leader":"陈宝华","region":"广东","user_pool":32,"touch":601,"train":6,"campus":0,"actual_order":1008637.37,"prev_flow":343981.91,"base_flow_yoy":0,"settle_rate":""},{"name":"田晓燕","school":"南京中医药大学","role":"区域主管","leader":"田晓燕","region":"江浙沪","user_pool":32,"touch":74,"train":0,"campus":0,"actual_order":2452379.59,"prev_flow":1749188.87,"base_flow_yoy":0,"settle_rate":""},{"name":"郝丽娟","school":"南京工业大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":8,"touch":7,"train":7,"campus":0,"actual_order":3323766.79,"prev_flow":1975098.26,"base_flow_yoy":0,"settle_rate":""},{"name":"郝丽娟","school":"南京农业大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":41,"touch":465,"train":1,"campus":1,"actual_order":6353608.25,"prev_flow":5380635.38,"base_flow_yoy":0,"settle_rate":""},{"name":"田晓燕","school":"苏州大学","role":"区域主管","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":7909062.61,"prev_flow":6821041.01,"base_flow_yoy":0,"settle_rate":""},{"name":"周雨","school":"同济大学","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":808019.93,"prev_flow":454876.34,"base_flow_yoy":0,"settle_rate":""},{"name":"郝倩","school":"南开大学","role":"运营专员","leader":"刘金玲","region":"天津","user_pool":4,"touch":238,"train":5,"campus":2,"actual_order":17941652.14,"prev_flow":7525769.9,"base_flow_yoy":0,"settle_rate":""},{"name":"刘金玲","school":"天津医科大学","role":"区域主管","leader":"刘金玲","region":"天津","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":3797413.23,"prev_flow":4590327.28,"base_flow_yoy":0,"settle_rate":""},{"name":"郭旺","school":"河北工业","role":"运营专员","leader":"刘金玲","region":"天津","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":893037.78,"prev_flow":281937.95,"base_flow_yoy":0,"settle_rate":""},{"name":"周滨","school":"中国农业大学","role":"区域主管","leader":"周滨","region":"北京","user_pool":10,"touch":55,"train":0,"campus":0,"actual_order":306905.72,"prev_flow":248624.15,"base_flow_yoy":0,"settle_rate":""},{"name":"王春光","school":"清华大学","role":"运营专员","leader":"周滨","region":"北京","user_pool":17,"touch":84,"train":5,"campus":0,"actual_order":7331479.87,"prev_flow":10561037.94,"base_flow_yoy":0,"settle_rate":""},{"name":"郭芮影","school":"药物所","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":182,"train":4,"campus":1,"actual_order":4757697.21,"prev_flow":3754619.88,"base_flow_yoy":0,"settle_rate":""},{"name":"周滨","school":"北京师范大学（没开始做营销）","role":"区域主管","leader":"周滨","region":"北京","user_pool":0,"touch":331,"train":3,"campus":1,"actual_order":10919,"prev_flow":0,"base_flow_yoy":0,"settle_rate":""},{"name":"张亚娟","school":"北京化工大学（没开始做营销）","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":1693343.17,"prev_flow":2063106.1,"base_flow_yoy":0,"settle_rate":""},{"name":"张亚娟","school":"北京林业大学（没开始做营销）","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":0,"prev_flow":0,"base_flow_yoy":0,"settle_rate":""},{"name":"张亚娟","school":"北京科技大学（不参加活动）","role":"运营专员","leader":"周滨","region":"北京","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":0,"prev_flow":0,"base_flow_yoy":0,"settle_rate":""},{"name":"高欢庆","school":"东北西北区域","role":"区域主管","leader":"高欢庆","region":"东北西北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":0,"prev_flow":0,"base_flow_yoy":0,"settle_rate":"","_synthetic":true},{"name":"张璟","school":"西南海南湖北区域(本区域无直管项目)","role":"区域主管","leader":"张璟","region":"西南海南湖北","user_pool":0,"touch":0,"train":0,"campus":0,"actual_order":0,"prev_flow":0,"base_flow_yoy":0,"settle_rate":0,"_synthetic":true},{"name":"未填写","school":"浙江大学（不参加活动）","role":"运营专员","leader":"田晓燕","region":"江浙沪","user_pool":0,"touch":0,"train":0,"campus":1,"actual_order":20304198.64,"prev_flow":25174302.61,"base_flow_yoy":0,"settle_rate":""}]}},"totals":{"2026-07":{"operators":26,"schools":38,"user_pool":279,"touch":79,"train":45,"campus":1,"flow":122212515.43,"actual_order":122212515.43},"2026-06":{"operators":26,"schools":38,"user_pool":578,"touch":1990,"train":81,"campus":47,"flow":129512923.33,"actual_order":129512923.33},"2026-05":{"operators":26,"schools":38,"user_pool":422,"touch":1779,"train":87,"campus":22,"flow":121964251.92,"actual_order":121964251.92},"2026-04":{"operators":22,"schools":29,"user_pool":394,"touch":6471,"train":83,"campus":19,"flow":105936051.92,"actual_order":105936051.92}}};var SUBJECTIVE_FIELDS = {
   "区域主管": [
@@ -1391,6 +1431,9 @@ function enterApp() {
   var mb = $('mainBody'); if (mb) mb.style.display = 'flex';
   refreshUserBadge();
   applyNavByRole();
+  // 导入按钮仅管理员可见
+  var importBtn = $('importBtn');
+  if (importBtn) importBtn.style.display = isAdmin() ? 'inline-block' : 'none';
   refreshCurrentModule();
 }
 
@@ -2111,7 +2154,7 @@ function updatePerformanceContent() {
     
     // 主观分字段
     roleFields.forEach(function(f) {
-      var val = subjectiveScores[p.name+"_"+f.key] || "";
+      var val = subjectiveScores[p.name+"_"+f.key+"_"+perfMonth] || "";
       out += '<div class="score-item">';
       out += '<span>'+f.name+' ('+f.weight+')</span>';
       out += '<input class="score-input" type="number" min="0" max="'+parseInt(f.weight)*10+'" value="'+val+'" data-pname="'+p.name+'" data-fkey="'+f.key+'" onchange="updateScore(this.dataset.pname,this.dataset.fkey,this.value)">';
@@ -2136,7 +2179,7 @@ function updatePerformanceContent() {
 }
 
 function updateScore(person, fieldKey, value) {
-  subjectiveScores[person+"_"+fieldKey] = value;
+  subjectiveScores[person+"_"+fieldKey+"_"+perfMonth] = value;
   updatePerformanceContent();
 }
 
@@ -2156,7 +2199,7 @@ function calcSubjectiveTotal(person, role) {
   var fields = SUBJECTIVE_FIELDS[role] || [];
   var total = 0;
   fields.forEach(function(f) {
-    var v = parseFloat(subjectiveScores[person+"_"+f.key]) || 0;
+    var v = parseFloat(subjectiveScores[person+"_"+f.key+"_"+perfMonth]) || 0;
     total += v;
   });
   return total;
@@ -4013,6 +4056,8 @@ function renderPieChart(canvasId, title, labels, data, hideLabels) {
 
 
 document.addEventListener("DOMContentLoaded", function() {
+  // 加载本地持久化的导入数据（合并覆盖默认月份）
+  loadWorkbenchData();
   renderMonthBtns();
   // 三角色登录：恢复上次会话，未登录则显示登录页
   var saved = null;
@@ -4024,6 +4069,303 @@ document.addEventListener("DOMContentLoaded", function() {
     showLogin();
   }
 });
+
+
+// ===== Excel 导入功能 =====
+var importedPeople = null;
+var importedMonth = null;
+
+// 导入数据持久化：localStorage 覆盖默认数据
+var WB_DATA_STORAGE_KEY = 'wb_workbench_data_v1';
+function saveWorkbenchData() {
+  try {
+    localStorage.setItem(WB_DATA_STORAGE_KEY, JSON.stringify(WORKBENCH_DATA));
+  } catch (e) {
+    console.error('保存工作台数据失败（可能超出 localStorage 容量）', e);
+    alert('⚠️ 数据保存失败：浏览器本地存储空间不足。数据本次生效，但刷新后可能丢失。');
+  }
+}
+function loadWorkbenchData() {
+  try {
+    var raw = localStorage.getItem(WB_DATA_STORAGE_KEY);
+    if (!raw) return;
+    var saved = JSON.parse(raw);
+    if (!saved || !saved.available_months || !saved.monthly_data) return;
+    // 合并：以默认数据为基础，用已保存数据覆盖同名月份
+    (saved.available_months || []).forEach(function(m) {
+      if (saved.monthly_data[m] && saved.totals[m]) {
+        WORKBENCH_DATA.monthly_data[m] = saved.monthly_data[m];
+        WORKBENCH_DATA.totals[m] = saved.totals[m];
+        if (WORKBENCH_DATA.available_months.indexOf(m) < 0) WORKBENCH_DATA.available_months.push(m);
+      }
+    });
+    WORKBENCH_DATA.available_months.sort();
+    // 同步全局月份状态
+    selectedMonths = WORKBENCH_DATA.available_months.slice();
+    currentMonth = WORKBENCH_DATA.available_months[WORKBENCH_DATA.available_months.length - 1];
+  } catch (e) {
+    console.error('加载已保存数据失败', e);
+  }
+}
+
+// 列名映射表（支持多种写法）
+var COL_MAP = {
+  name: ['姓名','负责人','运营人员','人员','name'],
+  school: ['学校','项目','学校/项目','项目名称','学校名称','school'],
+  role: ['角色','岗位','职务','role'],
+  leader: ['区域主管','主管','所属主管','leader'],
+  region: ['区域','大区','region'],
+  user_pool: ['用户池','用户池新增','user_pool'],
+  touch: ['有效触达','触达','触达人次','touch'],
+  train: ['培训场次','培训','培训次数','train'],
+  campus: ['校园行场次','校园行','校园活动','campus'],
+  actual_order: ['实际订单金额','实际订单','订单金额','流量','当月流量','当月订单','actual_order'],
+  prev_flow: ['上月流量','上月订单','上月','prev_flow'],
+  base_flow_yoy: ['同期流量','去年同期流量','同期','去年同期','base_flow_yoy'],
+  settle_rate: ['结算率','结算完成率','settle_rate']
+};
+
+function matchColumn(headers) {
+  var mapping = {};
+  headers.forEach(function(h, i) {
+    var hl = String(h || '').trim().toLowerCase().replace(/\s/g, '');
+    Object.keys(COL_MAP).forEach(function(field) {
+      if (mapping[field] !== undefined) return;
+      var found = COL_MAP[field].some(function(alias) {
+        return hl === alias.toLowerCase().replace(/\s/g, '') || hl.indexOf(alias.toLowerCase().replace(/\s/g, '')) >= 0;
+      });
+      if (found) mapping[field] = i;
+    });
+  });
+  return mapping;
+}
+
+function handleImportFile(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = new Uint8Array(e.target.result);
+      var wb = XLSX.read(data, { type: 'array' });
+      var sheet = wb.Sheets[wb.SheetNames[0]];
+      var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+      if (rows.length < 2) { alert('Excel 数据不足，至少需要表头+1行数据'); return; }
+      var headers = rows[0];
+      var colMap = matchColumn(headers);
+      // 检查必填列
+      var missing = [];
+      ['name','school','actual_order'].forEach(function(f) {
+        if (colMap[f] === undefined) missing.push(f);
+      });
+      if (missing.length) {
+        alert('缺少必填列：' + missing.join(', ') + '\n请确保 Excel 包含：姓名、学校/项目、实际订单金额');
+        return;
+      }
+      // 解析数据行
+      var people = [];
+      for (var i = 1; i < rows.length; i++) {
+        var row = rows[i];
+        if (!row[colMap.name] && !row[colMap.school]) continue;
+        var p = {
+          name: String(row[colMap.name] || '').trim() || '未填写',
+          school: String(row[colMap.school] || '').trim(),
+          role: colMap.role !== undefined ? String(row[colMap.role] || '').trim() : '运营专员',
+          leader: colMap.leader !== undefined ? String(row[colMap.leader] || '').trim() : '',
+          region: colMap.region !== undefined ? String(row[colMap.region] || '').trim() : '',
+          user_pool: num(row, colMap.user_pool),
+          touch: num(row, colMap.touch),
+          train: num(row, colMap.train),
+          campus: num(row, colMap.campus),
+          actual_order: num(row, colMap.actual_order),
+          prev_flow: num(row, colMap.prev_flow),
+          base_flow_yoy: num(row, colMap.base_flow_yoy),
+          settle_rate: colMap.settle_rate !== undefined ? String(row[colMap.settle_rate] || '').trim() : '',
+          flow: num(row, colMap.actual_order)
+        };
+        if (!p.leader && p.role === '区域主管') p.leader = p.name;
+        people.push(p);
+      }
+      if (people.length === 0) { alert('未解析到有效数据行'); return; }
+      // 确保所有区域主管都在 people 里（补占位）
+      var leaderNames = {};
+      people.forEach(function(p) { if (p.leader) leaderNames[p.leader] = true; });
+      Object.keys(leaderNames).forEach(function(ln) {
+        var has = people.some(function(p) { return p.name === ln && p.role === '区域主管'; });
+        if (!has) {
+          // 找该主管的区域名
+          var reg = '';
+          people.forEach(function(p) { if (p.leader === ln && p.region) reg = p.region; });
+          people.unshift({ name: ln, school: ln + '区域', role: '区域主管', leader: ln, region: reg, user_pool: 0, touch: 0, train: 0, campus: 0, actual_order: 0, prev_flow: 0, base_flow_yoy: 0, settle_rate: '', _synthetic: true, flow: 0 });
+        }
+      });
+      importedPeople = people;
+      // 显示弹窗
+      showImportModal(people);
+    } catch (err) {
+      alert('解析失败：' + err.message);
+      console.error(err);
+    }
+    input.value = ''; // 重置以便再次导入同一文件
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function num(row, idx) {
+  if (idx === undefined) return 0;
+  var v = row[idx];
+  if (typeof v === 'number') return v;
+  v = String(v || '').replace(/[,，¥$\s]/g, '').replace(/[^0-9.\-]/g, '');
+  return parseFloat(v) || 0;
+}
+
+function showImportModal(people) {
+  var modal = $('importModal');
+  modal.style.display = 'flex';
+  // 填充月份下拉
+  var sel = $('importMonthSelect');
+  var avail = WORKBENCH_DATA.available_months || [];
+  // 计算下一个月份
+  var nextMonth = '';
+  if (avail.length > 0) {
+    var last = avail.sort()[avail.length - 1]; // "2026-07"
+    var parts = last.split('-');
+    var y = parseInt(parts[0]), m = parseInt(parts[1]) + 1;
+    if (m > 12) { y++; m = 1; }
+    nextMonth = y + '-' + String(m).padStart(2, '0');
+  } else {
+    nextMonth = '2026-08';
+  }
+  var options = avail.slice().sort();
+  if (options.indexOf(nextMonth) < 0) options.push(nextMonth);
+  sel.innerHTML = options.map(function(m) {
+    var label = formatMonthLabel(m);
+    if (m === nextMonth) label += '（新增）';
+    if (avail.indexOf(m) >= 0) label += '（覆盖）';
+    return '<option value="' + m + '"' + (m === nextMonth ? ' selected' : '') + '>' + label + '</option>';
+  }).join('');
+
+  // 预览数据
+  $('importPreview').style.display = 'block';
+  var html = '<table style="width:100%;font-size:11px;border-collapse:collapse"><thead><tr>';
+  ['姓名','学校','角色','主管','区域','用户池','触达','培训','校园行','订单金额','上月流量','同期流量','结算率'].forEach(function(h) {
+    html += '<th style="padding:4px 6px;border:1px solid #e0e0e0;background:#f5f5f5;text-align:left;white-space:nowrap">' + h + '</th>';
+  });
+  html += '</tr></thead><tbody>';
+  people.slice(0, 20).forEach(function(p) {
+    html += '<tr>';
+    [p.name, p.school, p.role, p.leader, p.region, p.user_pool, p.touch, p.train, p.campus, fmt(p.actual_order), fmt(p.prev_flow), fmt(p.base_flow_yoy), p.settle_rate].forEach(function(v) {
+      html += '<td style="padding:3px 6px;border:1px solid #e0e0e0;white-space:nowrap">' + (v !== undefined ? v : '') + '</td>';
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  if (people.length > 20) html += '<div style="text-align:center;padding:6px;color:#888;font-size:11px">共 ' + people.length + ' 条记录，仅显示前 20 条</div>';
+  $('importPreviewContent').innerHTML = html;
+  $('importConfirmBtn').style.display = 'inline-block';
+  $('importResult').style.display = 'none';
+  $('importStep1').style.display = 'block';
+}
+
+function closeImportModal() {
+  $('importModal').style.display = 'none';
+  importedPeople = null;
+}
+
+function confirmImport() {
+  if (!importedPeople) return;
+  var month = $('importMonthSelect').value;
+  if (!month) { alert('请选择数据所属月份'); return; }
+
+  var people = importedPeople;
+  // 计算区域聚合
+  var regions = {};
+  people.forEach(function(p) {
+    if (p._synthetic) return;
+    var leader = p.leader;
+    if (!leader) return;
+    if (!regions[leader]) {
+      regions[leader] = { region: p.region || '', user_pool: 0, touch: 0, train: 0, campus: 0, flow: 0, actual_order: 0, projects: 0, members: [] };
+    }
+    var r = regions[leader];
+    r.user_pool += (p.user_pool || 0);
+    r.touch += (p.touch || 0);
+    r.train += (p.train || 0);
+    r.campus += (p.campus || 0);
+    r.flow += (p.actual_order || 0);
+    r.actual_order += (p.actual_order || 0);
+    r.projects++;
+    if (p.school && r.members.indexOf(p.school) < 0) r.members.push(p.school);
+  });
+
+  // 计算 totals
+  var totals = { operators: 0, schools: 0, user_pool: 0, touch: 0, train: 0, campus: 0, flow: 0, actual_order: 0 };
+  var seenSchools = {};
+  var seenOps = {};
+  people.forEach(function(p) {
+    if (p._synthetic) return;
+    totals.user_pool += (p.user_pool || 0);
+    totals.touch += (p.touch || 0);
+    totals.train += (p.train || 0);
+    totals.campus += (p.campus || 0);
+    totals.flow += (p.actual_order || 0);
+    totals.actual_order += (p.actual_order || 0);
+    if (p.school && !seenSchools[p.school]) { seenSchools[p.school] = 1; totals.schools++; }
+    if (p.name && !seenOps[p.name]) { seenOps[p.name] = 1; totals.operators++; }
+  });
+
+  // 写入 WORKBENCH_DATA
+  WORKBENCH_DATA.monthly_data[month] = { regions: regions, people: people };
+  WORKBENCH_DATA.totals[month] = totals;
+  if (WORKBENCH_DATA.available_months.indexOf(month) < 0) {
+    WORKBENCH_DATA.available_months.push(month);
+    WORKBENCH_DATA.available_months.sort();
+  }
+  // 同步 selectedMonths
+  if (selectedMonths.indexOf(month) < 0) selectedMonths.push(month);
+  // 同步 currentMonth
+  currentMonth = month;
+
+  // 持久化到 localStorage
+  saveWorkbenchData();
+
+  // 显示成功
+  $('importStep1').style.display = 'none';
+  $('importResult').style.display = 'block';
+  $('importResult').innerHTML =
+    '<div style="text-align:center;padding:30px 10px">' +
+    '<div style="font-size:48px;margin-bottom:12px">✅</div>' +
+    '<div style="font-size:16px;font-weight:600;margin-bottom:8px">导入成功！</div>' +
+    '<div style="font-size:13px;color:#666;margin-bottom:20px">' + formatMonthLabel(month) + ' · 共 ' + people.length + ' 条记录 · ' + Object.keys(regions).length + ' 个区域 · 总流量 ' + fmt(totals.flow / 10000) + ' 万</div>' +
+    '<button onclick="closeImportModal();renderMonthPicker();refreshCurrentModule();" style="padding:8px 24px;border:none;border-radius:6px;background:#1a73e8;color:#fff;font-size:13px;cursor:pointer;font-weight:600">完成</button>' +
+    '</div>';
+
+  // 刷新绩效月份下拉
+  var perfSel = $('perfMonthSelect');
+  if (perfSel) {
+    var months = WORKBENCH_DATA.available_months || [];
+    perfSel.innerHTML = months.map(function(m) { return '<option value="' + m + '"' + (m === month ? ' selected' : '') + '>' + formatMonthLabel(m) + '</option>'; }).join('');
+    perfMonth = month;
+  }
+  // 刷新月份选择器
+  renderMonthPicker();
+  refreshCurrentModule();
+}
+
+function downloadTemplate() {
+  var headers = ['姓名', '学校/项目', '角色', '区域主管', '区域', '用户池', '有效触达', '培训场次', '校园行场次', '实际订单金额', '上月流量', '同期流量', '结算率'];
+  var sample = [
+    ['陈宝华', '南方医科大学', '区域主管', '陈宝华', '广东', 30, 0, 0, 0, 29881.21, 39737.28, 12975.99, '0.57'],
+    ['卢婉炫', '华南理工大学', '运营专员', '陈宝华', '广东', 30, 6, 4, 1, 732608.74, 478397.85, 0, '未对接财务'],
+    ['黄乐怡', '广州中医药大学', '项目营销负责人', '陈宝华', '广东', 60, 0, 5, 0, 1179000.80, 1660564.59, 1329461.75, '0.99']
+  ];
+  var aoa = [headers].concat(sample);
+  var ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{ wch: 12 }, { wch: 20 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '月度数据');
+  XLSX.writeFile(wb, '运营月度数据模板.xlsx');
+}
 
 
 // ===== 任务下发系统（原 dashboard-v2 全部功能）=====
