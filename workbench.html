@@ -1255,9 +1255,11 @@ function calcObjectiveScore(p, role) {
         var avgRatio = ratios.reduce(function(a,b){return a+b;},0) / ratios.length;
         var mfScore = Math.round(avgRatio * mf.weight * 10) / 10;
         s += mfScore;
-        details.push({name:mf.name, val:Math.round(avgRatio*1000)/10,
+        // 主数字显示区域实际合计（次数/人次/人），完成率仍按评分口径（人员平均）展示，并在目标说明中标注，避免与“区域总÷总”混淆
+        var totalActual = regionMemberLevel.reduce(function(a,pl){ return a + (pl[mf.key]||0); }, 0);
+        details.push({name:mf.name, val:totalActual,
           ratio:Math.round(avgRatio*100), score:mfScore, max:mf.weight,
-          target:"区域"+memberCount+"人完成率均"});
+          target:"区域"+memberCount+"人，人均目标"+mf.target+"（评分按人员平均）"});
       } else {
         details.push({name:mf.name, val:"区域内无可统计人员", ratio:0, score:0, max:mf.weight, target:""});
       }
