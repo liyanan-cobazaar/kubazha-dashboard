@@ -2059,15 +2059,20 @@ function renderOvIncrement() {
   $("ovIncrementSummary").innerHTML =
     '<div class="kpi-row">' +
       '<div class="kpi-card"><div class="label">' + monthPrefix + '总流量增量(万)</div><div class="value" style="color:'+sumColor+'">'+sumVal+'</div><div class="trend">' + incUnit + '增量合计</div></div>' +
-      '<div class="kpi-card"><div class="label">' + monthPrefix + '正增量合计(万)</div><div class="value" style="color:#16a34a">+'+fmt(posInc)+'</div><div class="trend">增量 ≥ 0 的区域/项目</div></div>' +
-      '<div class="kpi-card"><div class="label">' + monthPrefix + '负增量合计(万)</div><div class="value" style="color:'+(negInc<0?'#dc2626':'#666')+'">'+negVal+'</div><div class="trend">增量 &lt; 0 的区域/项目</div></div>' +
+      '<div class="kpi-card"><div class="label">' + monthPrefix + '正增量合计(万)</div><div class="value" style="color:#16a34a">+'+fmt(posInc)+'</div><div class="trend">流量增长的区域/项目</div></div>' +
+      '<div class="kpi-card"><div class="label">' + monthPrefix + '负增量合计(万)</div><div class="value" style="color:'+(negInc<0?'#dc2626':'#666')+'">'+negVal+'</div><div class="trend">流量下降的区域/项目</div></div>' +
     '</div>' +
-    '<div style="background:#f0f7ff;border:1px solid #d0e3f7;border-radius:8px;padding:10px 14px;margin:12px 0;font-size:12px;color:#445;line-height:2">' +
-      '<b style="color:#1a5fb4">📖 增量对比标准（口径说明）</b><br>' +
-      '① 流量增量 = 当月实际产生线上订单金额 − 基期流量；<b>基期优先取该项目同期流量（base_flow_yoy）</b>；<br>' +
-      '② 若项目同期流量为 0 或缺失，则<b>回退使用上月流量（prev_flow）</b>作为该项目的增量对比标准；<br>' +
-      '③ 特殊项目（新政策，如<b>华中科技大学</b>）不论同期是否有值，<b>一律以所选月份的上月流量作为增量对比标准</b>；<br>' +
-      '④ 增量为负（较基期下降）以红色负数如实显示，不做归零处理。' +
+    '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin:12px 0;font-size:13px;color:#334155;line-height:1.85">' +
+      '<div style="font-weight:600;color:#1e40af;margin-bottom:8px;display:flex;align-items:center;gap:6px">' +
+        '<span style="font-size:15px">📖</span><span>流量增量是怎么算出来的？</span>' +
+      '</div>' +
+      '<div style="display:grid;gap:8px">' +
+        '<div style="display:flex;gap:8px"><span style="color:#3b82f6;font-weight:600;min-width:20px">①</span><span><b>核心公式：</b>流量增量 = 当月实际线上订单金额 − 该项目的对比基期流量。</span></div>' +
+        '<div style="display:flex;gap:8px"><span style="color:#3b82f6;font-weight:600;min-width:20px">②</span><span><b>基期优先用去年同期：</b>每个项目先看去年同期的流量；若有数据，就按去年同期做对比。</span></div>' +
+        '<div style="display:flex;gap:8px"><span style="color:#3b82f6;font-weight:600;min-width:20px">③</span><span><b>去年同期缺失时用上月：</b>如果某项目去年同期为 0 或没有数据，则回退使用上月实际流量作为对比基期。</span></div>' +
+        '<div style="display:flex;gap:8px"><span style="color:#3b82f6;font-weight:600;min-width:20px">④</span><span><b>特殊政策项目：</b>如<b>华中科技大学</b>，按新政策统一以上月实际流量作为对比基期。</span></div>' +
+        '<div style="display:flex;gap:8px"><span style="color:#3b82f6;font-weight:600;min-width:20px">⑤</span><span><b>负数就是下降：</b>当月流量比基期低时，增量显示为红色负数，如实反映，不做归零处理。</span></div>' +
+      '</div>' +
     '</div>';
 
   // 增量占比 + 排名
