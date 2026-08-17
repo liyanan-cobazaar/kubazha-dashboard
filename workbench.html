@@ -853,8 +853,12 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
       <div id="marketingModelLib" class="marketing-tab-content" style="display:none">
         <div style="display:flex;gap:10px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
           <select id="modelMonthFilter" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px">
-            <option value="all">全部月份</option><option value="4月">4月</option><option value="5月">5月</option>
-            <option value="6月">6月</option><option value="7月">7月</option><option value="8月">8月</option>
+            <option value="all">全部月份</option>
+            <option value="2026-04">2026年4月</option><option value="2026-05">2026年5月</option>
+            <option value="2026-06">2026年6月</option><option value="2026-07">2026年7月</option>
+            <option value="2026-08">2026年8月</option><option value="2026-09">2026年9月</option>
+            <option value="2026-10">2026年10月</option><option value="2026-11">2026年11月</option>
+            <option value="2026-12">2026年12月</option>
           </select>
           <select id="modelStatusFilter" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px">
             <option value="all">全部状态</option><option value="草稿">草稿</option><option value="已下发">已下发</option>
@@ -1186,7 +1190,6 @@ function getPersonLevelPeople(md) {
 function calcObjectiveScore(p, role) {
   role = role || p.role;
   var s = 0, details = [];
-  var regionGrowth = null; // 区域主管专用：区域流量增长率，用于团队对赌封顶判断
   var md = WORKBENCH_DATA.monthly_data[perfMonth];
   var regions = md ? md.regions : {};
 
@@ -1265,8 +1268,6 @@ function calcObjectiveScore(p, role) {
       }
     });
 
-    // 团队对赌调整依据：区域流量增长率（<0% 时总分封顶75，在总分处生效）
-    regionGrowth = regionBaseFlow > 0 ? (regionActualFlow - regionBaseFlow) / regionBaseFlow : 0;
 
   } else if(role === "项目营销负责人") {
     // 满分85: 流量30 + 结算15 + 校园行15 + 培训10 + 用户池8 + 触达7
@@ -1375,7 +1376,7 @@ function calcObjectiveScore(p, role) {
     }
   }
 
-  return {total: Math.round(s*10)/10, details: details, regionGrowth: regionGrowth};
+  return {total: Math.round(s*10)/10, details: details};
 }
 
 function statusClass(v, target) {
@@ -2288,16 +2289,10 @@ function updatePerformanceContent() {
       out += '<div class="hint-text">评分标准: '+f.hint+'</div>';
     });
     
-    // 总分（区域主管：团队对赌调整——区域流量增长<0% 时总分封顶75）
+    // 总分 = 客观分 + 主观分
     var subjTotal = calcSubjectiveTotal(p.name, p.role);
     var totalScore = objScore + subjTotal;
-    var capNote = '';
-    if(p.role === "区域主管" && objResult.regionGrowth !== null && objResult.regionGrowth < 0 && totalScore > 75) {
-      totalScore = 75;
-      capNote = '<div class="hint-text" style="color:#dc2626">团队对赌调整：区域增长'+(objResult.regionGrowth*100).toFixed(1)+'%&lt;0%，总分封顶75</div>';
-    }
     out += '<div class="score-item" style="background:#e8f5e9;border-radius:6px;padding:10px 8px;margin-top:8px"><span><strong>总分</strong></span><span style="font-size:22px;color:#1a73e8;font-weight:700">'+fmt(totalScore)+'</span></div>';
-    out += capNote;
     out += '</div>';
   });
   out += '</div>';
@@ -3413,7 +3408,14 @@ function openAddModelModal(id) {
   currentModelEditId = id || 0;
   $('addModelTitle').textContent = id ? '✏️ 编辑营销计划' : '➕ 新建营销计划';
   var m = id ? findModel(id) : null;
-  $('mmMonth').value = m ? (m.month || '8月') : ($('planMonthFilter') && $('planMonthFilter').value !== 'all' ? $('planMonthFilter').value : '8月');
+  if (m && m.month) {
+    var mm = normModelMonth(m.month).match(/^(\d{4})-(\d{2})$/);
+    $('mmYear').value = mm ? mm[1] : '2026';
+    $('mmMonth').value = mm ? mm[2] : '08';
+  } else {
+    $('mmYear').value = '2026';
+    $('mmMonth').value = '08';
+  }
   $('mmTitle').value = m ? (m.title || '') : '';
   $('mmCategory').value = m ? (m.category || '') : '';
   $('mmGoal').value = m ? (m.goal || '') : '';
@@ -3430,7 +3432,7 @@ function submitAddModel() {
   var goal = ($('mmGoal').value || '').trim();
   var expected = ($('mmExpected').value || '').trim();
   if (!title || !goal || !expected) { alert('请填写计划标题、目标、预计产出'); return; }
-  var month = $('mmMonth').value;
+  var month = ($('mmYear').value || '2026') + '-' + ($('mmMonth').value || '08');
   var category = ($('mmCategory').value || '').trim();
   var budget = parseFloat($('mmBudget').value) || 0;
   // 解析任务清单：每行 "阶段|内容"
@@ -3522,6 +3524,23 @@ function useModel(id) {
   if (sel) { sel.value = id; applyModelRef(); }
 }
 
+// 营销计划月份归一成 "YYYY-MM" 键（旧数据 "8月" 视为 2026 年），用于筛选/排序/对比
+function normModelMonth(s) {
+  if (!s) return '';
+  var m = String(s).match(/^(\d{4})-(\d{2})$/);
+  if (m) return s;
+  var mm = String(s).match(/^(\d{1,2})月$/);
+  if (mm) return '2026-' + ('0' + parseInt(mm[1], 10)).slice(-2);
+  return String(s);
+}
+// 显示成 "2026年8月"
+function formatModelMonth(s) {
+  var k = normModelMonth(s);
+  var m = k.match(/^(\d{4})-(\d{2})$/);
+  if (m) return m[1] + '年' + parseInt(m[2], 10) + '月';
+  return String(s);
+}
+
 function renderMarketingModelLib() {
   var btn = $('addModelBtn');
   if (btn) btn.style.display = canManageModelLib() ? '' : 'none';
@@ -3530,7 +3549,7 @@ function renderMarketingModelLib() {
   var mf = $('modelMonthFilter') ? $('modelMonthFilter').value : 'all';
   var sf = $('modelStatusFilter') ? $('modelStatusFilter').value : 'all';
   var list = MARKETING_MODEL_LIB.filter(function(m){
-    if (mf !== 'all' && m.month !== mf) return false;
+    if (mf !== 'all' && normModelMonth(m.month) !== normModelMonth(mf)) return false;
     if (sf !== 'all' && m.status !== sf) return false;
     return true;
   });
@@ -3543,7 +3562,9 @@ function renderMarketingModelLib() {
   var can = canManageModelLib();
   var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:10px">';
   list.slice().sort(function(a,b){
-    return (parseInt(String(b.month||'').replace('月',''),10)||0) - (parseInt(String(a.month||'').replace('月',''),10)||0) || ((b.id||0) - (a.id||0));
+    var ka = normModelMonth(a.month), kb = normModelMonth(b.month);
+    if (kb !== ka) return kb < ka ? -1 : 1;
+    return (b.id||0) - (a.id||0);
   }).forEach(function(m){
     var statusClass = m.status === '已下发' ? 'mkt-status-done' : 'mkt-status-pending';
     var scopeText = m.status === '已下发' ? (m.targets === 'all' ? '全部区域' : (Array.isArray(m.targets) ? m.targets.join('、') : (m.targets || ''))) : '未下发';
@@ -3558,7 +3579,7 @@ function renderMarketingModelLib() {
     }
     btns += '<button class="mkt-btn-primary" onclick="useModel(' + m.id + ')">以此创建活动</button>';
     html += '<div class="mkt-card">' +
-      '<div class="mkt-card-header"><div class="mkt-card-title">' + esc(m.title) + '</div><span class="mkt-card-school">' + esc(m.month) + '</span></div>' +
+      '<div class="mkt-card-header"><div class="mkt-card-title">' + esc(m.title) + '</div><span class="mkt-card-school">' + esc(formatModelMonth(m.month)) + '</span></div>' +
       '<div class="mkt-card-meta"><span>🎫 ' + esc(m.category || '未分类') + '</span><span class="mkt-status-badge ' + statusClass + '">' + m.status + '</span></div>' +
       '<div class="mkt-card-meta" style="margin-top:2px"><span>📤 下发范围：' + esc(scopeText) + '</span><span>📅 创建 ' + (m.create_date || '-') + (m.publish_date ? ' · 下发 ' + m.publish_date : '') + '</span></div>' +
       '<div class="mkt-card-desc"><strong>目标:</strong> ' + esc(String(m.goal || '-').substring(0, 120)) + '</div>' +
@@ -5960,11 +5981,18 @@ function initTaskDispatch() {
     <div class="mkt-modal-body">
       <div class="mkt-form-grid">
         <div class="mkt-form-row">
-          <label>月份 <span style="color:#ef4444">*</span></label>
-          <select id="mmMonth">
-            <option value="8月">8月</option><option value="7月">7月</option><option value="6月">6月</option>
-            <option value="5月">5月</option><option value="4月">4月</option>
-          </select>
+          <label>年月 <span style="color:#ef4444">*</span></label>
+          <div style="display:flex;gap:6px">
+            <select id="mmYear" style="flex:0 0 92px">
+              <option value="2026">2026年</option><option value="2027">2027年</option><option value="2028">2028年</option>
+            </select>
+            <select id="mmMonth" style="flex:1">
+              <option value="01">1月</option><option value="02">2月</option><option value="03">3月</option>
+              <option value="04">4月</option><option value="05">5月</option><option value="06">6月</option>
+              <option value="07">7月</option><option value="08">8月</option><option value="09">9月</option>
+              <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+            </select>
+          </div>
         </div>
         <div class="mkt-form-row">
           <label>计划标题 <span style="color:#ef4444">*</span></label>
