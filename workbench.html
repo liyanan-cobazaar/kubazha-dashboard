@@ -2061,7 +2061,7 @@ function renderOvIncrement() {
   var negVal = negInc < 0 ? fmt(negInc) : '0';
   $("ovIncrementSummary").innerHTML =
     '<div class="kpi-row">' +
-      '<div class="kpi-card"><div class="label">' + monthPrefix + '总流量增量(万)</div><div class="value" style="color:'+sumColor+'">'+sumVal+'</div><div class="trend">' + incUnit + '增量合计</div></div>' +
+      '<div class="kpi-card"><div class="label">' + monthPrefix + '总流量增量(万)<br><span style="font-size:10px;color:#64748b;font-weight:400">按项目基期口径</span></div><div class="value" style="color:'+sumColor+'">'+sumVal+'</div><div class="trend">按项目基期（去年同期优先）合计</div></div>' +
       '<div class="kpi-card"><div class="label">' + monthPrefix + '正增量合计(万)</div><div class="value" style="color:#16a34a">+'+fmt(posInc)+'</div><div class="trend">流量增长的区域/项目</div></div>' +
       '<div class="kpi-card"><div class="label">' + monthPrefix + '负增量合计(万)</div><div class="value" style="color:'+(negInc<0?'#dc2626':'#666')+'">'+negVal+'</div><div class="trend">流量下降的区域/项目</div></div>' +
     '</div>' +
@@ -2070,7 +2070,7 @@ function renderOvIncrement() {
         '<span style="font-size:15px">📖</span><span>流量增量是怎么算出来的？</span>' +
       '</div>' +
       '<div style="display:grid;gap:8px">' +
-        '<div style="display:flex;gap:8px"><span style="color:#3b82f6;font-weight:600;min-width:20px">①</span><span><b>核心公式：</b>流量增量 = 当月实际线上订单金额 − 该项目的对比基期流量。</span></div>' +
+        '<div style="display:flex;gap:8px"><span style="color:#3b82f6;font-weight:600;min-width:20px">①</span><span><b>核心公式：</b>流量增量 = 当月实际线上订单金额 − 该项目的对比基期流量。<b style="color:#dc2626">注意：这里的增量 ≠ 数据看板的「环比上月」增量。</b>数据看板的环比 = 当月总流量 − 上月总流量；本页则是按每个项目对比其基期后合计。</span></div>' +
         '<div style="display:flex;gap:8px"><span style="color:#3b82f6;font-weight:600;min-width:20px">②</span><span><b>基期优先用去年同期：</b>每个项目先看去年同期的流量；若有数据，就按去年同期做对比。</span></div>' +
         '<div style="display:flex;gap:8px"><span style="color:#3b82f6;font-weight:600;min-width:20px">③</span><span><b>去年同期缺失时用上月：</b>如果某项目去年同期为 0 或没有数据，则回退使用上月实际流量作为对比基期。</span></div>' +
         '<div style="display:flex;gap:8px"><span style="color:#3b82f6;font-weight:600;min-width:20px">④</span><span><b>特殊政策项目：</b>如<b>华中科技大学</b>，按新政策统一以上月实际流量作为对比基期。</span></div>' +
@@ -2182,23 +2182,39 @@ function renderOverviewDrill(month) {
   people.sort(function(a,b){ return calcFlowIncrement(b) - calcFlowIncrement(a); });
 
   var titleEl = $("overviewDrillTitle");
+  var scopeRegionName = "全部区域";
   if(scope === "all") {
     if (isStaff()) titleEl.textContent = "我的项目（"+people.length+"个）";
     else if (isLeader()) titleEl.textContent = "本区域项目（"+people.length+"个）";
     else titleEl.textContent = "全部区域（"+people.length+"个项目）";
   } else {
     var reg = md.regions[scope];
-    titleEl.textContent = (reg?reg.region:scope) + " （"+people.length+"个项目）";
+    scopeRegionName = reg ? reg.region : scope;
+    titleEl.textContent = scopeRegionName + " （"+people.length+"个项目）";
   }
 
   var tbody = "";
+  var totalUserPool = 0, totalTouch = 0, totalTrain = 0, totalCampus = 0, totalActual = 0, totalIncrement = 0;
   people.forEach(function(p){
     var increment = calcFlowIncrement(p) / 10000;
     var incColor = increment >= 0 ? '#16a34a' : '#dc2626';
     var incStr = (increment>=0?'+':'') + fmt(increment);
     var actualWan = (p.actual_order || 0) / 10000;
     tbody += "<tr><td>"+(p.school||"")+"</td><td>"+(p.name||"")+"</td><td>"+(p.region||"")+"</td><td>"+fmt(p.user_pool)+"</td><td>"+fmt(p.touch)+"</td><td>"+fmt(p.train)+"</td><td>"+fmt(p.campus)+"</td><td>"+fmt(actualWan)+"</td><td style='color:"+incColor+";font-weight:600'>"+incStr+"</td></tr>";
+    totalUserPool += (p.user_pool || 0);
+    totalTouch += (p.touch || 0);
+    totalTrain += (p.train || 0);
+    totalCampus += (p.campus || 0);
+    totalActual += (p.actual_order || 0);
+    totalIncrement += calcFlowIncrement(p);
   });
+  // 区域小计行
+  var totalActualWan = totalActual / 10000;
+  var totalIncrementWan = totalIncrement / 10000;
+  var totalIncColor = totalIncrementWan >= 0 ? '#16a34a' : '#dc2626';
+  var totalIncStr = (totalIncrementWan >= 0 ? '+' : '') + fmt(totalIncrementWan);
+  var totalLabel = scope === 'all' ? '全部区域小计' : '区域小计';
+  tbody += "<tr style='background:#f0f7ff;font-weight:600;border-top:2px solid #1a73e8'><td>" + totalLabel + "</td><td>—</td><td>" + scopeRegionName + "</td><td>" + fmt(totalUserPool) + "</td><td>" + fmt(totalTouch) + "</td><td>" + fmt(totalTrain) + "</td><td>" + fmt(totalCampus) + "</td><td>" + fmt(totalActualWan) + "</td><td style='color:" + totalIncColor + "'>" + totalIncStr + "</td></tr>";
   $("overviewDrillTable").innerHTML = tbody;
 }
 
