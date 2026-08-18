@@ -1052,6 +1052,22 @@ var selectedMonths = []; // 多选月份（用于总体概况），默认全部
 var currentOvTab = "dashboard"; // 总体概况当前子模块
 var currentViewMode = "all";
 var subjectiveScores = {};
+// 主观分持久化：用稳定 key 存入 localStorage，重新部署/刷新都不会丢失
+var SUBJECTIVE_STORAGE_KEY = 'wb_subjective_scores_v1';
+function loadSubjectiveScores() {
+  try {
+    var raw = localStorage.getItem(SUBJECTIVE_STORAGE_KEY);
+    if (raw) {
+      var saved = JSON.parse(raw);
+      if (saved && typeof saved === 'object') subjectiveScores = saved;
+    }
+  } catch (e) { console.error('加载主观分失败', e); }
+}
+function persistSubjectiveScores() {
+  try {
+    localStorage.setItem(SUBJECTIVE_STORAGE_KEY, JSON.stringify(subjectiveScores));
+  } catch (e) { console.error('保存主观分失败', e); }
+}
 var allCharts = {};
 Chart.register(ChartDataLabels);
 
@@ -2317,6 +2333,7 @@ function updatePerformanceContent() {
 
 function updateScore(person, fieldKey, value) {
   subjectiveScores[person+"_"+fieldKey+"_"+perfMonth] = value;
+  persistSubjectiveScores();
   updatePerformanceContent();
 }
 
@@ -4221,6 +4238,8 @@ function renderPieChart(canvasId, title, labels, data, hideLabels) {
 document.addEventListener("DOMContentLoaded", function() {
   // 加载本地持久化的导入数据（合并覆盖默认月份）
   loadWorkbenchData();
+  // 加载本地持久化的绩效主观分（重新部署后不会丢失）
+  loadSubjectiveScores();
   renderMonthBtns();
   // 三角色登录：恢复上次会话，未登录则显示登录页
   var saved = null;
