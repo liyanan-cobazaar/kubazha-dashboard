@@ -564,7 +564,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
 <div class="top-bar">
   <h1>📊 运营管理工作台</h1>
   <div style="display:flex;gap:10px;align-items:center">
-    <button id="importBtn" onclick="document.getElementById('importFileInput').click()" style="padding:6px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#1557b0'" onmouseout="this.style.background='#1a73e8'">📥 导入月度数据</button>
+    <button id="importBtn" onclick="document.getElementById('importFileInput').click()" style="padding:6px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#1557b0'" onmouseout="this.style.background='#1a73e8'">📥 导入新增数据</button>
     <div class="user-badge" id="userBadge"></div>
   </div>
   <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleImportFile(this)">
@@ -1002,27 +1002,20 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
 <div id="importModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center">
   <div style="background:#fff;border-radius:12px;padding:28px;width:680px;max-height:85vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-      <h3 style="font-size:18px;color:#1a73e8">📥 导入月度数据</h3>
+      <h3 style="font-size:18px;color:#1a73e8">📥 导入新增数据（方案甲）</h3>
       <span onclick="closeImportModal()" style="cursor:pointer;font-size:22px;color:#999;line-height:1">×</span>
     </div>
     <div id="importStep1">
       <div style="background:#f0f7ff;border:1px solid #d0e3ff;border-radius:8px;padding:14px;margin-bottom:16px">
-        <div style="font-weight:600;font-size:13px;margin-bottom:8px">📋 Excel 模板格式要求：</div>
+        <div style="font-weight:600;font-size:13px;margin-bottom:8px">📋 导入规则说明：</div>
         <div style="font-size:12px;color:#555;line-height:1.8">
-          第一行为表头，需包含以下列（列名可略有差异，系统自动识别）：<br>
-          <b>姓名/负责人</b> · <b>学校/项目</b> · 角色 · <b>区域主管</b> · 区域 · <b>用户池</b> · <b>有效触达</b> · <b>培训场次</b> · <b>校园行场次</b> · <b>实际订单金额</b> · 上月流量 · 同期流量 · 结算率<br>
-          <span style="color:#dc2626">加粗为必填列，其余可留空</span>。结算率填数字（如 0.99）或"未对接财务"。
+          ① 自动按工作表名识别月份（如「2026年8月」），<b>新月份会自动出现在时间筛选器</b>；<br>
+          ② <b>仅追加</b>库中不存在的记录（唯一键 = 月份 + 学校 + 运营人员），<b>不覆盖/不修改</b>已有数据；<br>
+          ③ 3/4月与无法识别月份的表自动跳过；<br>
+          ④ 表头支持第1行标题+第2行表头，列名自动识别（含附件原格式）。
         </div>
       </div>
-      <div style="margin-bottom:16px">
-        <label style="font-size:13px;font-weight:600;display:block;margin-bottom:6px">📅 数据所属月份：</label>
-        <select id="importMonthSelect" style="padding:8px 14px;border:1px solid #1a73e8;border-radius:6px;font-size:13px;font-weight:600;color:#1a73e8;background:#fff;cursor:pointer;min-width:160px"></select>
-        <span style="font-size:11px;color:#888;margin-left:8px">将作为新月份添加到看板（已存在的月份会被覆盖）</span>
-      </div>
-      <div id="importPreview" style="display:none;margin-bottom:16px">
-        <div style="font-weight:600;font-size:13px;margin-bottom:8px">📊 数据预览：</div>
-        <div id="importPreviewContent" style="max-height:240px;overflow:auto;border:1px solid #e0e0e0;border-radius:6px"></div>
-      </div>
+      <div id="importSummary" style="margin-bottom:16px"></div>
       <div style="display:flex;gap:10px">
         <button onclick="closeImportModal()" style="padding:8px 20px;border:1px solid #ddd;border-radius:6px;font-size:13px;cursor:pointer;background:#fff">取消</button>
         <button id="importConfirmBtn" onclick="confirmImport()" style="padding:8px 20px;border:none;border-radius:6px;font-size:13px;cursor:pointer;background:#1a73e8;color:#fff;font-weight:600;display:none">确认导入</button>
@@ -4421,21 +4414,22 @@ function loadWorkbenchData() {
   }
 }
 
-// 列名映射表（支持多种写法）
+// 列名映射表（支持多种写法，含附件原表头）
 var COL_MAP = {
-  name: ['姓名','负责人','运营人员','人员','name'],
-  school: ['学校','项目','学校/项目','项目名称','学校名称','school'],
+  name: ['运营人员','姓名','负责人','人员','name'],
+  school: ['XX学校','学校','项目','学校/项目','项目名称','学校名称','school'],
   role: ['角色','岗位','职务','role'],
-  leader: ['区域主管','主管','所属主管','leader'],
+  leader: ['区域主管','区域负责人','主管','leader'],
   region: ['区域','大区','region'],
-  user_pool: ['用户池','用户池新增','user_pool'],
-  touch: ['有效触达','触达','触达人次','touch'],
-  train: ['培训场次','培训','培训次数','train'],
-  campus: ['校园行场次','校园行','校园活动','campus'],
-  actual_order: ['实际订单金额','实际订单','订单金额','流量','当月流量','当月订单','actual_order'],
+  user_pool: ['用户池（30）','用户池（目标','用户池','用户池新增','user_pool'],
+  touch: ['有效触达（目标','有效触达','触达','触达人次','touch'],
+  train: ['实际培训场次（目标','培训场次','培训','培训次数','train'],
+  campus: ['实际校园行场次目标','校园行场次','校园行','校园活动','campus'],
+  plan_order: ['计划订单金额','计划流量（w）','计划流量','计划订单'],
+  actual_order: ['实际产生线上订单金额','实际订单金额','实际订单','实际完成流量','当月订单','actual_order'],
   prev_flow: ['上月流量','上月订单','上月','prev_flow'],
   base_flow_yoy: ['同期流量','去年同期流量','同期','去年同期','base_flow_yoy'],
-  settle_rate: ['结算率','结算完成率','settle_rate']
+  settle_rate: ['结算率','结算完成率','未开始结算','settle_rate']
 };
 
 function matchColumn(headers) {
@@ -4453,6 +4447,145 @@ function matchColumn(headers) {
   return mapping;
 }
 
+// ---------- 方案甲：多sheet / 月份自动识别 / 仅追加新记录 ----------
+
+function sheetNameToMonth(name) {
+  if (!name) return null;
+  var s = String(name).trim();
+  var m = s.match(/2026[\.\-年]?\s*(\d{1,2})\s*月?/);
+  if (m) { var mm = parseInt(m[1], 10); if (mm >= 1 && mm <= 12) return '2026-' + String(mm).padStart(2, '0'); }
+  var m2 = s.match(/2027[\.\-年]?\s*(\d{1,2})\s*月?/);
+  if (m2) { var mm2 = parseInt(m2[1], 10); if (mm2 >= 1 && mm2 <= 12) return '2027-' + String(mm2).padStart(2, '0'); }
+  return null;
+}
+
+function detectRoleColumn(rows, hidx, colMap) {
+  if (colMap.role !== undefined) return colMap.role;
+  var roleWords = ['区域主管', '运营专员', '项目营销负责人', '运营主管'];
+  for (var c = 0; c < (rows[hidx] ? rows[hidx].length : 0); c++) {
+    if (c === colMap.name || c === colMap.leader || c === colMap.school) continue;
+    var hit = 0, total = 0;
+    for (var i = hidx + 1; i < rows.length; i++) {
+      var v = String(rows[i][c] || '').trim();
+      if (!v) continue;
+      total++;
+      if (roleWords.indexOf(v) >= 0) hit++;
+    }
+    if (total > 0 && hit === total) return c;
+  }
+  return undefined;
+}
+
+function detectHeaderRow(rows) {
+  function score(r) {
+    if (!r) return -1;
+    var cnt = 0;
+    r.forEach(function(cell) {
+      var h = String(cell || '').trim().toLowerCase().replace(/\s/g, '');
+      if (!h) return;
+      Object.keys(COL_MAP).forEach(function(f) {
+        COL_MAP[f].forEach(function(alias) {
+          var a = alias.toLowerCase().replace(/\s/g, '');
+          if (h === a || h.indexOf(a) >= 0) cnt++;
+        });
+      });
+    });
+    return cnt;
+  }
+  var best = -1, bestIdx = -1;
+  [0, 1].forEach(function(i) {
+    if (i >= rows.length) return;
+    var sc = score(rows[i]);
+    if (sc > best) { best = sc; bestIdx = i; }
+  });
+  return bestIdx;
+}
+
+function normalizeName(s) {
+  if (!s) return '';
+  return String(s).trim().replace(/\s+/g, ' ').replace(/\s*负责.*$/, '').trim();
+}
+
+function recordKey(month, p) {
+  return month + '|' + (p.school || '').trim() + '|' + normalizeName(p.name);
+}
+
+var _leaderRegionCache = null;
+function deriveRegion(leader) {
+  if (!leader) return '';
+  if (!_leaderRegionCache) {
+    _leaderRegionCache = {};
+    Object.keys(WORKBENCH_DATA.monthly_data || {}).forEach(function(m) {
+      (WORKBENCH_DATA.monthly_data[m].people || []).forEach(function(p) {
+        if (p.leader === leader && p.region) _leaderRegionCache[leader] = p.region;
+      });
+    });
+  }
+  return _leaderRegionCache[leader] || '';
+}
+
+function parsePlan(v) {
+  if (v === undefined || v === null || v === '') return 0;
+  if (typeof v === 'number') return v;
+  var s = String(v).trim().toLowerCase().replace(/[,，\s]/g, '');
+  var mult = 1;
+  if (s.indexOf('万') >= 0) { mult = 10000; s = s.replace('万', ''); }
+  if (s.indexOf('w') >= 0) { mult = 10000; s = s.replace('w', ''); }
+  s = s.replace(/[^0-9.]/g, '');
+  return (parseFloat(s) || 0) * mult;
+}
+
+function isTotalRow(row, colMap) {
+  if (colMap.school !== undefined) {
+    var s = String(row[colMap.school] || '').trim();
+    if (/合计|总计|汇总|小计/.test(s)) return true;
+  }
+  return false;
+}
+
+function rebuildMonthAggregates(month) {
+  var md = WORKBENCH_DATA.monthly_data[month];
+  if (!md) return;
+  var people = md.people || [];
+  var regions = {};
+  people.forEach(function(p) {
+    if (p._synthetic) return;
+    var leader = p.leader; if (!leader) return;
+    if (!regions[leader]) regions[leader] = { region: p.region || '', user_pool: 0, touch: 0, train: 0, campus: 0, flow: 0, actual_order: 0, projects: 0, members: [] };
+    var r = regions[leader];
+    r.user_pool += (p.user_pool || 0); r.touch += (p.touch || 0); r.train += (p.train || 0); r.campus += (p.campus || 0);
+    r.flow += (p.actual_order || 0); r.actual_order += (p.actual_order || 0); r.projects++;
+    if (p.school && r.members.indexOf(p.school) < 0) r.members.push(p.school);
+  });
+  var totals = { operators: 0, schools: 0, user_pool: 0, touch: 0, train: 0, campus: 0, flow: 0, actual_order: 0 };
+  var seenSchools = {}, seenOps = {};
+  people.forEach(function(p) {
+    if (p._synthetic) return;
+    totals.user_pool += (p.user_pool || 0); totals.touch += (p.touch || 0); totals.train += (p.train || 0); totals.campus += (p.campus || 0);
+    totals.flow += (p.actual_order || 0); totals.actual_order += (p.actual_order || 0);
+    if (p.school && !seenSchools[p.school]) { seenSchools[p.school] = 1; totals.schools++; }
+    if (p.name && !seenOps[p.name]) { seenOps[p.name] = 1; totals.operators++; }
+  });
+  md.regions = regions; md.totals = totals;
+}
+
+function ensureRegionLeads(month) {
+  var md = WORKBENCH_DATA.monthly_data[month]; if (!md) return;
+  var people = md.people;
+  var leaderNames = {};
+  people.forEach(function(p) { if (p.leader) leaderNames[p.leader] = true; });
+  Object.keys(leaderNames).forEach(function(ln) {
+    var has = people.some(function(p) { return p.name === ln && p.role === '区域主管'; });
+    if (!has) {
+      var reg = deriveRegion(ln);
+      people.unshift({ name: ln, school: ln + '区域', role: '区域主管', leader: ln, region: reg, user_pool: 0, touch: 0, train: 0, campus: 0, actual_order: 0, prev_flow: 0, base_flow_yoy: 0, settle_rate: '', _synthetic: true, flow: 0 });
+    }
+  });
+}
+
+var importedPlan = null;
+var importSkipped = [];
+
 function handleImportFile(input) {
   var file = input.files[0];
   if (!file) return;
@@ -4461,65 +4594,75 @@ function handleImportFile(input) {
     try {
       var data = new Uint8Array(e.target.result);
       var wb = XLSX.read(data, { type: 'array' });
-      var sheet = wb.Sheets[wb.SheetNames[0]];
-      var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-      if (rows.length < 2) { alert('Excel 数据不足，至少需要表头+1行数据'); return; }
-      var headers = rows[0];
-      var colMap = matchColumn(headers);
-      // 检查必填列
-      var missing = [];
-      ['name','school','actual_order'].forEach(function(f) {
-        if (colMap[f] === undefined) missing.push(f);
-      });
-      if (missing.length) {
-        alert('缺少必填列：' + missing.join(', ') + '\n请确保 Excel 包含：姓名、学校/项目、实际订单金额');
-        return;
-      }
-      // 解析数据行
-      var people = [];
-      for (var i = 1; i < rows.length; i++) {
-        var row = rows[i];
-        if (!row[colMap.name] && !row[colMap.school]) continue;
-        var p = {
-          name: String(row[colMap.name] || '').trim() || '未填写',
-          school: String(row[colMap.school] || '').trim(),
-          role: colMap.role !== undefined ? String(row[colMap.role] || '').trim() : '运营专员',
-          leader: colMap.leader !== undefined ? String(row[colMap.leader] || '').trim() : '',
-          region: colMap.region !== undefined ? String(row[colMap.region] || '').trim() : '',
-          user_pool: num(row, colMap.user_pool),
-          touch: num(row, colMap.touch),
-          train: num(row, colMap.train),
-          campus: num(row, colMap.campus),
-          actual_order: num(row, colMap.actual_order),
-          prev_flow: num(row, colMap.prev_flow),
-          base_flow_yoy: num(row, colMap.base_flow_yoy),
-          settle_rate: colMap.settle_rate !== undefined ? String(row[colMap.settle_rate] || '').trim() : '',
-          flow: num(row, colMap.actual_order)
-        };
-        if (!p.leader && p.role === '区域主管') p.leader = p.name;
-        people.push(p);
-      }
-      if (people.length === 0) { alert('未解析到有效数据行'); return; }
-      // 确保所有区域主管都在 people 里（补占位）
-      var leaderNames = {};
-      people.forEach(function(p) { if (p.leader) leaderNames[p.leader] = true; });
-      Object.keys(leaderNames).forEach(function(ln) {
-        var has = people.some(function(p) { return p.name === ln && p.role === '区域主管'; });
-        if (!has) {
-          // 找该主管的区域名
-          var reg = '';
-          people.forEach(function(p) { if (p.leader === ln && p.region) reg = p.region; });
-          people.unshift({ name: ln, school: ln + '区域', role: '区域主管', leader: ln, region: reg, user_pool: 0, touch: 0, train: 0, campus: 0, actual_order: 0, prev_flow: 0, base_flow_yoy: 0, settle_rate: '', _synthetic: true, flow: 0 });
+      var plan = [];
+      var skipped = [];
+      wb.SheetNames.forEach(function(sheetName) {
+        var mk = sheetNameToMonth(sheetName);
+        if (!mk) { skipped.push(sheetName + '（无法识别月份）'); return; }
+        var mm = parseInt(mk.split('-')[1], 10);
+        if (mm <= 4) { skipped.push(sheetName + '（3/4月本次不导入）'); return; }
+        var sheet = wb.Sheets[sheetName];
+        var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+        var hidx = detectHeaderRow(rows);
+        if (hidx < 0) { skipped.push(sheetName + '（未找到表头）'); return; }
+        var headers = rows[hidx];
+        var colMap = matchColumn(headers);
+        colMap.role = detectRoleColumn(rows, hidx, colMap);
+        var missing = [];
+        ['name', 'school', 'actual_order'].forEach(function(f) { if (colMap[f] === undefined) missing.push(f); });
+        if (missing.length) { skipped.push(sheetName + '（缺必填列：' + missing.join('/') + '）'); return; }
+        var existingKeys = {};
+        if (WORKBENCH_DATA.monthly_data[mk] && WORKBENCH_DATA.monthly_data[mk].people) {
+          WORKBENCH_DATA.monthly_data[mk].people.forEach(function(p) { existingKeys[recordKey(mk, p)] = true; });
+        }
+        var lastLeader = '';
+        for (var i = hidx + 1; i < rows.length; i++) {
+          var row = rows[i];
+          var rawLeader = colMap.leader !== undefined ? String(row[colMap.leader] || '').trim() : '';
+          if (rawLeader) lastLeader = normalizeName(rawLeader);
+          var rawOp = colMap.name !== undefined ? String(row[colMap.name] || '').trim() : '';
+          var opName = normalizeName(rawOp);
+          var school = colMap.school !== undefined ? String(row[colMap.school] || '').trim() : '';
+          if (!opName && !school) continue;
+          if (isTotalRow(row, colMap)) continue;
+          var leader = lastLeader;
+          var role = (colMap.role !== undefined && String(row[colMap.role] || '').trim())
+            ? String(row[colMap.role] || '').trim()
+            : ((opName && leader && opName === leader) ? '区域主管' : '运营专员');
+          var region = colMap.region !== undefined ? String(row[colMap.region] || '').trim() : deriveRegion(leader);
+          var p = {
+            name: opName || '未填写',
+            school: school,
+            role: role,
+            leader: leader,
+            region: region,
+            user_pool: num(row, colMap.user_pool),
+            touch: num(row, colMap.touch),
+            train: num(row, colMap.train),
+            campus: num(row, colMap.campus),
+            actual_order: num(row, colMap.actual_order),
+            prev_flow: num(row, colMap.prev_flow),
+            base_flow_yoy: num(row, colMap.base_flow_yoy),
+            settle_rate: colMap.settle_rate !== undefined ? String(row[colMap.settle_rate] || '').trim() : '',
+            plan_order: colMap.plan_order !== undefined ? parsePlan(row[colMap.plan_order]) : 0,
+            flow: num(row, colMap.actual_order)
+          };
+          var key = recordKey(mk, p);
+          plan.push({ month: mk, p: p, exists: !!existingKeys[key] });
         }
       });
-      importedPeople = people;
-      // 显示弹窗
-      showImportModal(people);
+      if (plan.length === 0) {
+        alert('未解析到可导入的数据。\n' + (skipped.length ? skipped.join('\n') : '请检查 Excel 格式（需含：运营人员、学校、实际产生线上订单金额 等列）'));
+        return;
+      }
+      importedPlan = plan;
+      importSkipped = skipped;
+      showImportModal(plan, skipped);
     } catch (err) {
       alert('解析失败：' + err.message);
       console.error(err);
     }
-    input.value = ''; // 重置以便再次导入同一文件
+    input.value = '';
   };
   reader.readAsArrayBuffer(file);
 }
@@ -4532,49 +4675,29 @@ function num(row, idx) {
   return parseFloat(v) || 0;
 }
 
-function showImportModal(people) {
+function showImportModal(plan, skipped) {
   var modal = $('importModal');
   modal.style.display = 'flex';
-  // 填充月份下拉
-  var sel = $('importMonthSelect');
-  var avail = WORKBENCH_DATA.available_months || [];
-  // 计算下一个月份
-  var nextMonth = '';
-  if (avail.length > 0) {
-    var last = avail.sort()[avail.length - 1]; // "2026-07"
-    var parts = last.split('-');
-    var y = parseInt(parts[0]), m = parseInt(parts[1]) + 1;
-    if (m > 12) { y++; m = 1; }
-    nextMonth = y + '-' + String(m).padStart(2, '0');
-  } else {
-    nextMonth = '2026-08';
+  var byMonth = {};
+  plan.forEach(function(rec) {
+    if (!byMonth[rec.month]) byMonth[rec.month] = { add: 0, exist: 0 };
+    if (rec.exists) byMonth[rec.month].exist++; else byMonth[rec.month].add++;
+  });
+  var months = Object.keys(byMonth).sort();
+  var html = '<div style="font-size:13px;line-height:1.9">';
+  html += '<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:12px;margin-bottom:14px;color:#2e7d32;font-weight:600">✅ 解析完成：仅追加新记录，不会覆盖/修改现有数据</div>';
+  months.forEach(function(m) {
+    var s = byMonth[m];
+    html += '<div style="padding:8px 12px;border:1px solid #eee;border-radius:6px;margin-bottom:8px">'
+      + '<b>' + formatMonthLabel(m) + '</b>：新增 <span style="color:#1a73e8;font-weight:700">' + s.add + '</span> 条'
+      + (s.exist ? '，已存在 <span style="color:#888">' + s.exist + '</span> 条（跳过）' : '')
+      + '</div>';
+  });
+  if (skipped.length) {
+    html += '<div style="margin-top:10px;font-size:12px;color:#b26a00">⚠️ 已跳过：<br>' + skipped.join('<br>') + '</div>';
   }
-  var options = avail.slice().sort();
-  if (options.indexOf(nextMonth) < 0) options.push(nextMonth);
-  sel.innerHTML = options.map(function(m) {
-    var label = formatMonthLabel(m);
-    if (m === nextMonth) label += '（新增）';
-    if (avail.indexOf(m) >= 0) label += '（覆盖）';
-    return '<option value="' + m + '"' + (m === nextMonth ? ' selected' : '') + '>' + label + '</option>';
-  }).join('');
-
-  // 预览数据
-  $('importPreview').style.display = 'block';
-  var html = '<table style="width:100%;font-size:11px;border-collapse:collapse"><thead><tr>';
-  ['姓名','学校','角色','主管','区域','用户池','触达','培训','校园行','订单金额','上月流量','同期流量','结算率'].forEach(function(h) {
-    html += '<th style="padding:4px 6px;border:1px solid #e0e0e0;background:#f5f5f5;text-align:left;white-space:nowrap">' + h + '</th>';
-  });
-  html += '</tr></thead><tbody>';
-  people.slice(0, 20).forEach(function(p) {
-    html += '<tr>';
-    [p.name, p.school, p.role, p.leader, p.region, p.user_pool, p.touch, p.train, p.campus, fmt(p.actual_order), fmt(p.prev_flow), fmt(p.base_flow_yoy), p.settle_rate].forEach(function(v) {
-      html += '<td style="padding:3px 6px;border:1px solid #e0e0e0;white-space:nowrap">' + (v !== undefined ? v : '') + '</td>';
-    });
-    html += '</tr>';
-  });
-  html += '</tbody></table>';
-  if (people.length > 20) html += '<div style="text-align:center;padding:6px;color:#888;font-size:11px">共 ' + people.length + ' 条记录，仅显示前 20 条</div>';
-  $('importPreviewContent').innerHTML = html;
+  html += '</div>';
+  $('importSummary').innerHTML = html;
   $('importConfirmBtn').style.display = 'inline-block';
   $('importResult').style.display = 'none';
   $('importStep1').style.display = 'block';
@@ -4582,99 +4705,73 @@ function showImportModal(people) {
 
 function closeImportModal() {
   $('importModal').style.display = 'none';
-  importedPeople = null;
+  importedPlan = null;
+  importSkipped = [];
 }
 
 function confirmImport() {
-  if (!importedPeople) return;
-  var month = $('importMonthSelect').value;
-  if (!month) { alert('请选择数据所属月份'); return; }
-
-  var people = importedPeople;
-  // 计算区域聚合
-  var regions = {};
-  people.forEach(function(p) {
-    if (p._synthetic) return;
-    var leader = p.leader;
-    if (!leader) return;
-    if (!regions[leader]) {
-      regions[leader] = { region: p.region || '', user_pool: 0, touch: 0, train: 0, campus: 0, flow: 0, actual_order: 0, projects: 0, members: [] };
+  if (!importedPlan) return;
+  var stats = { added: 0, existed: 0, newMonths: [] };
+  var byMonth = {};
+  importedPlan.forEach(function(rec) { (byMonth[rec.month] = byMonth[rec.month] || []).push(rec); });
+  Object.keys(byMonth).forEach(function(month) {
+    var recs = byMonth[month];
+    if (!WORKBENCH_DATA.monthly_data[month]) {
+      WORKBENCH_DATA.monthly_data[month] = { regions: {}, people: [] };
+      stats.newMonths.push(month);
     }
-    var r = regions[leader];
-    r.user_pool += (p.user_pool || 0);
-    r.touch += (p.touch || 0);
-    r.train += (p.train || 0);
-    r.campus += (p.campus || 0);
-    r.flow += (p.actual_order || 0);
-    r.actual_order += (p.actual_order || 0);
-    r.projects++;
-    if (p.school && r.members.indexOf(p.school) < 0) r.members.push(p.school);
+    var md = WORKBENCH_DATA.monthly_data[month];
+    recs.forEach(function(rec) {
+      if (rec.exists) { stats.existed++; }
+      else { md.people.push(rec.p); stats.added++; }
+    });
+    rebuildMonthAggregates(month);
+    ensureRegionLeads(month);
+    WORKBENCH_DATA.totals[month] = WORKBENCH_DATA.monthly_data[month].totals;
+    if (WORKBENCH_DATA.available_months.indexOf(month) < 0) {
+      WORKBENCH_DATA.available_months.push(month);
+      WORKBENCH_DATA.available_months.sort();
+    }
   });
-
-  // 计算 totals
-  var totals = { operators: 0, schools: 0, user_pool: 0, touch: 0, train: 0, campus: 0, flow: 0, actual_order: 0 };
-  var seenSchools = {};
-  var seenOps = {};
-  people.forEach(function(p) {
-    if (p._synthetic) return;
-    totals.user_pool += (p.user_pool || 0);
-    totals.touch += (p.touch || 0);
-    totals.train += (p.train || 0);
-    totals.campus += (p.campus || 0);
-    totals.flow += (p.actual_order || 0);
-    totals.actual_order += (p.actual_order || 0);
-    if (p.school && !seenSchools[p.school]) { seenSchools[p.school] = 1; totals.schools++; }
-    if (p.name && !seenOps[p.name]) { seenOps[p.name] = 1; totals.operators++; }
-  });
-
-  // 写入 WORKBENCH_DATA
-  WORKBENCH_DATA.monthly_data[month] = { regions: regions, people: people };
-  WORKBENCH_DATA.totals[month] = totals;
-  if (WORKBENCH_DATA.available_months.indexOf(month) < 0) {
-    WORKBENCH_DATA.available_months.push(month);
-    WORKBENCH_DATA.available_months.sort();
+  if (stats.newMonths.length) {
+    stats.newMonths.forEach(function(m) { if (selectedMonths.indexOf(m) < 0) selectedMonths.push(m); });
+    currentMonth = stats.newMonths[stats.newMonths.length - 1];
   }
-  // 同步 selectedMonths
-  if (selectedMonths.indexOf(month) < 0) selectedMonths.push(month);
-  // 同步 currentMonth
-  currentMonth = month;
-
-  // 持久化到 localStorage
   saveWorkbenchData();
 
-  // 显示成功
   $('importStep1').style.display = 'none';
   $('importResult').style.display = 'block';
+  var msg = '导入完成！新增 ' + stats.added + ' 条' + (stats.existed ? '，已存在跳过 ' + stats.existed + ' 条' : '')
+    + (stats.newMonths.length ? '；新增月份：' + stats.newMonths.map(formatMonthLabel).join('、') : '');
   $('importResult').innerHTML =
     '<div style="text-align:center;padding:30px 10px">' +
     '<div style="font-size:48px;margin-bottom:12px">✅</div>' +
-    '<div style="font-size:16px;font-weight:600;margin-bottom:8px">导入成功！</div>' +
-    '<div style="font-size:13px;color:#666;margin-bottom:20px">' + formatMonthLabel(month) + ' · 共 ' + people.length + ' 条记录 · ' + Object.keys(regions).length + ' 个区域 · 总流量 ' + fmt(totals.flow / 10000) + ' 万</div>' +
+    '<div style="font-size:16px;font-weight:600;margin-bottom:8px">' + msg + '</div>' +
+    '<div style="font-size:13px;color:#666;margin-bottom:20px">时间筛选器已自动更新，可在总体概况/绩效等模块查看新月份数据</div>' +
     '<button onclick="closeImportModal();renderMonthPicker();refreshCurrentModule();" style="padding:8px 24px;border:none;border-radius:6px;background:#1a73e8;color:#fff;font-size:13px;cursor:pointer;font-weight:600">完成</button>' +
     '</div>';
 
-  // 刷新绩效月份下拉
   var perfSel = $('perfMonthSelect');
   if (perfSel) {
     var months = WORKBENCH_DATA.available_months || [];
-    perfSel.innerHTML = months.map(function(m) { return '<option value="' + m + '"' + (m === month ? ' selected' : '') + '>' + formatMonthLabel(m) + '</option>'; }).join('');
-    perfMonth = month;
+    perfSel.innerHTML = months.map(function(m) { return '<option value="' + m + '"' + (m === currentMonth ? ' selected' : '') + '>' + formatMonthLabel(m) + '</option>'; }).join('');
+    perfMonth = currentMonth;
   }
-  // 刷新月份选择器
   renderMonthPicker();
   refreshCurrentModule();
 }
 
 function downloadTemplate() {
-  var headers = ['姓名', '学校/项目', '角色', '区域主管', '区域', '用户池', '有效触达', '培训场次', '校园行场次', '实际订单金额', '上月流量', '同期流量', '结算率'];
+  // 表头照搬附件 5/6/7 月格式，去掉环比 4 列，不含合计行
+  var headers = ['区域主管', '运营人员', '学校/项目', '用户池（30）', '有效触达（目标100）', '实际培训场次（目标4场）', '实际校园行场次目标（1场）', '计划订单金额', '实际产生线上订单金额', '上月流量', '同期流量', '结算率'];
   var sample = [
-    ['陈宝华', '南方医科大学', '区域主管', '陈宝华', '广东', 30, 0, 0, 0, 29881.21, 39737.28, 12975.99, '0.57'],
-    ['卢婉炫', '华南理工大学', '运营专员', '陈宝华', '广东', 30, 6, 4, 1, 732608.74, 478397.85, 0, '未对接财务'],
-    ['黄乐怡', '广州中医药大学', '项目营销负责人', '陈宝华', '广东', 60, 0, 5, 0, 1179000.80, 1660564.59, 1329461.75, '0.99']
+    ['陈宝华', '陈宝华', '南方医科大学', 30, 0, 0, 0, '3w', 29881.21, 39737.28, 12975.99, '0.57'],
+    ['陈宝华', '卢婉炫', '华南理工大学', 30, 6, 4, 1, '40w', 732608.74, 478397.85, 0, '未对接财务'],
+    ['陈宝华', '黄乐怡', '广州中医药大学', 60, 0, 5, 0, '100w', 1179000.80, 1660564.59, 1329461.75, '0.99']
   ];
   var aoa = [headers].concat(sample);
   var ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols'] = [{ wch: 12 }, { wch: 20 }, { wch: 14 }, { wch: 12 }, { wch: 10 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
+  ws['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 20 }, { wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
   var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '月度数据');
   XLSX.writeFile(wb, '运营月度数据模板.xlsx');
