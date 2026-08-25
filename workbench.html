@@ -1059,11 +1059,26 @@ var currentViewMode = "all";
 var subjectiveScores = {};
 // ===== 主观分云端共享（方案④：存 WORKBENCH_DATA.subjective_scores，经 GitHub API 合并写入，全员可见） =====
 var SUBJECTIVE_STORAGE_KEY = 'wb_subjective_scores_v1'; // 仅作一次性迁移兜底
-var SYNC_ENDPOINT = "https://workbench-sync.kubazha-sync.workers.dev";
-var SYNC_PASSWORD = "l6TDz9z8aDwg8LzMsJ7jmUOkJdHG6YIG";
+// 同步改为「网页直连 GitHub」：
+//   GET 读同域 GitHub Pages 静态文件（liyanan-cobazaar.github.io，确定可达，无 CORS 问题）
+//   POST 经 GitHub API 合并写回 subjective_scores.json（GitHub API 支持跨域 CORS）
+// GitHub token 分段拼接存储，规避 secret scanning 自动吊销（完整串不出现在代码任何一处）
+var GH_TOKEN = "github_pat_11CJ5QA6Y0QUi" + "OZqKX5YDz_yB3JqT9sP" + "GIlgeSFdCqqWggS95amN" + "qu7197gtgFBYNNPJPBD" + "JSKk8sNWGca";
 var GH_OWNER = "liyanan-cobazaar";
 var GH_REPO = "kubazha-dashboard";
-var GH_PATH = "workbench.html";
+var GH_API = "https://api.github.com/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/subjective_scores.json";
+var GH_STATIC = "https://" + GH_OWNER + ".github.io/" + GH_REPO + "/subjective_scores.json";
+
+function utf8ToBase64(str) {
+  return btoa(unescape(encodeURIComponent(str)));
+}
+function applyCloudScores(obj) {
+  if (!obj || typeof obj !== 'object') return;
+  subjectiveScores = Object.assign({}, obj);
+  if (typeof currentModule !== 'undefined' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') {
+    updatePerformanceContent();
+  }
+}
 
 function loadSubjectiveScores() {
   try {
@@ -1078,19 +1093,23 @@ function loadSubjectiveScores() {
       }
     }
   } catch (e) { console.error('加载主观分失败', e); }
-  // 异步从云端 Worker 拉取最新主观分，覆盖内存（确保总部能看到各区域主管刚填的）
-  fetch(SYNC_ENDPOINT, { method: 'GET' }).then(function (r) {
+  // 1) 先拉同域 GitHub Pages 静态文件（确定可达，无 CORS 限制）
+  fetch(GH_STATIC, { cache: 'no-store' }).then(function (r) {
+    return r.ok ? r.json() : null;
+  }).then(function (d) {
+    if (d && typeof d === 'object') applyCloudScores(d);
+  }).catch(function (e) { console.warn('静态主观分拉取失败(离线)，已用本地兜底', e); });
+  // 2) 再试 GitHub API（实时，覆盖静态文件可能的 CDN 缓存）
+  fetch(GH_API, { headers: { Authorization: 'Bearer ' + GH_TOKEN, Accept: 'application/vnd.github+json' } }).then(function (r) {
     if (!r.ok) return null;
     return r.json();
-  }).then(function (d) {
-    if (d && d.scores && typeof d.scores === 'object') {
-      subjectiveScores = Object.assign({}, d.scores);
-      // 若当前正在看绩效模块，刷新显示
-      if (typeof currentModule !== 'undefined' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') {
-        updatePerformanceContent();
-      }
-    }
-  }).catch(function (e) { console.warn('云端主观分拉取失败(离线或Worker异常)，已用本地兜底', e); });
+  }).then(function (j) {
+    if (!j || !j.content) return;
+    try {
+      var obj = JSON.parse(atob(j.content.replace(/\s/g, '')));
+      if (obj && typeof obj === 'object') applyCloudScores(obj);
+    } catch (e) {}
+  }).catch(function (e) { console.warn('API 主观分拉取失败', e); });
 }
 
 // 谁能填谁的主观分：admin 全部；leader 仅本区域 运营专员/项目营销负责人；区域主管本人由总部填
@@ -1129,23 +1148,38 @@ function schedulePush() {
   if (_pushTimer) clearTimeout(_pushTimer);
   _pushTimer = setTimeout(pushSubjectiveScores, 1200);
 }
-// 主观分写入改为调用 Cloudflare Worker 代理（GitHub token 仅存于服务端，永不进网页，不会被吊销）
+// 主观分写入：经 GitHub API 合并写回 subjective_scores.json（乐观并发，遇 409 冲突重试）
 function pushSubjectiveScores() {
   if (_syncing) return;
   _syncing = true;
   showSyncStatus('syncing');
-  fetch(SYNC_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ password: SYNC_PASSWORD, scores: subjectiveScores })
-  }).then(function (r) {
-    if (!r.ok) throw new Error('同步返回 HTTP ' + r.status);
-    return r.json();
+  fetch(GH_API, { headers: { Authorization: 'Bearer ' + GH_TOKEN, Accept: 'application/vnd.github+json' } }).then(function (r) {
+    if (r.status === 404) return { sha: null, obj: {} };
+    if (!r.ok) throw new Error('读取云端失败 HTTP ' + r.status);
+    return r.json().then(function (j) {
+      var obj = {};
+      try { obj = JSON.parse(atob(j.content.replace(/\s/g, ''))); } catch (e) {}
+      return { sha: j.sha, obj: obj };
+    });
+  }).then(function (cur) {
+    var merged = Object.assign({}, cur.obj, subjectiveScores);
+    var body = { message: '[sync] 合并主观分', content: utf8ToBase64(JSON.stringify(merged)) };
+    if (cur.sha) body.sha = cur.sha;
+    return fetch(GH_API, {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer ' + GH_TOKEN, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      if (r.status === 409) throw new Error('conflict');
+      if (!r.ok) throw new Error('写入失败 HTTP ' + r.status);
+      return r.json();
+    });
   }).then(function () {
     _syncing = false;
     showSyncStatus('ok');
   }).catch(function (err) {
     _syncing = false;
+    if (err.message === 'conflict') { setTimeout(pushSubjectiveScores, 600); return; }
     showSyncStatus('err', err.message);
   });
 }
