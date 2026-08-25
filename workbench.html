@@ -1059,7 +1059,8 @@ var currentViewMode = "all";
 var subjectiveScores = {};
 // ===== 主观分云端共享（方案④：存 WORKBENCH_DATA.subjective_scores，经 GitHub API 合并写入，全员可见） =====
 var SUBJECTIVE_STORAGE_KEY = 'wb_subjective_scores_v1'; // 仅作一次性迁移兜底
-var GH_TOKEN = "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";
+var SYNC_ENDPOINT = "https://workbench-sync.kubazha-sync.workers.dev";
+var SYNC_PASSWORD = "l6TDz9z8aDwg8LzMsJ7jmUOkJdHG6YIG";
 var GH_OWNER = "liyanan-cobazaar";
 var GH_REPO = "kubazha-dashboard";
 var GH_PATH = "workbench.html";
@@ -1114,53 +1115,18 @@ function schedulePush() {
   if (_pushTimer) clearTimeout(_pushTimer);
   _pushTimer = setTimeout(pushSubjectiveScores, 1200);
 }
-function githubGetFile() {
-  return fetch('https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO + '/contents/' + GH_PATH, {
-    headers: { 'Authorization': 'Bearer ' + GH_TOKEN, 'Accept': 'application/vnd.github+json' }
-  }).then(function (r) { if (!r.ok) throw new Error('GET ' + r.status); return r.json(); });
-}
-function githubPutFile(path, contentB64, sha, message) {
-  return fetch('https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO + '/contents/' + path, {
-    method: 'PUT',
-    headers: { 'Authorization': 'Bearer ' + GH_TOKEN, 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: message, content: contentB64, sha: sha })
-  }).then(function (r) { if (!r.ok) throw new Error('PUT ' + r.status); return r.json(); });
-}
-function b64encodeUtf8(str) {
-  var bytes = new TextEncoder().encode(str);
-  var bin = '';
-  var CHUNK = 0x8000;
-  for (var i = 0; i < bytes.length; i += CHUNK) {
-    bin += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
-  }
-  return btoa(bin);
-}
-function b64decodeUtf8(b64) {
-  var bin = atob(b64);
-  var bytes = new Uint8Array(bin.length);
-  for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new TextDecoder().decode(bytes);
-}
+// 主观分写入改为调用 Cloudflare Worker 代理（GitHub token 仅存于服务端，永不进网页，不会被吊销）
 function pushSubjectiveScores() {
   if (_syncing) return;
   _syncing = true;
   showSyncStatus('syncing');
-  githubGetFile().then(function (file) {
-    var html = b64decodeUtf8(file.content);
-    var re = /"subjective_scores"\s*:\s*\{[^}]*\}/;
-    var cloudScores = {};
-    var m = html.match(re);
-    if (m) { try { cloudScores = JSON.parse(m[0].replace(/^"subjective_scores"\s*:\s*/, '')); } catch (e) {} }
-    var merged = Object.assign({}, cloudScores, subjectiveScores);
-    var newHtml = html.replace(re, '"subjective_scores":' + JSON.stringify(merged));
-    var who = CURRENT_USER ? (CURRENT_USER.name + '(' + CURRENT_USER.role + ')') : 'unknown';
-    var ts = new Date().toLocaleString('zh-CN');
-    var msg = '主观分更新 by ' + who + ' @ ' + ts;
-    return githubPutFile(GH_PATH, b64encodeUtf8(newHtml), file.sha, msg).then(function () {
-      return fetch('https://api.github.com/repos/' + GH_OWNER + '/' + GH_REPO + '/pages/builds', {
-        method: 'POST', headers: { 'Authorization': 'Bearer ' + GH_TOKEN, 'Accept': 'application/vnd.github+json' }
-      }).catch(function () {});
-    });
+  fetch(SYNC_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: SYNC_PASSWORD, scores: subjectiveScores })
+  }).then(function (r) {
+    if (!r.ok) throw new Error('同步返回 HTTP ' + r.status);
+    return r.json();
   }).then(function () {
     _syncing = false;
     showSyncStatus('ok');
