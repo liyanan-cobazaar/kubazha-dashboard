@@ -1012,7 +1012,8 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
           ① 自动按工作表名识别月份（如「2026年8月」），<b>新月份会自动出现在时间筛选器</b>；<br>
           ② <b>仅追加</b>库中不存在的记录（唯一键 = 月份 + 学校 + 运营人员），<b>不覆盖/不修改</b>已有数据；<br>
           ③ 3/4月与无法识别月份的表自动跳过；<br>
-          ④ 表头支持第1行标题+第2行表头，列名自动识别（含附件原格式）。
+          ④ 表头支持第1行标题+第2行表头，列名自动识别（含附件原格式）；<br>
+          ⑤ 「角色」列<b>可选</b>：填 区域主管 / 项目营销负责人 / 运营专员 则按所填判定，<b>留空则自动判定</b>（运营人员==区域主管→区域主管，否则→运营专员）。
         </div>
       </div>
       <div id="importSummary" style="margin-bottom:16px"></div>
@@ -4434,14 +4435,31 @@ var COL_MAP = {
 
 function matchColumn(headers) {
   var mapping = {};
+  var taken = {}; // 一列只归属一个字段，避免「区域主管」被「区域」子串抢走
+  // 第一遍：精确匹配优先（别名完全相等）
   headers.forEach(function(h, i) {
+    if (taken[i]) return;
     var hl = String(h || '').trim().toLowerCase().replace(/\s/g, '');
+    if (!hl) return;
     Object.keys(COL_MAP).forEach(function(field) {
       if (mapping[field] !== undefined) return;
-      var found = COL_MAP[field].some(function(alias) {
-        return hl === alias.toLowerCase().replace(/\s/g, '') || hl.indexOf(alias.toLowerCase().replace(/\s/g, '')) >= 0;
+      var exact = COL_MAP[field].some(function(alias) {
+        return hl === alias.toLowerCase().replace(/\s/g, '');
       });
-      if (found) mapping[field] = i;
+      if (exact) { mapping[field] = i; taken[i] = true; }
+    });
+  });
+  // 第二遍：子串匹配（仅未被占用的列，且字段尚未分配）
+  headers.forEach(function(h, i) {
+    if (taken[i]) return;
+    var hl = String(h || '').trim().toLowerCase().replace(/\s/g, '');
+    if (!hl) return;
+    Object.keys(COL_MAP).forEach(function(field) {
+      if (mapping[field] !== undefined) return;
+      var sub = COL_MAP[field].some(function(alias) {
+        return hl.indexOf(alias.toLowerCase().replace(/\s/g, '')) >= 0;
+      });
+      if (sub) { mapping[field] = i; taken[i] = true; }
     });
   });
   return mapping;
@@ -4762,16 +4780,16 @@ function confirmImport() {
 }
 
 function downloadTemplate() {
-  // 表头照搬附件 5/6/7 月格式，去掉环比 4 列，不含合计行
-  var headers = ['区域主管', '运营人员', '学校/项目', '用户池（30）', '有效触达（目标100）', '实际培训场次（目标4场）', '实际校园行场次目标（1场）', '计划订单金额', '实际产生线上订单金额', '上月流量', '同期流量', '结算率'];
+  // 表头照搬附件 5/6/7 月格式，去掉环比 4 列，不含合计行；新增「角色」可选列（留空=按 运营人员==区域主管 自动判定）
+  var headers = ['区域主管', '运营人员', '角色', '学校/项目', '用户池（30）', '有效触达（目标100）', '实际培训场次（目标4场）', '实际校园行场次目标（1场）', '计划订单金额', '实际产生线上订单金额', '上月流量', '同期流量', '结算率'];
   var sample = [
-    ['陈宝华', '陈宝华', '南方医科大学', 30, 0, 0, 0, '3w', 29881.21, 39737.28, 12975.99, '0.57'],
-    ['陈宝华', '卢婉炫', '华南理工大学', 30, 6, 4, 1, '40w', 732608.74, 478397.85, 0, '未对接财务'],
-    ['陈宝华', '黄乐怡', '广州中医药大学', 60, 0, 5, 0, '100w', 1179000.80, 1660564.59, 1329461.75, '0.99']
+    ['陈宝华', '陈宝华', '区域主管', '南方医科大学', 30, 0, 0, 0, '3w', 29881.21, 39737.28, 12975.99, '0.57'],
+    ['陈宝华', '卢婉炫', '运营专员', '华南理工大学', 30, 6, 4, 1, '40w', 732608.74, 478397.85, 0, '未对接财务'],
+    ['陈宝华', '黄乐怡', '项目营销负责人', '广州中医药大学', 60, 0, 5, 0, '100w', 1179000.80, 1660564.59, 1329461.75, '0.99']
   ];
   var aoa = [headers].concat(sample);
   var ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 20 }, { wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
+  ws['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
   var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '月度数据');
   XLSX.writeFile(wb, '运营月度数据模板.xlsx');
