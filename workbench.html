@@ -1099,7 +1099,8 @@ function canEditSubjective(p) {
   if (isAdmin()) return true;
   if (isLeader()) {
     if (p.role === '区域主管' && p.name === CURRENT_USER.name) return false; // 自己由总部填
-    var lead = p.leader || leaderOfPerson(p.name);
+    var rawLead = p.leader;
+    var lead = (rawLead && rawLead !== 'undefined' && String(rawLead).trim() !== '') ? rawLead : leaderOfPerson(p.name);
     return lead === CURRENT_USER.name && (p.role === '运营专员' || p.role === '项目营销负责人');
   }
   return false;
@@ -1238,7 +1239,7 @@ function getPersonLevelPeople(md) {
     var key = p.role + "|" + p.name;
     if(!map[key]) {
       map[key] = {
-        name:p.name, role:p.role, region:p.region,
+        name:p.name, role:p.role, region:p.region, leader:p.leader,
         campus:0, train:0, touch:0, user_pool:0, actual_order:0, flow:0,
         settle_rate:0, base_flow_yoy:0, prev_flow:0,
         _projects:[], _schools:[]
@@ -1259,7 +1260,7 @@ function getPersonLevelPeople(md) {
       var splitKey = p.role + "|张亚娟";
       if(!map[splitKey]){
         map[splitKey] = {
-          name:"张亚娟", role:p.role, region:p.region,
+          name:"张亚娟", role:p.role, region:p.region, leader:p.leader,
           campus:0, train:0, touch:0, user_pool:0, actual_order:0, flow:0,
           settle_rate:0, base_flow_yoy:0, prev_flow:0,
           _projects:[], _schools:[]
