@@ -1078,6 +1078,19 @@ function loadSubjectiveScores() {
       }
     }
   } catch (e) { console.error('加载主观分失败', e); }
+  // 异步从云端 Worker 拉取最新主观分，覆盖内存（确保总部能看到各区域主管刚填的）
+  fetch(SYNC_ENDPOINT, { method: 'GET' }).then(function (r) {
+    if (!r.ok) return null;
+    return r.json();
+  }).then(function (d) {
+    if (d && d.scores && typeof d.scores === 'object') {
+      subjectiveScores = Object.assign({}, d.scores);
+      // 若当前正在看绩效模块，刷新显示
+      if (typeof currentModule !== 'undefined' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') {
+        updatePerformanceContent();
+      }
+    }
+  }).catch(function (e) { console.warn('云端主观分拉取失败(离线或Worker异常)，已用本地兜底', e); });
 }
 
 // 谁能填谁的主观分：admin 全部；leader 仅本区域 运营专员/项目营销负责人；区域主管本人由总部填
