@@ -2522,13 +2522,19 @@ function renderRankingView(md) {
   var staffHtml = buildRankList(staff, '暂无运营专员数据');
 
   var out = '';
-  // 第一行：区域主管 + 项目营销负责人（左右并排）
-  out += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">';
-  out += '<div class="rank-section"><h4>👔 区域主管排行</h4><ul class="rank-list">'+leaderHtml+'</ul></div>';
-  out += '<div class="rank-section"><h4>🎯 项目营销负责人排行</h4><ul class="rank-list">'+managerHtml+'</ul></div>';
-  out += '</div>';
-  // 第二行：运营专员（在区域负责人/项目营销负责人下方）
-  out += '<div class="rank-section"><h4>👥 运营专员排行</h4><ul class="rank-list">'+staffHtml+'</ul></div>';
+  if (isLeader()) {
+    // 区域主管视角：不展示"区域主管排行"（避免与自身重复），仅展示营销负责人与运营专员
+    out += '<div class="rank-section"><h4>🎯 项目营销负责人排行</h4><ul class="rank-list">'+managerHtml+'</ul></div>';
+    out += '<div class="rank-section" style="margin-top:16px"><h4>👥 运营专员排行</h4><ul class="rank-list">'+staffHtml+'</ul></div>';
+  } else {
+    // 第一行：区域主管 + 项目营销负责人（左右并排）
+    out += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">';
+    out += '<div class="rank-section"><h4>👔 区域主管排行</h4><ul class="rank-list">'+leaderHtml+'</ul></div>';
+    out += '<div class="rank-section"><h4>🎯 项目营销负责人排行</h4><ul class="rank-list">'+managerHtml+'</ul></div>';
+    out += '</div>';
+    // 第二行：运营专员（在区域负责人/项目营销负责人下方）
+    out += '<div class="rank-section"><h4>👥 运营专员排行</h4><ul class="rank-list">'+staffHtml+'</ul></div>';
+  }
 
   $("perfContent").innerHTML = out;
 }
@@ -2552,7 +2558,9 @@ function renderEvalChartView(md) {
 
   // 图表 - 纵向排列，每个图独占一行更大
   var out = '';
-  out += '<div class="chart-container" style="height:340px"><canvas id="perfSummaryLeaderChart"></canvas></div>';
+  if (!isLeader()) {
+    out += '<div class="chart-container" style="height:340px"><canvas id="perfSummaryLeaderChart"></canvas></div>';
+  }
   out += '<div class="chart-container" style="height:340px"><canvas id="perfSummaryMarketingChart"></canvas></div>';
   out += '<div class="chart-container" style="height:340px"><canvas id="perfSummaryStaffChart"></canvas></div>';
 
@@ -2562,7 +2570,7 @@ function renderEvalChartView(md) {
   // 1) 区域主管: 绩效 vs 区域总流量(万) — 从regions取区域汇总的线上订单金额
   var leaders = scored.filter(function(p){ return p.role === "区域主管"; }).sort(function(a,b){ return b.total-a.total; });
   var regions = md.regions || {};
-  if(leaders.length > 0) {
+  if(!isLeader() && leaders.length > 0) {
     renderComboChart("perfSummaryLeaderChart", "区域主管-绩效vs区域流量(万)",
       leaders.map(function(p){return p.name;}),
       leaders.map(function(p){return p.total;}),
