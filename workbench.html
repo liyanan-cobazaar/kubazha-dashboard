@@ -564,7 +564,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
 <div class="top-bar">
   <h1>📊 运营管理工作台</h1>
   <div style="display:flex;gap:10px;align-items:center">
-    <button id="downloadTplBtn" onclick="downloadTemplate()" style="padding:6px 16px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='#fff'">📄 下载模板</button>
+    <button id="downloadTplBtn" onclick="downloadTemplate()" title="下载「月度数据」模板（用于总体概况/绩效评估/增量分析，同一份数据只需导入一次）" style="padding:6px 16px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='#fff'">📄 月度模板</button>
     <button id="importBtn" onclick="document.getElementById('importFileInput').click()" style="padding:6px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#1557b0'" onmouseout="this.style.background='#1a73e8'">📥 导入新增数据</button>
     <div class="user-badge" id="userBadge"></div>
   </div>
@@ -1010,11 +1010,13 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
       <div style="background:#f0f7ff;border:1px solid #d0e3ff;border-radius:8px;padding:14px;margin-bottom:16px">
         <div style="font-weight:600;font-size:13px;margin-bottom:8px">📋 导入规则说明：</div>
         <div style="font-size:12px;color:#555;line-height:1.8">
-          ① 自动按工作表名识别月份（如「2026年8月」），<b>新月份会自动出现在时间筛选器</b>；<br>
-          ② <b>仅追加</b>库中不存在的记录（唯一键 = 月份 + 学校 + 运营人员），<b>不覆盖/不修改</b>已有数据；<br>
-          ③ 3/4月与无法识别月份的表自动跳过；<br>
-          ④ 表头支持第1行标题+第2行表头，列名自动识别（含附件原格式）；<br>
-          ⑤ 「角色」列<b>可选</b>：填 区域主管 / 项目营销负责人 / 运营专员 则按所填判定，<b>留空则自动判定</b>（运营人员==区域主管→区域主管，否则→运营专员）。
+          ① 优先按每行「月份」列识别（如 <b>2026-08</b>），无该列则按工作表名识别（如「2026年8月」）；<b>新月份会自动出现在时间筛选器</b>；<br>
+          ② 此模板同时驱动 <b>总体概况 / 绩效评估 / 增量分析</b> 三个模块，<b>只需导入一次</b>；<br>
+          ③ <b>仅追加</b>库中不存在的记录（唯一键 = 月份 + 学校 + 运营人员），<b>不覆盖/不修改</b>已有数据；<br>
+          ④ 3/4月与无法识别月份的表/行自动跳过；<br>
+          ⑤ 表头支持第1行标题+第2行表头，列名自动识别（含附件原格式）；<br>
+          ⑥ 「角色」列<b>可选</b>：填 区域主管 / 项目营销负责人 / 运营专员 则按所填判定，<b>留空则自动判定</b>；<br>
+          ⑦ <b>填写格式</b>：金额列支持 <b>3w = 30000元</b>（或纯数字）；结算率支持 <b>0.57</b> 或 <b>57%</b>；"未对接财务"留空即可。详见模板内「填写说明」表。
         </div>
       </div>
       <div id="importSummary" style="margin-bottom:16px"></div>
@@ -4420,6 +4422,7 @@ function loadWorkbenchData() {
 
 // 列名映射表（支持多种写法，含附件原表头）
 var COL_MAP = {
+  month: ['月份','统计月份','所属月份','month'],
   name: ['运营人员','姓名','负责人','人员','name'],
   school: ['XX学校','学校','项目','学校/项目','项目名称','学校名称','school'],
   role: ['角色','岗位','职务','role'],
@@ -4470,14 +4473,32 @@ function matchColumn(headers) {
 
 // ---------- 方案甲：多sheet / 月份自动识别 / 仅追加新记录 ----------
 
+function parseMonthCell(v) {
+  if (v === undefined || v === null || v === '') return null;
+  var s = String(v).trim();
+  var m = s.match(/(\d{4})[\.\-年]?\s*(\d{1,2})\s*月?/);
+  if (m) { var yy = parseInt(m[1], 10), mm = parseInt(m[2], 10); if (mm >= 1 && mm <= 12) return yy + '-' + String(mm).padStart(2, '0'); }
+  var m2 = s.match(/(\d{1,2})\s*月?/);
+  if (m2) { var mm2 = parseInt(m2[1], 10); if (mm2 >= 1 && mm2 <= 12) return '2026-' + String(mm2).padStart(2, '0'); }
+  return null;
+}
+
 function sheetNameToMonth(name) {
   if (!name) return null;
-  var s = String(name).trim();
-  var m = s.match(/2026[\.\-年]?\s*(\d{1,2})\s*月?/);
-  if (m) { var mm = parseInt(m[1], 10); if (mm >= 1 && mm <= 12) return '2026-' + String(mm).padStart(2, '0'); }
-  var m2 = s.match(/2027[\.\-年]?\s*(\d{1,2})\s*月?/);
-  if (m2) { var mm2 = parseInt(m2[1], 10); if (mm2 >= 1 && mm2 <= 12) return '2027-' + String(mm2).padStart(2, '0'); }
-  return null;
+  return parseMonthCell(name);
+}
+
+function parseSettleRate(v) {
+  if (v === undefined || v === null || v === '') return '';
+  var s = String(v).trim();
+  if (/未对接|未开始|暂无|无/.test(s)) return '';
+  var pct = false;
+  if (s.indexOf('%') >= 0) { pct = true; s = s.replace('%', ''); }
+  s = s.replace(/[,，\s]/g, '').replace(/[^0-9.]/g, '');
+  var n = parseFloat(s);
+  if (isNaN(n)) return '';
+  if (pct) n = n / 100;
+  return n;
 }
 
 function detectRoleColumn(rows, hidx, colMap) {
@@ -4617,11 +4638,18 @@ function handleImportFile(input) {
       var wb = XLSX.read(data, { type: 'array' });
       var plan = [];
       var skipped = [];
+      var existingCache = {};
+      function getExisting(m) {
+        if (existingCache[m]) return existingCache[m];
+        var ek = {};
+        if (WORKBENCH_DATA.monthly_data[m] && WORKBENCH_DATA.monthly_data[m].people) {
+          WORKBENCH_DATA.monthly_data[m].people.forEach(function(p) { ek[recordKey(m, p)] = true; });
+        }
+        existingCache[m] = ek;
+        return ek;
+      }
       wb.SheetNames.forEach(function(sheetName) {
-        var mk = sheetNameToMonth(sheetName);
-        if (!mk) { skipped.push(sheetName + '（无法识别月份）'); return; }
-        var mm = parseInt(mk.split('-')[1], 10);
-        if (mm <= 4) { skipped.push(sheetName + '（3/4月本次不导入）'); return; }
+        var sheetMonth = sheetNameToMonth(sheetName); // 可为 null（月份改由「月份」列识别）
         var sheet = wb.Sheets[sheetName];
         var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
         var hidx = detectHeaderRow(rows);
@@ -4632,13 +4660,14 @@ function handleImportFile(input) {
         var missing = [];
         ['name', 'school', 'actual_order'].forEach(function(f) { if (colMap[f] === undefined) missing.push(f); });
         if (missing.length) { skipped.push(sheetName + '（缺必填列：' + missing.join('/') + '）'); return; }
-        var existingKeys = {};
-        if (WORKBENCH_DATA.monthly_data[mk] && WORKBENCH_DATA.monthly_data[mk].people) {
-          WORKBENCH_DATA.monthly_data[mk].people.forEach(function(p) { existingKeys[recordKey(mk, p)] = true; });
-        }
+        if (!sheetMonth && colMap.month === undefined) { skipped.push(sheetName + '（无「月份」列且表名无法识别月份）'); return; }
         var lastLeader = '';
         for (var i = hidx + 1; i < rows.length; i++) {
           var row = rows[i];
+          var rowMonth = (colMap.month !== undefined ? parseMonthCell(row[colMap.month]) : null) || sheetMonth;
+          if (!rowMonth) { skipped.push(sheetName + '（第' + (i + 1) + '行月份无法识别）'); continue; }
+          var mm = parseInt(rowMonth.split('-')[1], 10);
+          if (mm <= 4) { skipped.push(sheetName + '（第' + (i + 1) + '行 3/4月不导入）'); continue; }
           var rawLeader = colMap.leader !== undefined ? String(row[colMap.leader] || '').trim() : '';
           if (rawLeader) lastLeader = normalizeName(rawLeader);
           var rawOp = colMap.name !== undefined ? String(row[colMap.name] || '').trim() : '';
@@ -4664,12 +4693,13 @@ function handleImportFile(input) {
             actual_order: num(row, colMap.actual_order),
             prev_flow: num(row, colMap.prev_flow),
             base_flow_yoy: num(row, colMap.base_flow_yoy),
-            settle_rate: colMap.settle_rate !== undefined ? String(row[colMap.settle_rate] || '').trim() : '',
+            settle_rate: colMap.settle_rate !== undefined ? parseSettleRate(row[colMap.settle_rate]) : '',
             plan_order: colMap.plan_order !== undefined ? parsePlan(row[colMap.plan_order]) : 0,
             flow: num(row, colMap.actual_order)
           };
-          var key = recordKey(mk, p);
-          plan.push({ month: mk, p: p, exists: !!existingKeys[key] });
+          var ek = getExisting(rowMonth);
+          var key = recordKey(rowMonth, p);
+          plan.push({ month: rowMonth, p: p, exists: !!ek[key] });
         }
       });
       if (plan.length === 0) {
@@ -4692,8 +4722,12 @@ function num(row, idx) {
   if (idx === undefined) return 0;
   var v = row[idx];
   if (typeof v === 'number') return v;
-  v = String(v || '').replace(/[,，¥$\s]/g, '').replace(/[^0-9.\-]/g, '');
-  return parseFloat(v) || 0;
+  var s = String(v || '').trim().toLowerCase();
+  var mult = 1;
+  if (s.indexOf('万') >= 0) { mult = 10000; s = s.replace('万', ''); }
+  else if (s.indexOf('w') >= 0) { mult = 10000; s = s.replace('w', ''); }
+  s = s.replace(/[,，¥$\s]/g, '').replace(/[^0-9.\-]/g, '');
+  return (parseFloat(s) || 0) * mult;
 }
 
 function showImportModal(plan, skipped) {
@@ -4783,18 +4817,39 @@ function confirmImport() {
 }
 
 function downloadTemplate() {
-  // 表头照搬附件 5/6/7 月格式，去掉环比 4 列，不含合计行；新增「角色」可选列（留空=按 运营人员==区域主管 自动判定）
-  var headers = ['区域主管', '运营人员', '角色', '学校/项目', '用户池（30）', '有效触达（目标100）', '实际培训场次（目标4场）', '实际校园行场次目标（1场）', '计划订单金额', '实际产生线上订单金额', '上月流量', '同期流量', '结算率'];
+  // 表头照搬附件 5/6/7 月格式，去掉环比 4 列，不含合计行；新增「月份」列（必填，解决模板无月份导致整张被跳过）与「角色」可选列
+  var headers = ['月份', '区域主管', '运营人员', '角色', '学校/项目', '用户池（30）', '有效触达（目标100）', '实际培训场次（目标4场）', '实际校园行场次目标（1场）', '计划订单金额', '实际产生线上订单金额', '上月流量', '同期流量', '结算率'];
   var sample = [
-    ['陈宝华', '陈宝华', '区域主管', '南方医科大学', 30, 0, 0, 0, '3w', 29881.21, 39737.28, 12975.99, '0.57'],
-    ['陈宝华', '卢婉炫', '运营专员', '华南理工大学', 30, 6, 4, 1, '40w', 732608.74, 478397.85, 0, '未对接财务'],
-    ['陈宝华', '黄乐怡', '项目营销负责人', '广州中医药大学', 60, 0, 5, 0, '100w', 1179000.80, 1660564.59, 1329461.75, '0.99']
+    ['2026-08', '陈宝华', '陈宝华', '区域主管', '南方医科大学', 30, 0, 0, 0, '3w', 29881.21, 39737.28, 12975.99, '0.57'],
+    ['2026-08', '陈宝华', '卢婉炫', '运营专员', '华南理工大学', 30, 6, 4, 1, '40w', 732608.74, 478397.85, 0, '未对接财务'],
+    ['2026-08', '陈宝华', '黄乐怡', '项目营销负责人', '广州中医药大学', 60, 0, 5, 0, '100w', 1179000.80, 1660564.59, 1329461.75, '99%']
   ];
   var aoa = [headers].concat(sample);
   var ws = XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols'] = [{ wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
+  ws['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 20 }, { wch: 12 }, { wch: 16 }, { wch: 18 }, { wch: 22 }, { wch: 14 }, { wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 12 }];
   var wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '月度数据');
+  // 填写说明表：明确每个字段的单位/格式要求（金额支持 w/万、结算率支持 57%/0.57）
+  var guide = [
+    ['字段', '填写说明（单位 / 格式）'],
+    ['月份', '必填。如 2026-08 或 2026年8月；同一文件可放多个月份（每行一个月份）'],
+    ['区域主管', '必填。如 陈宝华；下行可留空，自动沿用上一行'],
+    ['运营人员', '必填。实际填写人'],
+    ['角色', '可选。区域主管 / 项目营销负责人 / 运营专员；留空则自动判定（运营人员=区域主管→区域主管，否则→运营专员）'],
+    ['学校/项目', '必填。学校或项目名称'],
+    ['用户池（30）', '整数，单位 人。如 30'],
+    ['有效触达（目标100）', '整数，单位 次'],
+    ['实际培训场次（目标4场）', '整数，单位 场'],
+    ['实际校园行场次目标（1场）', '整数，单位 场'],
+    ['计划订单金额', '金额，单位 元。可写 3w=30000 元，或纯数字'],
+    ['实际产生线上订单金额', '金额，单位 元。可写 3w=30000 元，或纯数字'],
+    ['上月流量', '金额，单位 元。可写 w/万；留空=0'],
+    ['同期流量', '金额，单位 元。可写 w/万；留空=0'],
+    ['结算率', '填 0.57 或 57% 均可；"未对接财务"留空不计入']
+  ];
+  var gws = XLSX.utils.aoa_to_sheet(guide);
+  gws['!cols'] = [{ wch: 22 }, { wch: 60 }];
+  XLSX.utils.book_append_sheet(wb, gws, '填写说明');
   XLSX.writeFile(wb, '运营月度数据模板.xlsx');
 }
 
