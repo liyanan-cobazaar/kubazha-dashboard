@@ -760,6 +760,9 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
             <option value="A">A级 (优质)</option><option value="B">B级 (潜力)</option><option value="C">C级 (普通)</option>
           </select>
           <span style="font-size:11px;color:#888">共 <strong id="upTotalCount">0</strong> 名用户</span>
+          <button onclick="downloadModuleTemplate('userpool')" style="margin-left:auto;padding:6px 14px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600">📄 模板</button>
+          <button onclick="document.getElementById('upFileInput').click()" style="padding:6px 14px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600">📥 导入</button>
+          <input type="file" id="upFileInput" accept=".xlsx,.xls" style="display:none" onchange="handleModuleImportFile('userpool', this)">
         </div>
         <table><thead><tr><th>姓名</th><th>等级</th><th>学校/学院</th><th>实验室/课题组</th><th>用户池新增日期</th><th>最近触达</th><th>下单金额(万)</th><th>负责人</th></tr></thead><tbody id="upUserTable"></tbody></table>
       </div>
@@ -835,6 +838,9 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
             <option value="all">全部状态</option><option value="已完成">已完成</option><option value="进行中">进行中</option><option value="未开始">未开始</option>
           </select>
           <button id="addActivityBtn" onclick="openAddActivityModal()" style="padding:6px 14px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;margin-left:auto">+ 新增活动</button>
+          <button onclick="downloadModuleTemplate('marketing')" style="padding:6px 14px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600">📄 模板</button>
+          <button onclick="document.getElementById('mktFileInput').click()" style="padding:6px 14px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600">📥 导入</button>
+          <input type="file" id="mktFileInput" accept=".xlsx,.xls" style="display:none" onchange="handleModuleImportFile('marketing', this)">
         </div>
         <div id="marketingPlanList"></div>
       </div>
@@ -852,7 +858,10 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
       <!-- Tab4: 部门协助需求 -->
       <div id="marketingAssist" class="marketing-tab-content" style="display:none">
         <div class="kpi-row" id="marketingAssistKPIs"></div>
-        <table><thead><tr><th>学校</th><th>供应商协助</th><th>客服协助</th><th>产研协助</th><th>市场部协助</th></tr></thead><tbody id="marketingAssistTable"></tbody></table>
+        <table>
+        <div style="display:flex;gap:10px;margin-bottom:12px">
+          <button onclick="openAssistModal()" style="margin-left:auto;padding:6px 14px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600">+ 新增协助</button>
+        </div><thead><tr><th>学校</th><th>供应商协助</th><th>客服协助</th><th>产研协助</th><th>市场部协助</th></tr></thead><tbody id="marketingAssistTable"></tbody></table>
       </div>
 
       <!-- Tab5: 营销模式库 -->
@@ -899,6 +908,9 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
             <option value="all">全部状态</option><option value="done">✅ 已实施</option>
             <option value="pending">⏳ 未实施</option><option value="cancelled">❌ 取消</option>
           </select>
+          <button onclick="downloadModuleTemplate('campus')" style="margin-left:auto;padding:6px 14px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600">📄 模板</button>
+          <button onclick="document.getElementById('campusFileInput').click()" style="padding:6px 14px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600">📥 导入</button>
+          <input type="file" id="campusFileInput" accept=".xlsx,.xls" style="display:none" onchange="handleModuleImportFile('campus', this)">
         </div>
         <table><thead><tr><th>日期</th><th>学校</th><th>活动类型</th><th>模式</th><th>负责人</th><th>触达数</th><th>用户池新增</th><th>状态</th></tr></thead><tbody id="campusCalTable"></tbody></table>
         <div class="chart-row" style="margin-top:14px"><div class="chart-container"><canvas id="campusCalChart"></canvas></div><div class="chart-container"><canvas id="campusModeDistChart"></canvas></div></div>
@@ -2812,6 +2824,7 @@ function calcAvgSettle(people) {
 
 // ========== 用户池CRM ==========
 function initUserPool() {
+  loadUserPool();
   var noteHtml = scopeNoteHtml() ? '<span style="float:right;font-size:11px;color:#1a73e8">'+scopeNoteHtml()+'</span>' : '';
   var titleEl = document.querySelector('#modUserPool .module-title');
   if (titleEl) titleEl.innerHTML = '👥 用户池CRM' + noteHtml;
@@ -3024,6 +3037,7 @@ function initMarketing() {
   initMarketingFilters();
   loadMarketingData();
   loadModelLib();
+  loadMarketingAssist();
   renderMarketingDashboard();
   renderMarketingPlan();
   renderMarketingBudget();
@@ -3183,6 +3197,386 @@ function loadMarketingData() {
       }
     });
   } catch (e) { console.warn('load marketing data failed', e); }
+}
+
+// 校园行事件持久化
+function saveCampusEvents() {
+  try { localStorage.setItem('wb_campus_events_v1', JSON.stringify(CAMPUS_EVENTS)); }
+  catch (e) { console.warn('save campus events failed', e); }
+}
+function loadCampusEvents() {
+  try {
+    var raw = localStorage.getItem('wb_campus_events_v1');
+    if (!raw) return;
+    var arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return;
+    CAMPUS_EVENTS.length = 0;
+    arr.forEach(function(e) { CAMPUS_EVENTS.push(e); });
+  } catch (e) { console.warn('load campus events failed', e); }
+}
+
+// 用户池CRM持久化
+function saveUserPool() {
+  try { localStorage.setItem('wb_userpool_crm_v1', JSON.stringify(USER_POOL_CRM)); }
+  catch (e) { console.warn('save user pool failed', e); }
+}
+function loadUserPool() {
+  try {
+    var raw = localStorage.getItem('wb_userpool_crm_v1');
+    if (!raw) return;
+    var arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return;
+    USER_POOL_CRM.length = 0;
+    arr.forEach(function(u) { USER_POOL_CRM.push(u); });
+  } catch (e) { console.warn('load user pool failed', e); }
+}
+
+// 部门协助持久化
+function saveMarketingAssist() {
+  try { localStorage.setItem('wb_marketing_assist_v1', JSON.stringify(MARKETING_ASSIST)); }
+  catch (e) { console.warn('save marketing assist failed', e); }
+}
+function loadMarketingAssist() {
+  try {
+    var raw = localStorage.getItem('wb_marketing_assist_v1');
+    if (!raw) return;
+    var arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return;
+    MARKETING_ASSIST.length = 0;
+    arr.forEach(function(a) { MARKETING_ASSIST.push(a); });
+  } catch (e) { console.warn('load marketing assist failed', e); }
+}
+
+// =================== 通用模块模板下载 / 导入 ===================
+// 三套模板：营销活动-计划与进度 / 校园行-事件 / 用户池-CRM
+// 沿用「仅追加不覆盖」逻辑；金额支持 w/万；百分比支持 57%/0.57
+
+function normMonthISO(s) {
+  s = String(s||'').trim();
+  var y = 2026, mm = 0;
+  var m1 = s.match(/(\d{4})[\.\-年]?\s*(\d{1,2})\s*月?/);
+  if (m1) { y = parseInt(m1[1],10); mm = parseInt(m1[2],10); }
+  else { var m2 = s.match(/(\d{1,2})\s*月?/); if (m2) mm = parseInt(m2[1],10); }
+  if (!mm || mm<1 || mm>12) return '';
+  return y + '-' + String(mm).padStart(2,'0');
+}
+function normMonthCN(s) {
+  var iso = normMonthISO(s); if (!iso) return '';
+  return parseInt(iso.split('-')[1],10) + '月';
+}
+function statusNorm(v) {
+  v = String(v||'').trim();
+  if (/已(完成|实施|结束)|done|完成|✅/.test(v)) return 'done';
+  if (/取消|❌/.test(v)) return 'cancelled';
+  if (/计划|待|未|pending|⏳/.test(v)) return 'pending';
+  return v || 'pending';
+}
+function numYuan(v) {
+  if (v === undefined || v === null || v === '') return 0;
+  if (typeof v === 'number') return v;
+  var s = String(v).trim();
+  var m = s.match(/([\d.]+)\s*(万|w|W)/);
+  if (m) return parseFloat(m[1]) * 10000;
+  s = s.replace(/[,，¥$\s%％]/g,'').replace(/[^0-9.\-]/g,'');
+  return parseFloat(s) || 0;
+}
+function progressNum(v) {
+  if (v === undefined || v === null || v === '') return 0;
+  if (typeof v === 'number') return v > 1 ? Math.round(v) : Math.round(v*100);
+  var s = String(v).trim().replace(/[%％]/g,'');
+  var n = parseFloat(s);
+  if (isNaN(n)) return 0;
+  return n > 1 ? Math.round(n) : Math.round(n*100);
+}
+
+var MODULE_TEMPLATES = {
+  marketing: {
+    title: '营销活动-计划与进度 模板',
+    file: '营销活动计划与进度模板.xlsx',
+    sheets: [{
+      name: '活动清单',
+      headers: ['学校','活动主题','月份','活动负责人','参与对象','活动目标','预期产出','预算(元)','实际花费(元)','进度(%)','状态'],
+      aliases: {
+        school:['学校'], theme:['活动主题','主题'], month:['月份'],
+        leader:['活动负责人','负责人'], participants:['参与对象'],
+        goal:['活动目标'], expected:['预期产出'],
+        budget:['预算(元)','预算'], actual_expense:['实际花费(元)','实际花费'],
+        progress:['进度(%)','进度'], status:['状态']
+      },
+      sample: [
+        ['南方医科大学','开学季试剂耗材专场促销','2026-08','陈宝华','研究生/实验室管理员','新增线上订单30万','触达200人转化20人','3w','28000','80%','进行中'],
+        ['华南理工大学','实验室安全与采购合规讲座','2026-09','卢婉炫','课题组PI/实验员','提升品牌专业度','建池15人','1.5w','12000','100%','已完成']
+      ],
+      current: function(){ return MARKETING_ACTIVITIES; },
+      build: function(row, col) {
+        var get = function(f){ var i = col[f]; return i===undefined ? '' : row[i]; };
+        return {
+          id: 'mkt_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+          school: String(get('school')||'').trim(),
+          theme: String(get('theme')||'').trim(),
+          month: normMonthISO(get('month')),
+          leader: String(get('leader')||'').trim(),
+          participants: String(get('participants')||'').trim(),
+          goal: String(get('goal')||'').trim(),
+          expected: String(get('expected')||'').trim(),
+          budget: numYuan(get('budget')),
+          actual_expense: numYuan(get('actual_expense')),
+          progress: progressNum(get('progress')),
+          status: statusNorm(get('status')),
+          tasks: []
+        };
+      },
+      keyOf: function(p){ return (p.school||'')+'|'+(p.theme||''); }
+    }],
+    afterAppend: function(items){
+      items.forEach(function(a){ MARKETING_ACTIVITIES.push(a); });
+      saveMarketingData();
+      renderMarketingDashboard(); renderMarketingPlan(); renderMarketingBudget();
+    }
+  },
+  campus: {
+    title: '校园行-事件 模板',
+    file: '校园行事件模板.xlsx',
+    sheets: [{
+      name: '校园行事件',
+      headers: ['日期','月份','学校','活动模式','负责人','触达人数','用户池新增','7日下单人数','7日下单金额(元)','状态','区域'],
+      aliases: {
+        date:['日期'], month:['月份'], school:['学校'], mode:['活动模式','模式'],
+        person:['负责人'], touch:['触达人数'], userNew:['用户池新增'],
+        orderUsers:['7日下单人数'], order7d:['7日下单金额(元)','7日下单金额'],
+        status:['状态'], region:['区域']
+      },
+      sample: [
+        ['2026-08-25','2026-08','南方医科大学','摆摊设点','陈宝华','200','15','8','1.2w','已完成','广东'],
+        ['2026-09-10','2026-09','华南理工大学','学术讲座','卢婉炫','80','10','5','8000','计划中','广东']
+      ],
+      current: function(){ return CAMPUS_EVENTS; },
+      build: function(row, col) {
+        var get = function(f){ var i = col[f]; return i===undefined ? '' : row[i]; };
+        var month = normMonthCN(get('month') || get('date'));
+        return {
+          id: 'evt_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+          date: String(get('date')||'').trim(),
+          month: month,
+          school: String(get('school')||'').trim(),
+          mode: String(get('mode')||'').trim(),
+          person: String(get('person')||'').trim(),
+          touch: numYuan(get('touch')),
+          userNew: numYuan(get('userNew')),
+          orderUsers: numYuan(get('orderUsers')),
+          order7d: numYuan(get('order7d')),
+          status: statusNorm(get('status')),
+          region: String(get('region')||'').trim()
+        };
+      },
+      keyOf: function(p){ return (p.date||'')+'|'+(p.school||'')+'|'+(p.mode||''); }
+    }],
+    afterAppend: function(items){
+      items.forEach(function(e){ CAMPUS_EVENTS.push(e); });
+      saveCampusEvents();
+      renderCampusSubTab();
+    }
+  },
+  userpool: {
+    title: '用户池CRM 模板',
+    file: '用户池CRM模板.xlsx',
+    sheets: [{
+      name: '用户池CRM',
+      headers: ['姓名','等级(S/A/B/C)','学校','学院','实验室/课题组','新增日期','最近触达','下单金额(元)','负责人'],
+      aliases: {
+        name:['姓名'], level:['等级(S/A/B/C)','等级'], school:['学校'],
+        college:['学院'], lab:['实验室/课题组','课题组'],
+        addDate:['新增日期'], lastTouch:['最近触达'],
+        order:['下单金额(元)','下单金额'], leader:['负责人']
+      },
+      sample: [
+        ['张教授','A','南方医科大学','基础医学院','XX课题组','2026-03-15','2026-08-20','50w','陈宝华'],
+        ['李同学','B','华南理工大学','材料学院','YY实验室','2026-05-10','2026-08-18','8w','卢婉炫']
+      ],
+      current: function(){ return USER_POOL_CRM; },
+      build: function(row, col) {
+        var get = function(f){ var i = col[f]; return i===undefined ? '' : row[i]; };
+        return {
+          id: 'up_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+          name: String(get('name')||'').trim(),
+          level: String(get('level')||'').trim().toUpperCase(),
+          school: String(get('school')||'').trim(),
+          college: String(get('college')||'').trim(),
+          lab: String(get('lab')||'').trim(),
+          addDate: String(get('addDate')||'').trim(),
+          lastTouch: String(get('lastTouch')||'').trim(),
+          order: numYuan(get('order')) / 10000,
+          leader: String(get('leader')||'').trim()
+        };
+      },
+      keyOf: function(p){ return (p.name||'')+'|'+(p.school||''); }
+    }],
+    afterAppend: function(items){
+      items.forEach(function(u){ USER_POOL_CRM.push(u); });
+      saveUserPool();
+      renderUpSubTab();
+    }
+  }
+};
+
+function moduleColMap(headers, aliases) {
+  var used = {}, colMap = {};
+  headers.forEach(function(h, i){
+    if (used[i]) return;
+    var hl = String(h||'').trim().toLowerCase();
+    for (var f in aliases) {
+      if (colMap[f]!==undefined) continue;
+      if (aliases[f].some(function(a){ return String(a).trim().toLowerCase()===hl; })) { colMap[f]=i; used[i]=true; break; }
+    }
+  });
+  headers.forEach(function(h, i){
+    if (used[i]) return;
+    var hl = String(h||'').trim().toLowerCase();
+    if (!hl) return;
+    for (var f in aliases) {
+      if (colMap[f]!==undefined) continue;
+      if (aliases[f].some(function(a){ return String(a).trim().toLowerCase().indexOf(hl)>=0; })) { colMap[f]=i; used[i]=true; break; }
+    }
+  });
+  return colMap;
+}
+
+function moduleNoteLines(modKey) {
+  if (modKey==='marketing') return [
+    '本表用于「营销活动管理 - 计划与进度」批量导入，一份数据同时驱动活动看板与预算执行看板。',
+    '月份：填 2026-08 或 2026年8月 或 8月（统一存为 2026-08）。',
+    '预算(元)/实际花费(元)：支持 3w / 3万 = 30000 元；也可直接填数字（元）；自动去千分位逗号。',
+    '进度(%)：填 80 或 80% 均可，存为 80。',
+    '状态：已完成/已实施 → done；计划中/待/进行中 → pending；取消 → cancelled。',
+    '活动目标/预期产出：自由文字，可留空。',
+    '必填：学校、活动主题、月份、活动负责人；其余可选。',
+    '导入为「仅追加」：相同 学校+活动主题 的记录不会重复导入。'
+  ];
+  if (modKey==='campus') return [
+    '本表用于「校园行管理 - 日历视图」批量导入真实事件。',
+    '月份：填 2026-08 / 2026年8月 / 8月（统一存为 8月，与看板月度趋势一致）。',
+    '日期：填 2026-08-25 格式；若月份空则自动按日期推导月份。',
+    '活动模式：可选 摆摊设点 / 学术讲座 / 实操演练 / 茶歇交流 / 促销活动 / 入班宣讲 / 社团合作。',
+    '触达人数/用户池新增/7日下单人数：填数字（人）。7日下单金额(元)：支持 1.2w=12000 元。',
+    '状态：已完成/已实施 → done；计划中/待 → pending；取消 → cancelled。',
+    '区域：可填 广东/北京/陕西 等，留空则由系统按学校推导。',
+    '必填：学校、活动模式、负责人；其余可选。导入为「仅追加」。'
+  ];
+  return [
+    '本表用于「用户池CRM」批量导入真实客户名单（原表按学校分 sheet，汇总到此表）。',
+    '等级(S/A/B/C)：填 S / A / B / C（大小写均可）。',
+    '学校/学院/实验室课题组：直接按原表填写。',
+    '新增日期/最近触达：填 2026-03-15 格式。',
+    '下单金额(元)：支持 50w=500000 元；导入后自动 ÷10000 显示为「万」。',
+    '负责人：填对应运营人员。',
+    '必填：姓名、学校；其余可选。导入为「仅追加」。'
+  ];
+}
+
+function downloadModuleTemplate(modKey) {
+  var tpl = MODULE_TEMPLATES[modKey];
+  if (!tpl) return;
+  var wb = XLSX.utils.book_new();
+  tpl.sheets.forEach(function(sh){
+    var aoa = [sh.headers].concat(sh.sample.map(function(r){ return r.slice(); }));
+    var ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = sh.headers.map(function(){ return {wch:18}; });
+    XLSX.utils.book_append_sheet(wb, ws, sh.name);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['填写说明（单位 / 格式）']].concat(moduleNoteLines(modKey).map(function(l){return [l];}))), '填写说明');
+  XLSX.writeFile(wb, tpl.file);
+}
+
+function handleModuleImportFile(modKey, input) {
+  var tpl = MODULE_TEMPLATES[modKey];
+  if (!tpl) return;
+  var file = input.files && input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = new Uint8Array(e.target.result);
+      var wb = XLSX.read(data, { type: 'array' });
+      var plan = [], skipped = [];
+      tpl.sheets.forEach(function(sh){
+        var sheet = wb.Sheets[sh.name];
+        if (!sheet) { skipped.push('未找到工作表「'+sh.name+'」'); return; }
+        var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+        var hidx = detectHeaderRow(rows);
+        if (hidx < 0) { skipped.push(sh.name+'（未找到表头）'); return; }
+        var colMap = moduleColMap(rows[hidx], sh.aliases);
+        var existing = {};
+        (sh.current ? sh.current() : []).forEach(function(p){ existing[sh.keyOf(p)] = true; });
+        for (var i = hidx+1; i < rows.length; i++) {
+          var p = sh.build(rows[i], colMap);
+          if (!p || !((p.school||'') + (p.name||'') + (p.theme||''))) continue;
+          plan.push({ p: p, exists: !!existing[sh.keyOf(p)] });
+        }
+      });
+      window.__moduleImportPlan = { modKey: modKey, plan: plan, skipped: skipped };
+      showModuleImportModal(modKey, plan, skipped);
+    } catch (err) {
+      alert('导入解析失败：' + (err && err.message ? err.message : err));
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function showModuleImportModal(modKey, plan, skipped) {
+  var tpl = MODULE_TEMPLATES[modKey];
+  var newItems = plan.filter(function(x){return !x.exists;});
+  var dupItems = plan.filter(function(x){return x.exists;});
+  var html = '<div style="font-size:13px;line-height:1.9">';
+  html += '本次将导入 <b style="color:#22c55e">'+newItems.length+'</b> 条新记录，跳过 <b style="color:#999">'+dupItems.length+'</b> 条已存在记录。<br>';
+  if (skipped.length) html += '<div style="color:#c0392b;margin:4px 0">⚠ 跳过工作表：'+esc(skipped.join('；'))+'</div>';
+  html += '<div style="max-height:240px;overflow:auto;margin-top:8px;border:1px solid #eee;border-radius:6px">';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="background:#f5f7fa"><th style="padding:4px 8px;border-bottom:1px solid #eee">#</th><th style="padding:4px 8px;border-bottom:1px solid #eee">摘要</th><th style="padding:4px 8px;border-bottom:1px solid #eee">状态</th></tr>';
+  plan.slice(0,50).forEach(function(x, idx){
+    var p = x.p;
+    var label = modKey==='marketing' ? (p.school+' / '+p.theme) : modKey==='campus' ? (p.school+' / '+p.mode) : (p.name+' / '+p.school);
+    html += '<tr><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+ (idx+1) +'</td><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+esc(label||'')+'</td><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+(x.exists?'<span style="color:#999">已存在·跳过</span>':'<span style="color:#22c55e">新增</span>')+'</td></tr>';
+  });
+  html += '</table></div>';
+  html += '<div style="font-size:12px;color:#555;margin-top:6px">导入为「仅追加」，不覆盖已有数据。确认后写入本机并刷新看板。</div></div>';
+  $('moduleImportModalBody').innerHTML = html;
+  $('moduleImportModal').style.display = 'flex';
+}
+function closeModuleImportModal() {
+  var m = $('moduleImportModal'); if (m) m.style.display = 'none';
+}
+function confirmModuleImport() {
+  var st = window.__moduleImportPlan;
+  if (!st) { closeModuleImportModal(); return; }
+  var tpl = MODULE_TEMPLATES[st.modKey];
+  var newItems = st.plan.filter(function(x){return !x.exists;}).map(function(x){return x.p;});
+  if (newItems.length) tpl.afterAppend(newItems);
+  closeModuleImportModal();
+  alert('导入完成：新增 '+newItems.length+' 条'+(st.skipped.length?('；跳过工作表：'+st.skipped.join('；')):''));
+}
+
+function openAssistModal() {
+  $('assistSchool').value = '';
+  $('assistSupplier').value = '';
+  $('assistCs').value = '';
+  $('assistProduct').value = '';
+  $('assistMarketing').value = '';
+  $('assistModal').style.display = 'flex';
+}
+function closeAssistModal() { $('assistModal').style.display = 'none'; }
+function saveAssist() {
+  var school = $('assistSchool').value.trim();
+  if (!school) { alert('请填写学校'); return; }
+  MARKETING_ASSIST.push({
+    id: 'as_' + Date.now() + '_' + Math.random().toString(36).slice(2,5),
+    school: school,
+    supplier: $('assistSupplier').value.trim() || '无',
+    customer_service: $('assistCs').value.trim() || '无',
+    product: $('assistProduct').value.trim() || '无',
+    marketing: $('assistMarketing').value.trim() || '无'
+  });
+  saveMarketingAssist();
+  renderMarketingAssist();
+  closeAssistModal();
 }
 
 function updateActualExpense(id, val) {
@@ -3799,59 +4193,6 @@ var CAMPUS_MODES = [
 
 // 模拟125场历史活动数据 (4月-7月已实施 + 8-11月计划)
 var CAMPUS_EVENTS = [];
-(function generateCampusEvents(){
-  var schools = ["清华大学","北京大学","北京师范大学","北京化工大学","北京林业大学","北京科技大学","中国农业大学","南开大学","天津医科大学","南京中医药大学","南京农业大学","南京工业大学","苏州大学","同济大学","浙江大学","四川大学","华中科技大学","海南大学","华南理工大学","广州大学","南方医科大学","西安交通大学","西北工业大学","哈尔滨工业大学","中国医科大学","大连理工大学"];
-  var modes = ["摆摊设点","学术讲座","实操演练","茶歇交流","促销活动","入班宣讲","社团合作"];
-  var persons = ["代斯航","王春光","郭芮影","徐颖","张亚娟","郝倩","李笑天","郝丽娟","周雨","刘笑含","卢婉炫","黄乐怡","孙嘉睿","王书妍","王琛","郭旺","王桐桐","曹振华","郭婷婷","吴海源","曾巧"];
-  var regions = ["北京","天津","江浙沪","广东福建","东北西北","西南海南湖北"];
-
-  // 4-7月历史数据 (约89场)
-  var months4_7 = ["4月","5月","6月","7月"];
-  var eventsPerMonth = [19,22,47,1];
-  months4_7.forEach(function(m,mi){
-    for(var i=0;i<eventsPerMonth[mi];i++){
-      var schoolIdx = Math.floor(Math.random()*schools.length);
-      var touch = Math.floor(Math.random()*120)+20;
-      var orderUsers = Math.floor(touch * (Math.random()*0.25 + 0.05)); // 5%-30% 下单转化人数
-      CAMPUS_EVENTS.push({
-        id: CAMPUS_EVENTS.length+1,
-        date: "2026-"+("0"+(mi+4)).slice(-2)+"-"+String(Math.floor(Math.random()*28)+1).padStart(2,'0'),
-        month: m,
-        school: schools[schoolIdx],
-        mode: modes[Math.floor(Math.random()*modes.length)],
-        person: persons[Math.floor(Math.random()*persons.length)],
-        touch: touch,
-        userNew: Math.floor(Math.random()*40)+5,
-        status: "done",
-        orderUsers: orderUsers,
-        order7d: Math.floor(Math.random()*50000),
-        region: regions[Math.floor(schoolIdx/4.5)]
-      });
-    }
-  });
-
-  // 8-11月计划 (约36场)
-  var plans = [
-    {date:"2026-08-25",month:"8月",school:"清华大学",mode:"摆摊设点",person:"王春光",region:"北京"},
-    {date:"2026-08-28",month:"8月",school:"北京大学",mode:"入班宣讲",person:"代斯航",region:"北京"},
-    {date:"2026-09-05",month:"9月",school:"浙江大学",mode:"学术讲座",person:"周雨",region:"江浙沪"},
-    {date:"2026-09-10",month:"9月",school:"四川大学",mode:"实操演练",person:"曾巧",region:"西南海南湖北"},
-    {date:"2026-09-15",month:"9月",school:"华中科技大学",mode:"摆摊设点",person:"郭婷婷",region:"西南海南湖北"},
-    {date:"2026-09-18",month:"9月",school:"南京农业大学",mode:"促销活动",person:"郝丽娟",region:"江浙沪"},
-    {date:"2026-09-22",month:"9月",school:"华南理工大学",mode:"社团合作",person:"卢婉炫",region:"广东福建"},
-    {date:"2026-09-25",month:"9月",school:"西安交通大学",mode:"茶歇交流",person:"王书妍",region:"东北西北"},
-    {date:"2026-10-08",month:"10月",school:"南开大学",mode:"入班宣讲",person:"郝倩",region:"天津"},
-    {date:"2026-10-12",month:"10月",school:"同济大学",mode:"学术讲座",person:"刘笑含",region:"江浙沪"},
-    {date:"2026-10-16",month:"10月",school:"海南大学",mode:"摆摊设点",person:"吴海源",region:"西南海南湖北"},
-    {date:"2026-10-20",month:"10月",school:"广州大学",mode:"促销活动",person:"孙嘉睿",region:"广东福建"},
-    {date:"2026-10-24",month:"10月",school:"西北工业大学",mode:"实操演练",person:"王琛",region:"东北西北"},
-    {date:"2026-11-05",month:"11月",school:"大连理工大学",mode:"茶歇交流",person:"郭旺",region:"东北西北"},
-    {date:"2026-11-10",month:"11月",school:"南方医科大学",mode:"入班宣讲",person:"黄乐怡",region:"广东福建"}
-  ];
-  plans.forEach(function(p,i){
-    CAMPUS_EVENTS.push({id:CAMPUS_EVENTS.length+1,date:p.date,month:p.month,school:p.school,mode:p.mode,person:p.person,touch:0,userNew:0,status:"pending",orderUsers:0,order7d:0,region:p.region});
-  });
-})();
 
 // 21所学校画像数据
 var SCHOOL_PROFILES = [
@@ -3885,33 +4226,6 @@ var SCHOOL_PROFILES = [
 
 // 用户池CRM模拟数据 (21所学校 × S/A/B/C用户)
 var USER_POOL_CRM = [];
-(function generateUserCRM(){
-  var surnames = ["张","王","李","赵","刘","陈","杨","黄","周","吴","徐","孙","马","朱","胡","郭","何","林","罗","郑","梁","谢","宋","唐","许","韩","冯","邓","曹","彭","曾","萧","田","董","袁","潘","于","蒋","蔡","余","杜","叶","程","苏","魏","吕","丁","任","沈","姚"];
-  var givennames =["伟","芳","娜","秀英","敏","静","丽","强","磊","军","洋","勇","艳","杰","娟","涛","明","超","秀兰","霞","平","刚","桂英","玲","飞","玉兰","萍","红","建华","文","辉","丹","金","琳","华","建国","建军","浩宇","欣怡","子涵","梓涵","一诺","浩然","欣然","子墨","思远","嘉怡","佳琪","诗涵"];
-  var labs = ["有机合成实验室","药物分析课题组","天然产物研究室","高分子材料组","生物医用材料团队","纳米医学中心","环境化学课题组","催化化学团队","分子生物学实验室","结构生物学组","药物化学课题组","药剂学研究室","细胞生物学团队","免疫学课题组","基因组学研究中心","蛋白质工程实验室","代谢组学研究组","合成生物学团队","化学生物学课题组","生物信息学中心"];
-  var depts = ["化学系","生命学院","药学院","医学院","材料学院","化工学院","环境学院","食品学院"];
-
-  SCHOOL_PROFILES.forEach(function(school){
-    var count = Math.floor(Math.random()*25)+8; // 每校8-32名用户
-    for(var i=0;i<count;i++){
-      var levelRand = Math.random();
-      var level = levelRand > 0.92 ? "S" : (levelRand > 0.72 ? "A" : (levelRand > 0.45 ? "B" : "C"));
-      var orderVal = level === "S" ? Math.floor(Math.random()*80+20)*10000 : (level === "A" ? Math.floor(Math.random()*30+5)*10000 : (level === "B" ? Math.floor(Math.random()*8+1)*10000 : Math.floor(Math.random()*30000)));
-      USER_POOL_CRM.push({
-        id: USER_POOL_CRM.length+1,
-        name: surnames[Math.floor(Math.random()*surnames.length)] + givennames[Math.floor(Math.random()*givennames.length)],
-        level: level,
-        school: school.name,
-        college: depts[Math.floor(Math.random()*depts.length)] + "/" + (school.colleges.split("、")[Math.floor(Math.random()*school.colleges.split("、").length)] || ""),
-        lab: labs[Math.floor(Math.random()*labs.length)],
-        addDate: "2026-" + String(Math.floor(Math.random()*4)+4).padStart(2,'0') + "-" + String(Math.floor(Math.random()*28)+1).padStart(2,'0'),
-        lastTouch: Math.floor(Math.random()*14)+"天前",
-        order: orderVal / 10000,
-        contact: school.contact
-      });
-    }
-  });
-})();
 
 // 走访记录时间线数据
 var VISIT_RECORDS = [
@@ -3957,6 +4271,7 @@ function initCampus() {
       renderCampusSubTab();
     };
   });
+  loadCampusEvents();
   renderCampusSubTab();
 }
 
@@ -6442,6 +6757,34 @@ function initTaskDispatch() {
     <div class="mkt-modal-footer">
       <button class="mkt-btn-secondary" onclick="closeChangePwd()">取消</button>
       <button class="mkt-btn-primary" onclick="saveChangePwd()">保存</button>
+    </div>
+  </div>
+</div>
+
+<div id="moduleImportModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:24px;max-width:560px;width:90%;max-height:86vh;overflow:auto;box-shadow:0 10px 40px rgba(0,0,0,0.25)">
+    <h3 style="margin:0 0 14px;font-size:16px;color:#1a73e8">📥 导入预览</h3>
+    <div id="moduleImportModalBody"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button onclick="closeModuleImportModal()" style="padding:8px 18px;border:1px solid #ddd;background:#fff;border-radius:6px;cursor:pointer;font-size:13px">取消</button>
+      <button onclick="confirmModuleImport()" style="padding:8px 18px;background:#1a73e8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">确认导入</button>
+    </div>
+  </div>
+</div>
+
+<div id="assistModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1000;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:24px;max-width:480px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,0.25)">
+    <h3 style="margin:0 0 14px;font-size:16px;color:#1a73e8">新增部门协助需求</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <label style="font-size:13px">学校<input id="assistSchool" style="margin-top:4px;padding:6px 10px;border:1px solid #ddd;border-radius:5px;width:100%"></label>
+      <label style="font-size:13px">供应商协助<input id="assistSupplier" style="margin-top:4px;padding:6px 10px;border:1px solid #ddd;border-radius:5px;width:100%" placeholder="无 / 具体需求"></label>
+      <label style="font-size:13px">客服协助<input id="assistCs" style="margin-top:4px;padding:6px 10px;border:1px solid #ddd;border-radius:5px;width:100%" placeholder="无 / 具体需求"></label>
+      <label style="font-size:13px">产研协助<input id="assistProduct" style="margin-top:4px;padding:6px 10px;border:1px solid #ddd;border-radius:5px;width:100%" placeholder="无 / 具体需求"></label>
+      <label style="font-size:13px">市场部协助<input id="assistMarketing" style="margin-top:4px;padding:6px 10px;border:1px solid #ddd;border-radius:5px;width:100%" placeholder="无 / 具体需求"></label>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button onclick="closeAssistModal()" style="padding:8px 18px;border:1px solid #ddd;background:#fff;border-radius:6px;cursor:pointer;font-size:13px">取消</button>
+      <button onclick="saveAssist()" style="padding:8px 18px;background:#1a73e8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">保存</button>
     </div>
   </div>
 </div>
