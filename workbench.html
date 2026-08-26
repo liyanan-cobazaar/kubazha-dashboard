@@ -1083,7 +1083,13 @@ function utf8ToBase64(str) {
 }
 function applyCloudScores(obj) {
   if (!obj || typeof obj !== 'object') return;
-  subjectiveScores = Object.assign({}, obj);
+  var base = subjectiveScores || {};
+  // 关键修复：本地已存在的分优先（可能比云端新），云端只补充本地缺失的 key，
+  // 绝不用云端整体替换本地，避免「后台拉取把本机刚打的分冲掉」导致分数丢失。
+  subjectiveScores = Object.assign({}, obj, base);
+  // 若本地有云端没有的 key，主动把本机分同步上云端（防丢：换浏览器/清缓存前先固化）
+  var localExtra = Object.keys(base).some(function (k) { return !(k in obj); });
+  if (localExtra && typeof schedulePush === 'function') schedulePush();
   if (typeof currentModule !== 'undefined' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') {
     updatePerformanceContent();
   }
@@ -1092,15 +1098,16 @@ function applyCloudScores(obj) {
 function loadSubjectiveScores() {
   try {
     var cloud = (typeof WORKBENCH_DATA !== 'undefined' && WORKBENCH_DATA.subjective_scores) || {};
-    subjectiveScores = Object.assign({}, cloud);
-    // 一次性兼容：云端为空且本地旧数据存在时，合并本地（仅当前浏览器，用于平滑迁移）
-    if (Object.keys(subjectiveScores).length === 0) {
-      var raw = localStorage.getItem(SUBJECTIVE_STORAGE_KEY);
-      if (raw) {
+    // 基础 = 内联云端数据 + 本地 localStorage（本地优先，避免「仅在云端为空时才读本地」导致的本地分被忽略）
+    var base = Object.assign({}, cloud);
+    var raw = localStorage.getItem(SUBJECTIVE_STORAGE_KEY);
+    if (raw) {
+      try {
         var saved = JSON.parse(raw);
-        if (saved && typeof saved === 'object') subjectiveScores = saved;
-      }
+        if (saved && typeof saved === 'object') base = Object.assign({}, saved, base);
+      } catch (e) { /* 忽略坏数据 */ }
     }
+    subjectiveScores = base;
   } catch (e) { console.error('加载主观分失败', e); }
   // 1) 先拉同域 GitHub Pages 静态文件（确定可达，无 CORS 限制）
   fetch(GH_STATIC, { cache: 'no-store' }).then(function (r) {
@@ -1186,6 +1193,7 @@ function pushSubjectiveScores() {
   }).then(function () {
     _syncing = false;
     showSyncStatus('ok');
+    try { localStorage.setItem(SUBJECTIVE_STORAGE_KEY, JSON.stringify(subjectiveScores)); } catch (e) {}
   }).catch(function (err) {
     _syncing = false;
     if (err.message === 'conflict') { setTimeout(pushSubjectiveScores, 600); return; }
@@ -2467,6 +2475,8 @@ function updateScore(person, fieldKey, value, prole, pleader) {
   var p = { name: person, role: prole, leader: pleader };
   if (!canEditSubjective(p)) { alert('无权修改该人员的主观分（仅总部或本区域主管可填）'); return; }
   subjectiveScores[person + "_" + fieldKey + "_" + perfMonth] = value;
+  // 立即固化到本地，作为云端推送失败时的兜底，避免刷新即丢
+  try { localStorage.setItem(SUBJECTIVE_STORAGE_KEY, JSON.stringify(subjectiveScores)); } catch (e) {}
   updatePerformanceContent();
   schedulePush();
 }
