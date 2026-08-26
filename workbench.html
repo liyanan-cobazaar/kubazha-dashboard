@@ -3307,6 +3307,8 @@ var MODULE_TEMPLATES = {
         ['南方医科大学','开学季试剂耗材专场促销','2026-08','陈宝华','研究生/实验室管理员','新增线上订单30万','触达200人转化20人','3w','28000','80%','进行中'],
         ['华南理工大学','实验室安全与采购合规讲座','2026-09','卢婉炫','课题组PI/实验员','提升品牌专业度','建池15人','1.5w','12000','100%','已完成']
       ],
+      required: ['school','theme','month','leader'],
+      requiredLabels: { school:'学校', theme:'活动主题', month:'月份', leader:'活动负责人' },
       current: function(){ return MARKETING_ACTIVITIES; },
       build: function(row, col) {
         var get = function(f){ var i = col[f]; return i===undefined ? '' : row[i]; };
@@ -3350,6 +3352,9 @@ var MODULE_TEMPLATES = {
         ['2026-08-25','2026-08','南方医科大学','摆摊设点','陈宝华','200','15','8','1.2w','已完成','广东'],
         ['2026-09-10','2026-09','华南理工大学','学术讲座','卢婉炫','80','10','5','8000','计划中','广东']
       ],
+      required: ['school','mode','person'],
+      requiredLabels: { school:'学校', mode:'活动模式', person:'负责人' },
+      validate: function(p){ return (!p.month) ? '日期和月份均为空，无法确定归属月份' : null; },
       current: function(){ return CAMPUS_EVENTS; },
       build: function(row, col) {
         var get = function(f){ var i = col[f]; return i===undefined ? '' : row[i]; };
@@ -3393,6 +3398,8 @@ var MODULE_TEMPLATES = {
         ['张教授','A','南方医科大学','基础医学院','XX课题组','2026-03-15','2026-08-20','50w','陈宝华'],
         ['李同学','B','华南理工大学','材料学院','YY实验室','2026-05-10','2026-08-18','8w','卢婉炫']
       ],
+      required: ['name','school'],
+      requiredLabels: { name:'姓名', school:'学校' },
       current: function(){ return USER_POOL_CRM; },
       build: function(row, col) {
         var get = function(f){ var i = col[f]; return i===undefined ? '' : row[i]; };
@@ -3497,24 +3504,40 @@ function handleModuleImportFile(modKey, input) {
     try {
       var data = new Uint8Array(e.target.result);
       var wb = XLSX.read(data, { type: 'array' });
-      var plan = [], skipped = [];
+      var plan = [], skipped = [], dropped = [];
       tpl.sheets.forEach(function(sh){
         var sheet = wb.Sheets[sh.name];
-        if (!sheet) { skipped.push('未找到工作表「'+sh.name+'」'); return; }
+        if (!sheet) { skipped.push('未找到工作表「'+sh.name+'」（请按模板保留该工作表名）'); return; }
         var rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
         var hidx = detectHeaderRow(rows);
-        if (hidx < 0) { skipped.push(sh.name+'（未找到表头）'); return; }
+        if (hidx < 0) { skipped.push(sh.name+'（未找到表头，请保留第1行为列名）'); return; }
         var colMap = moduleColMap(rows[hidx], sh.aliases);
+        // === 缺必填列 / 列名对不上：整张跳过并标红说明怎么改 ===
+        var missingReq = (sh.required||[]).filter(function(f){ return colMap[f]===undefined; });
+        if (missingReq.length) {
+          var missLabels = missingReq.map(function(f){ return (sh.requiredLabels&&sh.requiredLabels[f])||f; });
+          skipped.push(sh.name+'（缺必填列：'+missLabels.join('、')+'；请使用模板列名：'+sh.headers.join(' / ')+'）');
+          return;
+        }
         var existing = {};
         (sh.current ? sh.current() : []).forEach(function(p){ existing[sh.keyOf(p)] = true; });
         for (var i = hidx+1; i < rows.length; i++) {
           var p = sh.build(rows[i], colMap);
-          if (!p || !((p.school||'') + (p.name||'') + (p.theme||''))) continue;
+          // === 逐行必填字段为空 → 记为「已丢弃」并在预览标红 ===
+          var emptyReq = (sh.required||[]).filter(function(f){ return !String(p[f]||'').trim(); });
+          if (emptyReq.length) {
+            dropped.push({ row: i+1, label: (p.school||p.name||p.theme||p.mode||''), reason: '必填字段为空：'+emptyReq.map(function(f){return (sh.requiredLabels&&sh.requiredLabels[f])||f;}).join('、') });
+            continue;
+          }
+          // === 自定义校验（如月份无法确定） ===
+          var vErr = sh.validate ? sh.validate(p) : null;
+          if (vErr) { dropped.push({ row: i+1, label: (p.school||p.name||p.theme||p.mode||''), reason: vErr }); continue; }
+          if (!p || !((p.school||'') + (p.name||'') + (p.theme||''))) { dropped.push({ row: i+1, label: '', reason: '关键字段（学校/姓名/主题）全空' }); continue; }
           plan.push({ p: p, exists: !!existing[sh.keyOf(p)] });
         }
       });
-      window.__moduleImportPlan = { modKey: modKey, plan: plan, skipped: skipped };
-      showModuleImportModal(modKey, plan, skipped);
+      window.__moduleImportPlan = { modKey: modKey, plan: plan, skipped: skipped, dropped: dropped };
+      showModuleImportModal(modKey, plan, skipped, dropped);
     } catch (err) {
       alert('导入解析失败：' + (err && err.message ? err.message : err));
     }
@@ -3522,23 +3545,40 @@ function handleModuleImportFile(modKey, input) {
   reader.readAsArrayBuffer(file);
 }
 
-function showModuleImportModal(modKey, plan, skipped) {
+function showModuleImportModal(modKey, plan, skipped, dropped) {
   var tpl = MODULE_TEMPLATES[modKey];
   var newItems = plan.filter(function(x){return !x.exists;});
   var dupItems = plan.filter(function(x){return x.exists;});
   var html = '<div style="font-size:13px;line-height:1.9">';
-  html += '本次将导入 <b style="color:#22c55e">'+newItems.length+'</b> 条新记录，跳过 <b style="color:#999">'+dupItems.length+'</b> 条已存在记录。<br>';
+  if (newItems.length === 0) {
+    html += '<div style="background:#fdecea;color:#c0392b;border:1px solid #f5c6cb;border-radius:6px;padding:8px 12px;margin-bottom:8px"><b>⚠ 本次没有可新增的数据</b>，请检查下方问题后重新导入。下方「已丢弃」行即为未成功导入的数据。</div>';
+  } else {
+    html += '本次将导入 <b style="color:#22c55e">'+newItems.length+'</b> 条新记录，跳过 <b style="color:#999">'+dupItems.length+'</b> 条已存在记录。<br>';
+  }
   if (skipped.length) html += '<div style="color:#c0392b;margin:4px 0">⚠ 跳过工作表：'+esc(skipped.join('；'))+'</div>';
-  html += '<div style="max-height:240px;overflow:auto;margin-top:8px;border:1px solid #eee;border-radius:6px">';
-  html += '<table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="background:#f5f7fa"><th style="padding:4px 8px;border-bottom:1px solid #eee">#</th><th style="padding:4px 8px;border-bottom:1px solid #eee">摘要</th><th style="padding:4px 8px;border-bottom:1px solid #eee">状态</th></tr>';
-  plan.slice(0,50).forEach(function(x, idx){
-    var p = x.p;
-    var label = modKey==='marketing' ? (p.school+' / '+p.theme) : modKey==='campus' ? (p.school+' / '+p.mode) : (p.name+' / '+p.school);
-    html += '<tr><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+ (idx+1) +'</td><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+esc(label||'')+'</td><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+(x.exists?'<span style="color:#999">已存在·跳过</span>':'<span style="color:#22c55e">新增</span>')+'</td></tr>';
-  });
-  html += '</table></div>';
-  html += '<div style="font-size:12px;color:#555;margin-top:6px">导入为「仅追加」，不覆盖已有数据。确认后写入本机并刷新看板。</div></div>';
+  if (dropped.length) {
+    html += '<div style="color:#c0392b;margin:6px 0 2px"><b>⚠ 已丢弃 '+dropped.length+' 行（未成功导入）：</b></div>';
+    html += '<div style="max-height:160px;overflow:auto;border:1px solid #f5c6cb;border-radius:6px;background:#fff5f5">';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="background:#fdecea"><th style="padding:4px 8px;border-bottom:1px solid #f5c6cb">行</th><th style="padding:4px 8px;border-bottom:1px solid #f5c6cb">摘要</th><th style="padding:4px 8px;border-bottom:1px solid #f5c6cb">未导入原因</th></tr>';
+    dropped.slice(0,50).forEach(function(d){
+      html += '<tr><td style="padding:4px 8px;border-bottom:1px solid #f7d4d4;color:#c0392b">'+d.row+'</td><td style="padding:4px 8px;border-bottom:1px solid #f7d4d4">'+esc(d.label||'(空)')+'</td><td style="padding:4px 8px;border-bottom:1px solid #f7d4d4;color:#c0392b">'+esc(d.reason)+'</td></tr>';
+    });
+    html += '</table></div>';
+  }
+  if (newItems.length) {
+    html += '<div style="max-height:200px;overflow:auto;margin-top:8px;border:1px solid #eee;border-radius:6px">';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12px"><tr style="background:#f5f7fa"><th style="padding:4px 8px;border-bottom:1px solid #eee">#</th><th style="padding:4px 8px;border-bottom:1px solid #eee">摘要</th><th style="padding:4px 8px;border-bottom:1px solid #eee">状态</th></tr>';
+    plan.slice(0,50).forEach(function(x, idx){
+      var p = x.p;
+      var label = modKey==='marketing' ? (p.school+' / '+p.theme) : modKey==='campus' ? (p.school+' / '+p.mode) : (p.name+' / '+p.school);
+      html += '<tr><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+ (idx+1) +'</td><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+esc(label||'')+'</td><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+(x.exists?'<span style="color:#999">已存在·跳过</span>':'<span style="color:#22c55e">新增</span>')+'</td></tr>';
+    });
+    html += '</table></div>';
+  }
+  html += '<div style="font-size:12px;color:#555;margin-top:6px">导入为「仅追加」，不覆盖已有数据。'+(newItems.length?'确认后写入本机并刷新看板。':'')+'</div></div>';
   $('moduleImportModalBody').innerHTML = html;
+  var btn = $('moduleImportConfirmBtn');
+  if (btn) btn.textContent = newItems.length ? '确认导入' : '关闭';
   $('moduleImportModal').style.display = 'flex';
 }
 function closeModuleImportModal() {
@@ -3547,9 +3587,10 @@ function closeModuleImportModal() {
 function confirmModuleImport() {
   var st = window.__moduleImportPlan;
   if (!st) { closeModuleImportModal(); return; }
-  var tpl = MODULE_TEMPLATES[st.modKey];
   var newItems = st.plan.filter(function(x){return !x.exists;}).map(function(x){return x.p;});
-  if (newItems.length) tpl.afterAppend(newItems);
+  if (newItems.length === 0) { closeModuleImportModal(); return; }
+  var tpl = MODULE_TEMPLATES[st.modKey];
+  tpl.afterAppend(newItems);
   closeModuleImportModal();
   alert('导入完成：新增 '+newItems.length+' 条'+(st.skipped.length?('；跳过工作表：'+st.skipped.join('；')):''));
 }
@@ -6767,7 +6808,7 @@ function initTaskDispatch() {
     <div id="moduleImportModalBody"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
       <button onclick="closeModuleImportModal()" style="padding:8px 18px;border:1px solid #ddd;background:#fff;border-radius:6px;cursor:pointer;font-size:13px">取消</button>
-      <button onclick="confirmModuleImport()" style="padding:8px 18px;background:#1a73e8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">确认导入</button>
+      <button id="moduleImportConfirmBtn" onclick="confirmModuleImport()" style="padding:8px 18px;background:#1a73e8;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600">确认导入</button>
     </div>
   </div>
 </div>
