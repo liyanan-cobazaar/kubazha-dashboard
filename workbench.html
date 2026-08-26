@@ -1067,7 +1067,7 @@ var currentOvTab = "dashboard"; // 总体概况当前子模块
 var currentViewMode = "all";
 var subjectiveScores = {};
 // ===== 主观分云端共享（方案④：存 WORKBENCH_DATA.subjective_scores，经 GitHub API 合并写入，全员可见） =====
-var SUBJECTIVE_STORAGE_KEY = 'wb_subjective_scores_v1'; // 仅作一次性迁移兜底
+var SUBJECTIVE_STORAGE_KEY = 'wb_subjective_scores_v1'; // 永久本地工作副本：切勿改名/清空，改名会导致历史主观分读不到
 // 同步改为「网页直连 GitHub」：
 //   GET 读同域 GitHub Pages 静态文件（liyanan-cobazaar.github.io，确定可达，无 CORS 问题）
 //   POST 经 GitHub API 合并写回 subjective_scores.json（GitHub API 支持跨域 CORS）
@@ -1081,12 +1081,20 @@ var GH_STATIC = "https://" + GH_OWNER + ".github.io/" + GH_REPO + "/subjective_s
 function utf8ToBase64(str) {
   return btoa(unescape(encodeURIComponent(str)));
 }
+// utf8ToBase64 的逆运算：base64 → UTF-8 字节串 → 正确解码，避免中文 key 被 atob 当成 Latin-1 造成乱码、
+// 与本地正确 key 匹配不上（一旦清缓存/换浏览器，从云端恢复的分数会因乱码 key 而"消失"）。
+function base64ToUtf8(b64) {
+  return decodeURIComponent(escape(atob(String(b64).replace(/\s/g, ''))));
+}
 function applyCloudScores(obj) {
   if (!obj || typeof obj !== 'object') return;
   var base = subjectiveScores || {};
   // 关键修复：本地已存在的分优先（可能比云端新），云端只补充本地缺失的 key，
   // 绝不用云端整体替换本地，避免「后台拉取把本机刚打的分冲掉」导致分数丢失。
   subjectiveScores = Object.assign({}, obj, base);
+  // 固化合并结果到本地，让 localStorage 始终成为「本地∪云端」的超集；
+  // 这样即便日后云端被覆盖/本机清缓存，本地也不会丢任何已存在的分。
+  try { localStorage.setItem(SUBJECTIVE_STORAGE_KEY, JSON.stringify(subjectiveScores)); } catch (e) {}
   // 若本地有云端没有的 key，主动把本机分同步上云端（防丢：换浏览器/清缓存前先固化）
   var localExtra = Object.keys(base).some(function (k) { return !(k in obj); });
   if (localExtra && typeof schedulePush === 'function') schedulePush();
@@ -1122,10 +1130,18 @@ function loadSubjectiveScores() {
   }).then(function (j) {
     if (!j || !j.content) return;
     try {
-      var obj = JSON.parse(atob(j.content.replace(/\s/g, '')));
+      var obj = JSON.parse(base64ToUtf8(j.content));
       if (obj && typeof obj === 'object') applyCloudScores(obj);
     } catch (e) {}
   }).catch(function (e) { console.warn('API 主观分拉取失败', e); });
+}
+
+// 关闭/刷新页面前兜底把内存分落盘：防止极端情况下（如 1200ms 防抖未触发就关页面）丢分。
+// 注意：这只会「补充/覆盖」本地副本，绝不会删除任何已存在的分。
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', function () {
+    try { localStorage.setItem(SUBJECTIVE_STORAGE_KEY, JSON.stringify(subjectiveScores)); } catch (e) {}
+  });
 }
 
 // 谁能填谁的主观分：admin 全部；leader 仅本区域 运营专员/项目营销负责人；区域主管本人由总部填
@@ -1174,7 +1190,7 @@ function pushSubjectiveScores() {
     if (!r.ok) throw new Error('读取云端失败 HTTP ' + r.status);
     return r.json().then(function (j) {
       var obj = {};
-      try { obj = JSON.parse(atob(j.content.replace(/\s/g, ''))); } catch (e) {}
+      try { obj = JSON.parse(base64ToUtf8(j.content)); } catch (e) {}
       return { sha: j.sha, obj: obj };
     });
   }).then(function (cur) {
