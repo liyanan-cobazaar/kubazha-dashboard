@@ -564,6 +564,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
 <div class="top-bar">
   <h1>📊 运营管理工作台</h1>
   <div style="display:flex;gap:10px;align-items:center">
+    <button id="downloadTplBtn" onclick="downloadTemplate()" style="padding:6px 16px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='#fff'">📄 下载模板</button>
     <button id="importBtn" onclick="document.getElementById('importFileInput').click()" style="padding:6px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#1557b0'" onmouseout="this.style.background='#1a73e8'">📥 导入新增数据</button>
     <div class="user-badge" id="userBadge"></div>
   </div>
@@ -1620,9 +1621,11 @@ function enterApp() {
   var mb = $('mainBody'); if (mb) mb.style.display = 'flex';
   refreshUserBadge();
   applyNavByRole();
-  // 导入按钮仅管理员可见
+  // 导入按钮与下载模板按钮仅管理员可见
   var importBtn = $('importBtn');
   if (importBtn) importBtn.style.display = isAdmin() ? 'inline-block' : 'none';
+  var downloadTplBtn = $('downloadTplBtn');
+  if (downloadTplBtn) downloadTplBtn.style.display = isAdmin() ? 'inline-block' : 'none';
   refreshCurrentModule();
 }
 
