@@ -2981,7 +2981,7 @@ function renderUpSchoolList() {
   var tbody = "";
   filtered.slice(0,100).forEach(function(u){
     var lc = u.level==="S"?"#ef4444":(u.level==="A"?"#f59e0b":(u.level==="B"?"#3b82f6":"#6b7280"));
-    tbody += "<tr><td><strong>"+u.name+"</strong></td><td><span style='color:"+lc+";font-weight:700'>● "+u.level+"</span></td><td>"+u.school+"<br><span style='font-size:10px;color:#888'>"+u.college+"</span></td><td style='font-size:11px'>"+u.lab+"</td><td>"+u.addDate+"</td><td>"+u.lastTouch+"</td><td>¥"+u.order.toFixed(1)+"</td><td>"+u.contact+"</td></tr>";
+    tbody += "<tr><td><strong>"+u.name+"</strong></td><td><span style='color:"+lc+";font-weight:700'>● "+u.level+"</span></td><td>"+u.school+"<br><span style='font-size:10px;color:#888'>"+u.college+"</span></td><td style='font-size:11px'>"+u.lab+"</td><td>"+u.addDate+"</td><td>"+u.lastTouch+"</td><td>¥"+u.order.toFixed(1)+"</td><td>"+(u.leader||u.contact||'')+"</td></tr>";
   });
   $("upUserTable").innerHTML = tbody || "<tr><td colspan='8' style='text-align:center;color:#999;padding:20px'>暂无数据</td></tr>";
 
@@ -3058,7 +3058,7 @@ function renderUpVIP() {
         '<div>📞 最近触达: '+u.lastTouch+'</div>' +
       '</div>' +
       '<div class="vip-stat">' +
-        '<span>负责人: '+u.contact+'</span>' +
+        '<span>负责人: '+(u.leader||u.contact||'')+'</span>' +
         '<span>下单: ¥'+u.order.toFixed(1)+'万</span>' +
       '</div>';
     cards.appendChild(card);
