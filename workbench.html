@@ -770,7 +770,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
           <button onclick="document.getElementById('upFileInput').click()" style="padding:6px 14px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600">📥 导入</button>
           <input type="file" id="upFileInput" accept=".xlsx,.xls" style="display:none" onchange="handleModuleImportFile('userpool', this)">
         </div>
-        <table><thead><tr><th>姓名</th><th>等级</th><th>学校/学院</th><th>实验室/课题组</th><th>用户池新增日期</th><th>最近触达</th><th>下单金额(万)</th><th>负责人</th></tr></thead><tbody id="upUserTable"></tbody></table>
+        <table><thead><tr><th>姓名</th><th>等级</th><th>学校/学院</th><th>实验室/课题组</th><th>用户池新增日期</th><th>最近触达</th><th>走访内容</th><th>走访类型</th><th>下单金额(万)</th><th>负责人</th></tr></thead><tbody id="upUserTable"></tbody></table>
       </div>
 
       <!-- Tab2: 等级分布分析 -->
@@ -3189,9 +3189,9 @@ function renderUpSchoolList() {
   var tbody = "";
   filtered.slice(0,100).forEach(function(u){
     var lc = u.level==="S"?"#ef4444":(u.level==="A"?"#f59e0b":(u.level==="B"?"#3b82f6":"#6b7280"));
-    tbody += "<tr><td><strong>"+u.name+"</strong></td><td><span style='color:"+lc+";font-weight:700'>● "+u.level+"</span></td><td>"+u.school+"<br><span style='font-size:10px;color:#888'>"+u.college+"</span></td><td style='font-size:11px'>"+u.lab+"</td><td>"+u.addDate+"</td><td>"+u.lastTouch+"</td><td>¥"+u.order.toFixed(1)+"</td><td>"+(u.leader||u.contact||'')+"</td></tr>";
+    tbody += "<tr><td><strong>"+u.name+"</strong></td><td><span style='color:"+lc+";font-weight:700'>● "+u.level+"</span></td><td>"+u.school+"<br><span style='font-size:10px;color:#888'>"+u.college+"</span></td><td style='font-size:11px'>"+u.lab+"</td><td>"+u.addDate+"</td><td>"+u.lastTouch+"</td><td style='font-size:11px;max-width:240px;white-space:normal;line-height:1.5'>"+(u.visitContent||'')+"</td><td>"+(u.visitType?("<span style='background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 7px;font-size:11px'>"+u.visitType+"</span>"):'')+"</td><td>¥"+u.order.toFixed(1)+"</td><td>"+(u.leader||u.contact||'')+"</td></tr>";
   });
-  $("upUserTable").innerHTML = tbody || "<tr><td colspan='8' style='text-align:center;color:#999;padding:20px'>暂无数据</td></tr>";
+  $("upUserTable").innerHTML = tbody || "<tr><td colspan='10' style='text-align:center;color:#999;padding:20px'>暂无数据</td></tr>";
 
   $("upSchoolSelect").onchange = renderUpSchoolList;
   $("upLevelFilter").onchange = renderUpSchoolList;
@@ -3264,6 +3264,8 @@ function renderUpVIP() {
         '<div>🔬 实验室: '+u.lab+'</div>' +
         '<div>📅 入池日期: '+u.addDate+'</div>' +
         '<div>📞 最近触达: '+u.lastTouch+'</div>' +
+        (u.visitType?'<div>🏷 走访类型: '+u.visitType+'</div>':'') +
+        (u.visitContent?'<div>📝 走访内容: '+u.visitContent+'</div>':'') +
       '</div>' +
       '<div class="vip-stat">' +
         '<span>负责人: '+(u.leader||u.contact||'')+'</span>' +
@@ -3578,6 +3580,9 @@ function progressNum(v) {
   return n > 1 ? Math.round(n) : Math.round(n*100);
 }
 
+// 用户池CRM模板（含走访类型下拉）由本地 ExcelJS 预生成后内嵌，下载时直接解码，无需浏览器端额外库
+var USERPOOL_TEMPLATE_B64 = "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";
+
 var MODULE_TEMPLATES = {
   marketing: {
     title: '营销活动-计划与进度 模板',
@@ -3674,33 +3679,42 @@ var MODULE_TEMPLATES = {
   userpool: {
     title: '用户池CRM 模板',
     file: '用户池CRM模板.xlsx',
+    b64: USERPOOL_TEMPLATE_B64,
     sheets: [{
       name: '用户池CRM',
-      headers: ['姓名','等级(S/A/B/C)','学校','学院','实验室/课题组','新增日期','最近触达','下单金额(元)','负责人'],
+      headers: ['姓名','等级(S/A/B/C)','学校','学院','实验室/课题组','新增日期','最近触达','走访内容','走访类型','下单金额(元)','负责人'],
       aliases: {
         name:['姓名'], level:['等级(S/A/B/C)','等级'], school:['学校'],
         college:['学院'], lab:['实验室/课题组','课题组'],
         addDate:['新增日期'], lastTouch:['最近触达'],
+        visitContent:['走访内容'], visitType:['走访类型'],
         order:['下单金额(元)','下单金额'], leader:['负责人']
       },
       sample: [
-        ['张教授','A','南方医科大学','基础医学院','XX课题组','2026-03-15','2026-08-20','50w','陈宝华'],
-        ['李同学','B','华南理工大学','材料学院','YY实验室','2026-05-10','2026-08-18','8w','卢婉炫']
+        ['张教授','A','南方医科大学','基础医学院','XX课题组','2026-03-15','2026-08-20','拜访化学系张教授课题组，了解新学期试剂采购计划，预计采购额15万+','常规走访','50w','陈宝华'],
+        ['李同学','B','华南理工大学','材料学院','YY实验室','2026-05-10','2026-08-18','生科院王老师课题组有大型仪器采购需求，已安排技术支持对接','需求发掘','8w','卢婉炫']
       ],
       required: ['name','school'],
       requiredLabels: { name:'姓名', school:'学校' },
+      validate: function(p){
+        if(!isFullDate(p.addDate)) return '新增日期 必须填完整的「年-月-日」(如 2026-08-20)，不能只填月份或年份';
+        if(!isFullDate(p.lastTouch)) return '最近触达 必须填完整的「年-月-日」(如 2026-08-20)，不能只填月份或年份';
+        return null;
+      },
       current: function(){ return USER_POOL_CRM; },
       build: function(row, col) {
         var get = function(f){ var i = col[f]; return i===undefined ? '' : row[i]; };
         return {
           id: 'up_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
           name: String(get('name')||'').trim(),
-          level: (function(v){ var m=String(v||'').match(/等级?([SsAaBbCc])/); return m?m[1].toUpperCase():''; })(get('level')),
+          level: (function(v){ var lv=String(v||''); var m=lv.match(/等级?\s*[:：]?\s*([SsAaBbCc])/); if(!m) m=lv.match(/([SsAaBbCc])\s*级?/); return m?m[1].toUpperCase():''; })(get('level')),
           school: String(get('school')||'').trim(),
           college: String(get('college')||'').trim(),
           lab: String(get('lab')||'').trim(),
           addDate: String(get('addDate')||'').trim(),
           lastTouch: String(get('lastTouch')||'').trim(),
+          visitContent: String(get('visitContent')||'').trim(),
+          visitType: String(get('visitType')||'').trim(),
           order: numYuan(get('order')) / 10000,
           leader: String(get('leader')||'').trim()
         };
@@ -3737,8 +3751,14 @@ function moduleColMap(headers, aliases) {
   return colMap;
 }
 
-function moduleNoteLines(modKey) {
-  if (modKey==='marketing') return [
+// 日期完整性校验：允许为空（日期非必填）；一旦填写，必须年+月+日三部分齐全（如 2026-08-20 / 2026/8/20 / 2026.8.20 / 2026年8月20日）
+function isFullDate(s){
+  s = String(s||'').trim();
+  if(!s) return true;
+  return /^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$/.test(s);
+}
+
+function moduleNoteLines(modKey) {  if (modKey==='marketing') return [
     '本表用于「营销活动管理 - 计划与进度」批量导入，一份数据同时驱动活动看板与预算执行看板。',
     '月份：填 2026-08 或 2026年8月 或 8月（统一存为 2026-08）。',
     '预算(元)/实际花费(元)：支持 3w / 3万 = 30000 元；也可直接填数字（元）；自动去千分位逗号。',
@@ -3762,16 +3782,36 @@ function moduleNoteLines(modKey) {
     '本表用于「用户池CRM」批量导入真实客户名单（原表按学校分 sheet，汇总到此表）。',
     '等级(S/A/B/C)：填 S / A / B / C（大小写均可）。',
     '学校/学院/实验室课题组：直接按原表填写。',
-    '新增日期/最近触达：填 2026-03-15 格式。',
+    '【日期填写规则·必看】“新增日期”“最近触达”必须填完整的「年-月-日」，格式为 2026-08-20（4位年 - 2位月 - 2位日，用短横线“-”分隔）。❌ 不要只填月份或年份（如 2026-08、2026年8月、8月 均不符合要求），必须精确到具体哪一天；也支持 2026/08/20、2026.8.20、2026年8月20日 写法。',
+    '走访内容：填写本次走访的具体情况，例如：①拜访化学系张教授课题组，了解新学期试剂采购计划，预计采购额15万+；②生科院王老师课题组有大型仪器采购需求，已安排技术支持对接。请写清「对象 + 动作 + 结果/下一步」。',
+    '走访类型：在本列下拉选择其一 —— 首次拜访 / 常规走访 / 深度回访 / 问题处理 / 需求发掘 / 新品推介 / 售后跟进；若以上都不符合，请选「其他」并在单元格内自填具体类型。',
     '下单金额(元)：支持 50w=500000 元；导入后自动 ÷10000 显示为「万」。',
     '负责人：填对应运营人员。',
-    '必填：姓名、学校；其余可选。导入为「仅追加」。'
+    '必填：姓名、学校；其余可选。导入为「仅追加」（相同 姓名+学校 不会重复导入）。'
   ];
+}
+
+function downloadB64File(b64, filename, mime) {
+  try {
+    var bin = atob(b64);
+    var len = bin.length;
+    var arr = new Uint8Array(len);
+    for (var i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
+    var blob = new Blob([arr], { type: mime || 'application/octet-stream' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 150);
+  } catch (e) {
+    alert('模板下载失败：' + (e && e.message ? e.message : e));
+  }
 }
 
 function downloadModuleTemplate(modKey) {
   var tpl = MODULE_TEMPLATES[modKey];
   if (!tpl) return;
+  if (tpl.b64) { downloadB64File(tpl.b64, tpl.file, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); return; }
   var wb = XLSX.utils.book_new();
   tpl.sheets.forEach(function(sh){
     var aoa = [sh.headers].concat(sh.sample.map(function(r){ return r.slice(); }));
