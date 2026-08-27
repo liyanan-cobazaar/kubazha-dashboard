@@ -567,7 +567,9 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
     <button id="downloadTplBtn" onclick="downloadTemplate()" title="下载「月度数据」模板（用于总体概况/绩效评估/增量分析，同一份数据只需导入一次）" style="padding:6px 16px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='#fff'">📄 月度模板</button>
     <button id="importBtn" onclick="document.getElementById('importFileInput').click()" style="padding:6px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#1557b0'" onmouseout="this.style.background='#1a73e8'">📥 导入新增数据</button>
     <div class="user-badge" id="userBadge"></div>
-    <span id="moduleSyncStatus" style="font-size:12px;min-width:96px;text-align:right"></span>
+    <button id="syncPushBtn" onclick="syncCurrentModule('push')" title="把本机刚导入/编辑的数据立即推送到云端，让其他人也能看到" style="padding:6px 12px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;display:none" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='#fff'">☁ 立即同步</button>
+    <button id="syncPullBtn" onclick="syncCurrentModule('pull')" title="从云端拉取最新数据（其他人已同步的内容）" style="padding:6px 12px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;display:none" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='#fff'">⬇ 从云端刷新</button>
+    <span id="moduleSyncStatus" style="font-size:12px;min-width:110px;text-align:right"></span>
   </div>
   <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleImportFile(this)">
 </div>
@@ -1324,11 +1326,13 @@ function pullModule(modKey) {
       return fetch(api, { headers: { Authorization: 'Bearer ' + GH_TOKEN, Accept: 'application/vnd.github+json' } }).then(function (r) {
         if (!r.ok) return null; return r.json();
       }).then(function (j) {
+        if (j && j.sha) _moduleSha[modKey] = j.sha;
         if (j && j.content) { try { applyFromCloud(JSON.parse(base64ToUtf8(j.content))); } catch (e) {} }
       }).catch(function () {});
     });
 }
-function pushModule(modKey) {
+function pushModule(modKey, opts) {
+  opts = opts || {};
   var cfg = MODULE_SYNC[modKey]; if (!cfg) return;
   var api = "https://api.github.com/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/" + cfg.file;
   var localVal = cfg.get();
@@ -1341,18 +1345,20 @@ function pushModule(modKey) {
       return { sha: j.sha, obj: obj || (cfg.customMerge ? { available_months: [], monthly_data: {} } : []) };
     });
   }).then(function (cur) {
+    if (cur.sha) _moduleSha[modKey] = cur.sha;
     var merged = cfg.customMerge ? mergeMonthly(cur.obj, localVal) : mergeArraysByKey(cur.obj, localVal, cfg.keyOf);
     var body = { message: '[sync] 合并模块数据 ' + modKey, content: utf8ToBase64(JSON.stringify(merged)) };
     if (cur.sha) body.sha = cur.sha;
     return fetch(api, {
       method: 'PUT',
       headers: { Authorization: 'Bearer ' + GH_TOKEN, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      keepalive: !!opts.keepalive
     }).then(function (r) {
       if (r.status === 409) throw new Error('conflict');
       if (!r.ok) throw new Error('写入失败 HTTP ' + r.status);
       return r.json();
-    });
+    }).then(function (j) { if (j && j.sha) _moduleSha[modKey] = j.sha; });
   }).then(function () {
     if (modKey === 'monthly') { try { localStorage.setItem(WB_DATA_STORAGE_KEY, JSON.stringify(WORKBENCH_DATA)); } catch (e) {} }
     else { try { localStorage.setItem(cfg.lsKey, JSON.stringify(cfg.get())); } catch (e) {} }
@@ -1363,11 +1369,31 @@ function pushModule(modKey) {
   });
 }
 var _moduleSyncTimers = {};
+var _moduleSyncPending = {};
+var _moduleSha = {};
 function scheduleModulePush(modKey) {
   if (!MODULE_SYNC[modKey]) return;
+  _moduleSyncPending[modKey] = true;
   if (_moduleSyncTimers[modKey]) clearTimeout(_moduleSyncTimers[modKey]);
-  _moduleSyncTimers[modKey] = setTimeout(function () { pushModule(modKey); }, 1200);
+  _moduleSyncTimers[modKey] = setTimeout(function () { delete _moduleSyncTimers[modKey]; pushModule(modKey); }, 1200);
 }
+function flushModulePush(modKey) {
+  // 立即推送（不受 1.2s 定时器限制），用于导入/编辑后确保数据尽快上云
+  if (!MODULE_SYNC[modKey]) return;
+  delete _moduleSyncPending[modKey];
+  if (_moduleSyncTimers[modKey]) { clearTimeout(_moduleSyncTimers[modKey]); delete _moduleSyncTimers[modKey]; }
+  pushModule(modKey);
+}
+function flushPendingSyncs() {
+  // 关页/切后台前兜底：把还未来得及推送的数据用 keepalive 尽力上云
+  Object.keys(_moduleSyncPending).forEach(function (k) {
+    if (_moduleSyncTimers[k]) { clearTimeout(_moduleSyncTimers[k]); delete _moduleSyncTimers[k]; }
+    delete _moduleSyncPending[k];
+    pushModule(k, { keepalive: true });
+  });
+}
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') flushPendingSyncs(); });
+window.addEventListener('beforeunload', flushPendingSyncs);
 function showModuleSyncStatus(state, msg) {
   var el = $('moduleSyncStatus');
   if (!el) return;
@@ -1375,6 +1401,24 @@ function showModuleSyncStatus(state, msg) {
   else if (state === 'ok') { el.textContent = '✓ 数据已同步云端'; el.style.color = '#1a8a3a'; }
   else if (state === 'err') { el.textContent = '✗ 数据同步失败：' + (msg || ''); el.style.color = '#c00'; }
   else { el.textContent = ''; }
+}
+
+// 顶部「立即同步 / 从云端刷新」按当前模块自适应映射到对应云端文件
+var MODULE_BY_PANEL = { modUserPool: 'userpool', modMarketing: 'marketing', modCampus: 'campus' };
+function syncCurrentModule(action) {
+  var k = MODULE_BY_PANEL[currentModule];
+  if (!k) return;
+  if (action === 'push') {
+    flushModulePush(k);
+  } else {
+    showModuleSyncStatus('syncing');
+    pullModule(k).then(function () {
+      if (k === 'userpool' && typeof renderUpSchoolList === 'function') renderUpSchoolList();
+      if (k === 'marketing' && typeof renderMarketing === 'function') renderMarketing();
+      if (k === 'campus' && typeof renderCampus === 'function') renderCampus();
+      showModuleSyncStatus('ok');
+    }).catch(function () { showModuleSyncStatus('err', '从云端拉取失败'); });
+  }
 }
 
 var allCharts = {};
@@ -2222,6 +2266,11 @@ function updateGlobalImportButtonsVisibility() {
   if (importBtn) importBtn.style.display = show ? 'inline-block' : 'none';
   var downloadTplBtn = $('downloadTplBtn');
   if (downloadTplBtn) downloadTplBtn.style.display = show ? 'inline-block' : 'none';
+  // 同步按钮：仅在用户池/营销/校园行三个数据模块显示（staff 已在 switchModule 被拦截，无需再判角色）
+  var showSync = (currentModule === 'modUserPool' || currentModule === 'modMarketing' || currentModule === 'modCampus');
+  var sp = $('syncPushBtn'), sl = $('syncPullBtn');
+  if (sp) sp.style.display = showSync ? 'inline-block' : 'none';
+  if (sl) sl.style.display = showSync ? 'inline-block' : 'none';
 }
 
 function refreshCurrentModule() {
@@ -3404,7 +3453,7 @@ function recalcActivityProgress(a) {
 function saveMarketingData() {
   try { localStorage.setItem('wb_marketing_activities_v1', JSON.stringify(MARKETING_ACTIVITIES)); }
   catch (e) { console.warn('save marketing data failed', e); }
-  scheduleModulePush('marketing');
+  flushModulePush('marketing');
 }
 
 function loadMarketingData() {
@@ -3441,7 +3490,7 @@ function loadMarketingData() {
 function saveCampusEvents() {
   try { localStorage.setItem('wb_campus_events_v1', JSON.stringify(CAMPUS_EVENTS)); }
   catch (e) { console.warn('save campus events failed', e); }
-  scheduleModulePush('campus');
+  flushModulePush('campus');
 }
 function loadCampusEvents() {
   try {
@@ -3458,7 +3507,7 @@ function loadCampusEvents() {
 function saveUserPool() {
   try { localStorage.setItem('wb_userpool_crm_v1', JSON.stringify(USER_POOL_CRM)); }
   catch (e) { console.warn('save user pool failed', e); }
-  scheduleModulePush('userpool');
+  flushModulePush('userpool');
 }
 function loadUserPool() {
   try {
