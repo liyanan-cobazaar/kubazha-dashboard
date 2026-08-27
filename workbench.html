@@ -1662,11 +1662,8 @@ function enterApp() {
   var mb = $('mainBody'); if (mb) mb.style.display = 'flex';
   refreshUserBadge();
   applyNavByRole();
-  // 导入按钮与下载模板按钮仅管理员可见
-  var importBtn = $('importBtn');
-  if (importBtn) importBtn.style.display = isAdmin() ? 'inline-block' : 'none';
-  var downloadTplBtn = $('downloadTplBtn');
-  if (downloadTplBtn) downloadTplBtn.style.display = isAdmin() ? 'inline-block' : 'none';
+  // 导入按钮与下载模板按钮仅管理员可见，且只在总体概况/绩效评估模块显示
+  updateGlobalImportButtonsVisibility();
   refreshCurrentModule();
 }
 
@@ -2056,7 +2053,17 @@ function switchModule(el) {
   document.querySelectorAll(".module-panel").forEach(function(p){ p.classList.remove("active"); });
   $(panelId).classList.add("active");
   currentModule = panelId;
+  updateGlobalImportButtonsVisibility();
   refreshCurrentModule();
+}
+
+function updateGlobalImportButtonsVisibility() {
+  // 月度模板/导入新增数据 仅服务于总体概况和绩效评估，避免在用户池/营销活动/校园行/任务下发造成误导
+  var show = isAdmin() && (currentModule === 'modOverview' || currentModule === 'modPerformance');
+  var importBtn = $('importBtn');
+  if (importBtn) importBtn.style.display = show ? 'inline-block' : 'none';
+  var downloadTplBtn = $('downloadTplBtn');
+  if (downloadTplBtn) downloadTplBtn.style.display = show ? 'inline-block' : 'none';
 }
 
 function refreshCurrentModule() {
