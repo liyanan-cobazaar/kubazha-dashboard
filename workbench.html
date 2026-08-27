@@ -728,7 +728,10 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
       <div style="margin:8px 0;display:flex;gap:12px;align-items:center;font-size:12px;flex-wrap:wrap">
         <span id="subjSyncStatus"></span>
         <button onclick="pushSubjectiveScores()" style="padding:4px 12px;border:1px solid #1a73e8;border-radius:6px;background:#fff;color:#1a73e8;cursor:pointer;font-size:12px">立即同步到云端</button>
-        <span style="color:#888">主观分已改为云端共享：区域主管填本区域下属，总部可改所有人；填完自动同步全员可见。</span>
+        <button onclick="exportSubjectiveBackup()" style="padding:4px 12px;border:1px solid #1a8a3a;border-radius:6px;background:#fff;color:#1a8a3a;cursor:pointer;font-size:12px;font-weight:600">⬇ 导出备份</button>
+        <button id="importSubjBtn" onclick="document.getElementById('importSubjFile').click()" style="padding:4px 12px;border:1px solid #1a8a3a;border-radius:6px;background:#fff;color:#1a8a3a;cursor:pointer;font-size:12px;font-weight:600">⬆ 导入备份</button>
+        <input type="file" id="importSubjFile" accept="application/json,.json" style="display:none" onchange="importSubjectiveBackup(this.files[0])">
+        <span style="color:#888">主观分已改为云端共享：区域主管填本区域下属，总部可改所有人；填完自动同步全员可见。建议定期「导出备份」存一份文件，换设备/清缓存时可「导入备份」自行恢复。</span>
       </div>
       <div id="perfContent"></div>
     </div>
@@ -2389,6 +2392,8 @@ function initPerformance() {
   var noteHtml = scopeNoteHtml() ? '<span style="float:right;font-size:11px;color:#1a73e8">'+scopeNoteHtml()+'</span>' : '';
   var titleEl = document.querySelector('#modPerformance .module-title');
   if (titleEl) titleEl.innerHTML = '🎯 绩效评估' + noteHtml;
+  // 导入备份按钮仅管理员可见（避免非授权篡改他人评分）
+  var _ib = $('importSubjBtn'); if (_ib) _ib.style.display = isAdmin() ? '' : 'none';
   // 初始化绩效月份下拉
   var sel = $('perfMonthSelect');
   if (sel) {
@@ -2495,6 +2500,45 @@ function updateScore(person, fieldKey, value, prole, pleader) {
   try { localStorage.setItem(SUBJECTIVE_STORAGE_KEY, JSON.stringify(subjectiveScores)); } catch (e) {}
   updatePerformanceContent();
   schedulePush();
+}
+
+// 主观分本地备份导出：用户可以自己下载一份 JSON 文件，不依赖云端/网络，换设备/清缓存时「导入备份」恢复。
+function exportSubjectiveBackup() {
+  try {
+    var data = { tool: 'workbench-subjective-backup', exportedAt: new Date().toISOString(), scores: subjectiveScores || {} };
+    var str = JSON.stringify(data, null, 2);
+    var blob = new Blob([str], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
+    a.href = url;
+    a.download = '绩效主观分备份_' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 1000);
+    alert('已导出主观分备份（' + Object.keys(data.scores).length + ' 条）。请妥善保存此文件——换设备/清缓存时，点「导入备份」即可自行恢复，无需依赖云端。');
+  } catch (e) { alert('导出失败：' + e.message); }
+}
+
+// 主观分备份导入：仅管理员可操作（避免非授权篡改他人评分）。合并而非覆盖，导入后即时落盘并推送云端。
+function importSubjectiveBackup(file) {
+  if (!isAdmin()) { alert('仅管理员可导入备份（避免误改他人评分）'); return; }
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function () {
+    try {
+      var data = JSON.parse(String(reader.result));
+      var incoming = (data && data.scores) ? data.scores : (data && typeof data === 'object' ? data : null);
+      if (!incoming || typeof incoming !== 'object') throw new Error('文件格式不正确（缺少 scores 字段）');
+      subjectiveScores = Object.assign({}, subjectiveScores || {}, incoming);
+      localStorage.setItem(SUBJECTIVE_STORAGE_KEY, JSON.stringify(subjectiveScores));
+      schedulePush();
+      if (typeof updatePerformanceContent === 'function') updatePerformanceContent();
+      alert('已合并导入备份（' + Object.keys(incoming).length + ' 条），并已推送到云端同步。');
+    } catch (e) { alert('导入失败：' + e.message); }
+  };
+  reader.onerror = function () { alert('读取文件失败'); };
+  reader.readAsText(file);
+  try { file.value = ''; } catch (e) {} // 允许重复选择同一文件
 }
 
 function toggleRulePanel(header) {
