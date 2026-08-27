@@ -2422,31 +2422,22 @@ function renderOvIncrement() {
   var sel = $("overviewRegionSelect");
 
   // 总增量 KPI + 增量对比标准（口径）说明
-  var sumInc = 0, posInc = 0, negInc = 0, incUnit = '';
-  if (regionEntries.length > 0) {
-    incUnit = '全部区域';
-    regionEntries.forEach(function(e){
-      var inc = regionFlowIncrement(cm, e.key); // 已是万单位
-      sumInc += inc;
-      if (inc >= 0) posInc += inc; else negInc += inc;
-    });
-  } else {
-    incUnit = '我的全部项目';
-    scopePeople(md.people || []).forEach(function(p){
-      if (p._synthetic) return;
-      var inc = calcFlowIncrement(p) / 10000; // 元 -> 万
-      sumInc += inc;
-      if (inc >= 0) posInc += inc; else negInc += inc;
-    });
-  }
+  // 按项目（非 _synthetic 占位）口径累计增量，同时统计增长/下降的项目数
+  var sumInc = 0, posInc = 0, negInc = 0, posCount = 0, negCount = 0;
+  scopePeople(md.people || []).forEach(function(p){
+    if (p._synthetic) return;
+    var inc = calcFlowIncrement(p) / 10000; // 元 -> 万
+    sumInc += inc;
+    if (inc >= 0) { posInc += inc; posCount++; } else { negInc += inc; negCount++; }
+  });
   var sumColor = sumInc >= 0 ? '#16a34a' : '#dc2626';
   var sumVal = (sumInc >= 0 ? '+' : '') + fmt(sumInc);
   var negVal = negInc < 0 ? fmt(negInc) : '0';
   $("ovIncrementSummary").innerHTML =
     '<div class="kpi-row">' +
       '<div class="kpi-card"><div class="label">' + monthPrefix + '总流量增量(万)<br><span style="font-size:10px;color:#64748b;font-weight:400">按项目基期口径</span></div><div class="value" style="color:'+sumColor+'">'+sumVal+'</div><div class="trend">按项目基期（去年同期优先）合计</div></div>' +
-      '<div class="kpi-card"><div class="label">' + monthPrefix + '正增量合计(万)</div><div class="value" style="color:#16a34a">+'+fmt(posInc)+'</div><div class="trend">流量增长的区域/项目</div></div>' +
-      '<div class="kpi-card"><div class="label">' + monthPrefix + '负增量合计(万)</div><div class="value" style="color:'+(negInc<0?'#dc2626':'#666')+'">'+negVal+'</div><div class="trend">流量下降的区域/项目</div></div>' +
+      '<div class="kpi-card"><div class="label">' + monthPrefix + '正增量合计(万)</div><div class="value" style="color:#16a34a">+'+fmt(posInc)+'</div><div class="trend">流量增长的项目'+posCount+'个</div></div>' +
+      '<div class="kpi-card"><div class="label">' + monthPrefix + '负增量合计(万)</div><div class="value" style="color:'+(negInc<0?'#dc2626':'#666')+'">'+negVal+'</div><div class="trend">流量下降的项目'+negCount+'个</div></div>' +
     '</div>' +
     '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin:12px 0;font-size:13px;color:#334155;line-height:1.85">' +
       '<div style="font-weight:600;color:#1e40af;margin-bottom:8px;display:flex;align-items:center;gap:6px">' +
