@@ -567,6 +567,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
     <button id="downloadTplBtn" onclick="downloadTemplate()" title="下载「月度数据」模板（用于总体概况/绩效评估/增量分析，同一份数据只需导入一次）" style="padding:6px 16px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='#fff'">📄 月度模板</button>
     <button id="importBtn" onclick="document.getElementById('importFileInput').click()" style="padding:6px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#1557b0'" onmouseout="this.style.background='#1a73e8'">📥 导入新增数据</button>
     <div class="user-badge" id="userBadge"></div>
+    <span id="moduleSyncStatus" style="font-size:12px;min-width:96px;text-align:right"></span>
   </div>
   <input type="file" id="importFileInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleImportFile(this)">
 </div>
@@ -1219,6 +1220,163 @@ function pushSubjectiveScores() {
     showSyncStatus('err', err.message);
   });
 }
+// ===== 多模块云端共享（复用主观分模式：GET 静态+API，本地优先合并，PUT 乐观合并） =====
+// 让 用户池/营销活动/校园行/月度数据 在不同设备、不同人之间看到同一份、改动即同步（等同共享文档）。
+var MODULE_SYNC = {
+  userpool: {
+    file: 'userpool_crm.json',
+    lsKey: 'wb_userpool_crm_v1',
+    get: function () { return USER_POOL_CRM; },
+    set: function (v) { USER_POOL_CRM.length = 0; (v || []).forEach(function (x) { USER_POOL_CRM.push(x); }); },
+    keyOf: function (r) { return (r.name || '') + '|' + (r.school || ''); }
+  },
+  marketing: {
+    file: 'marketing_activities.json',
+    lsKey: 'wb_marketing_activities_v1',
+    get: function () { return MARKETING_ACTIVITIES; },
+    set: function (v) { MARKETING_ACTIVITIES.length = 0; (v || []).forEach(function (x) { MARKETING_ACTIVITIES.push(x); }); },
+    keyOf: function (r) { return (r.school || '') + '|' + (r.title || ''); }
+  },
+  campus: {
+    file: 'campus_events.json',
+    lsKey: 'wb_campus_events_v1',
+    get: function () { return CAMPUS_EVENTS; },
+    set: function (v) { CAMPUS_EVENTS.length = 0; (v || []).forEach(function (x) { CAMPUS_EVENTS.push(x); }); },
+    keyOf: function (r) { return (r.date || '') + '|' + (r.school || '') + '|' + (r.mode || ''); }
+  },
+  monthly: {
+    file: 'workbench_monthly_data.json',
+    lsKey: 'wb_workbench_data_v1',
+    customMerge: true,
+    get: function () { return { available_months: WORKBENCH_DATA.available_months, monthly_data: WORKBENCH_DATA.monthly_data }; },
+    set: function (v) {
+      if (!v) return;
+      (v.available_months || []).forEach(function (m) {
+        if (v.monthly_data[m]) {
+          WORKBENCH_DATA.monthly_data[m] = v.monthly_data[m];
+          if (WORKBENCH_DATA.available_months.indexOf(m) < 0) WORKBENCH_DATA.available_months.push(m);
+        }
+      });
+      WORKBENCH_DATA.available_months.sort();
+      WORKBENCH_DATA.available_months.forEach(function (m) {
+        if (WORKBENCH_DATA.monthly_data[m]) {
+          ensureRegionLeads(m);
+          rebuildMonthAggregates(m);
+          WORKBENCH_DATA.totals[m] = WORKBENCH_DATA.monthly_data[m].totals;
+        }
+      });
+    }
+  }
+};
+
+function mergeArraysByKey(local, cloud, keyOf) {
+  var byKey = {};
+  (local || []).forEach(function (r) { var k = keyOf(r); if (k) byKey[k] = r; });
+  (cloud || []).forEach(function (r) { var k = keyOf(r); if (k && !byKey[k]) byKey[k] = r; });
+  return Object.keys(byKey).map(function (k) { return byKey[k]; });
+}
+function mergeMonthly(local, cloud) {
+  var out = { available_months: [], monthly_data: {} };
+  var months = {};
+  (local.available_months || []).concat(cloud.available_months || []).forEach(function (m) { months[m] = true; });
+  out.available_months = Object.keys(months);
+  var L = local.monthly_data || {}, C = cloud.monthly_data || {};
+  out.available_months.forEach(function (m) {
+    var lm = L[m], cm = C[m];
+    if (lm && cm) {
+      var byName = {};
+      (cm.people || []).forEach(function (p) { byName[p.name + '|' + (p.school || '')] = p; });
+      (lm.people || []).forEach(function (p) { byName[p.name + '|' + (p.school || '')] = p; }); // 本地优先
+      out.monthly_data[m] = {
+        regions: lm.regions || cm.regions,
+        totals: lm.totals || cm.totals,
+        people: Object.keys(byName).map(function (k) { return byName[k]; })
+      };
+    } else {
+      out.monthly_data[m] = lm || cm;
+    }
+  });
+  return out;
+}
+function applyModuleCloud(modKey, cloudVal) {
+  var cfg = MODULE_SYNC[modKey]; if (!cfg || !cloudVal) return;
+  var localVal = cfg.get();
+  var merged = cfg.customMerge ? mergeMonthly(localVal, cloudVal) : mergeArraysByKey(localVal, cloudVal, cfg.keyOf);
+  cfg.set(merged);
+  if (modKey === 'monthly') { try { localStorage.setItem(WB_DATA_STORAGE_KEY, JSON.stringify(WORKBENCH_DATA)); } catch (e) {} }
+  else { try { localStorage.setItem(cfg.lsKey, JSON.stringify(merged)); } catch (e) {} }
+  if (typeof currentModule !== 'undefined') {
+    if (modKey === 'monthly' && typeof renderMonthBtns === 'function') renderMonthBtns();
+    if (modKey === 'userpool' && currentModule === 'modUserPool' && typeof renderUpSchoolList === 'function') renderUpSchoolList();
+    if (modKey === 'marketing' && currentModule === 'modMarketing' && typeof renderMarketing === 'function') renderMarketing();
+    if (modKey === 'campus' && currentModule === 'modCampus' && typeof renderCampus === 'function') renderCampus();
+  }
+}
+function pullModule(modKey) {
+  var cfg = MODULE_SYNC[modKey]; if (!cfg) return Promise.resolve();
+  var api = "https://api.github.com/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/" + cfg.file;
+  var stat = "https://" + GH_OWNER + ".github.io/" + GH_REPO + "/" + cfg.file;
+  function applyFromCloud(arr) { if (arr) applyModuleCloud(modKey, arr); }
+  return fetch(stat, { cache: 'no-store' }).then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (d) { if (d) applyFromCloud(d); })
+    .catch(function () {})
+    .then(function () {
+      return fetch(api, { headers: { Authorization: 'Bearer ' + GH_TOKEN, Accept: 'application/vnd.github+json' } }).then(function (r) {
+        if (!r.ok) return null; return r.json();
+      }).then(function (j) {
+        if (j && j.content) { try { applyFromCloud(JSON.parse(base64ToUtf8(j.content))); } catch (e) {} }
+      }).catch(function () {});
+    });
+}
+function pushModule(modKey) {
+  var cfg = MODULE_SYNC[modKey]; if (!cfg) return;
+  var api = "https://api.github.com/repos/" + GH_OWNER + "/" + GH_REPO + "/contents/" + cfg.file;
+  var localVal = cfg.get();
+  showModuleSyncStatus('syncing');
+  fetch(api, { headers: { Authorization: 'Bearer ' + GH_TOKEN, Accept: 'application/vnd.github+json' } }).then(function (r) {
+    if (r.status === 404) return { sha: null, obj: cfg.customMerge ? { available_months: [], monthly_data: {} } : [] };
+    if (!r.ok) throw new Error('读取云端失败 HTTP ' + r.status);
+    return r.json().then(function (j) {
+      var obj; try { obj = JSON.parse(base64ToUtf8(j.content)); } catch (e) { obj = null; }
+      return { sha: j.sha, obj: obj || (cfg.customMerge ? { available_months: [], monthly_data: {} } : []) };
+    });
+  }).then(function (cur) {
+    var merged = cfg.customMerge ? mergeMonthly(cur.obj, localVal) : mergeArraysByKey(cur.obj, localVal, cfg.keyOf);
+    var body = { message: '[sync] 合并模块数据 ' + modKey, content: utf8ToBase64(JSON.stringify(merged)) };
+    if (cur.sha) body.sha = cur.sha;
+    return fetch(api, {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer ' + GH_TOKEN, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    }).then(function (r) {
+      if (r.status === 409) throw new Error('conflict');
+      if (!r.ok) throw new Error('写入失败 HTTP ' + r.status);
+      return r.json();
+    });
+  }).then(function () {
+    if (modKey === 'monthly') { try { localStorage.setItem(WB_DATA_STORAGE_KEY, JSON.stringify(WORKBENCH_DATA)); } catch (e) {} }
+    else { try { localStorage.setItem(cfg.lsKey, JSON.stringify(cfg.get())); } catch (e) {} }
+    showModuleSyncStatus('ok');
+  }).catch(function (err) {
+    if (err.message === 'conflict') { setTimeout(function () { pushModule(modKey); }, 600); return; }
+    showModuleSyncStatus('err', err.message);
+  });
+}
+var _moduleSyncTimers = {};
+function scheduleModulePush(modKey) {
+  if (!MODULE_SYNC[modKey]) return;
+  if (_moduleSyncTimers[modKey]) clearTimeout(_moduleSyncTimers[modKey]);
+  _moduleSyncTimers[modKey] = setTimeout(function () { pushModule(modKey); }, 1200);
+}
+function showModuleSyncStatus(state, msg) {
+  var el = $('moduleSyncStatus');
+  if (!el) return;
+  if (state === 'syncing') { el.textContent = '↻ 数据同步中…'; el.style.color = '#1a73e8'; }
+  else if (state === 'ok') { el.textContent = '✓ 数据已同步云端'; el.style.color = '#1a8a3a'; }
+  else if (state === 'err') { el.textContent = '✗ 数据同步失败：' + (msg || ''); el.style.color = '#c00'; }
+  else { el.textContent = ''; }
+}
+
 var allCharts = {};
 Chart.register(ChartDataLabels);
 
@@ -2902,6 +3060,7 @@ function calcAvgSettle(people) {
 // ========== 用户池CRM ==========
 function initUserPool() {
   loadUserPool();
+  pullModule('userpool');
   var noteHtml = scopeNoteHtml() ? '<span style="float:right;font-size:11px;color:#1a73e8">'+scopeNoteHtml()+'</span>' : '';
   var titleEl = document.querySelector('#modUserPool .module-title');
   if (titleEl) titleEl.innerHTML = '👥 用户池CRM' + noteHtml;
@@ -3115,6 +3274,7 @@ function initMarketing() {
   loadMarketingData();
   loadModelLib();
   loadMarketingAssist();
+  pullModule('marketing');
   renderMarketingDashboard();
   renderMarketingPlan();
   renderMarketingBudget();
@@ -3244,6 +3404,7 @@ function recalcActivityProgress(a) {
 function saveMarketingData() {
   try { localStorage.setItem('wb_marketing_activities_v1', JSON.stringify(MARKETING_ACTIVITIES)); }
   catch (e) { console.warn('save marketing data failed', e); }
+  scheduleModulePush('marketing');
 }
 
 function loadMarketingData() {
@@ -3280,6 +3441,7 @@ function loadMarketingData() {
 function saveCampusEvents() {
   try { localStorage.setItem('wb_campus_events_v1', JSON.stringify(CAMPUS_EVENTS)); }
   catch (e) { console.warn('save campus events failed', e); }
+  scheduleModulePush('campus');
 }
 function loadCampusEvents() {
   try {
@@ -3296,6 +3458,7 @@ function loadCampusEvents() {
 function saveUserPool() {
   try { localStorage.setItem('wb_userpool_crm_v1', JSON.stringify(USER_POOL_CRM)); }
   catch (e) { console.warn('save user pool failed', e); }
+  scheduleModulePush('userpool');
 }
 function loadUserPool() {
   try {
@@ -4390,6 +4553,7 @@ function initCampus() {
     };
   });
   loadCampusEvents();
+  pullModule('campus');
   renderCampusSubTab();
 }
 
@@ -4803,6 +4967,11 @@ document.addEventListener("DOMContentLoaded", function() {
   loadWorkbenchData();
   // 加载本地持久化的绩效主观分（重新部署后不会丢失）
   loadSubjectiveScores();
+  // 多模块云端共享：打开即拉取最新（用户池/营销/校园行/月度数据），多人多设备看到同一份
+  pullModule('monthly');
+  pullModule('userpool');
+  pullModule('marketing');
+  pullModule('campus');
   renderMonthBtns();
   // 三角色登录：恢复上次会话，未登录则显示登录页
   var saved = null;
@@ -4829,6 +4998,7 @@ function saveWorkbenchData() {
     console.error('保存工作台数据失败（可能超出 localStorage 容量）', e);
     alert('⚠️ 数据保存失败：浏览器本地存储空间不足。数据本次生效，但刷新后可能丢失。');
   }
+  scheduleModulePush('monthly');
 }
 function loadWorkbenchData() {
   try {
