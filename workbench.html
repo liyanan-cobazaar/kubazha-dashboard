@@ -3695,7 +3695,7 @@ var MODULE_TEMPLATES = {
         return {
           id: 'up_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
           name: String(get('name')||'').trim(),
-          level: String(get('level')||'').trim().toUpperCase(),
+          level: (function(v){ var m=String(v||'').match(/等级?([SsAaBbCc])/); return m?m[1].toUpperCase():''; })(get('level')),
           school: String(get('school')||'').trim(),
           college: String(get('college')||'').trim(),
           lab: String(get('lab')||'').trim(),
