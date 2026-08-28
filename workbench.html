@@ -3292,10 +3292,10 @@ function renderUpVisits() {
       '<div class="time">'+v.date+' '+v.time+'</div>' +
       '<div class="content">' +
         '<strong>'+v.type+'</strong> - '+v.school+
-        '<div style="margin-top:6px;font-size:11px;color:#555">'+v.content+'</div>' +
-        '<div style="margin-top:6px;display:flex;gap:12px;font-size:10px">' +
+        '<div style="margin-top:6px;display:flex;gap:12px;align-items:flex-start;font-size:10px;flex-wrap:wrap">' +
           '<span class="visitor">👤 '+v.person+'</span>' +
           '<span style="color:#22c55e">👥 新增线索: '+v.users+'人</span>' +
+          (v.content ? '<span style="color:#555;flex:1;min-width:180px">📝 '+v.content+'</span>' : '') +
         '</div>' +
       '</div>';
     tl.appendChild(item);
