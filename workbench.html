@@ -675,23 +675,29 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
         <div class="rule-body" id="perfRuleBody">
           <div class="rule-section">
             <h5>一、核心计算规则</h5>
-            <ol>
-              <li>完成率 = 实际值 / 目标值</li>
-              <li>流量增长目标 = 基期流量 × 1.15（同比增长 15%）</li>
-              <li>流量完成率 = 当月实际流量 /（基期流量 × 1.15）</li>
-              <li>保底机制：完成率 &lt; 30% 时按 30% 计算</li>
-              <li>封顶机制：单项得分不超过权重 × 120%</li>
-              <li>单项得分 = 完成率 × 权重</li>
-              <li>结算完成率：以上月结算率 85% 为目标，完成率 = 结算率 / 85%</li>
-            </ol>
+            <table class="rule-table">
+              <thead><tr><th>规则</th><th>公式</th><th>示例</th></tr></thead>
+              <tbody>
+                <tr><td>完成率</td><td>完成率 = 实际值 ÷ 目标值</td><td>实际100 / 目标200 → 50%</td></tr>
+                <tr><td>流量增长目标</td><td>基期流量 × 1.15（同比增长 15%）</td><td>基期100 → 目标115</td></tr>
+                <tr><td>流量完成率</td><td>当月实际流量 ÷（基期流量 × 1.15）</td><td>实际120 / 115 → 104%</td></tr>
+                <tr><td>保底机制</td><td>完成率 &lt; 30% 时按 30% 计算</td><td>实际10% → 记30%</td></tr>
+                <tr><td>封顶机制</td><td>单项得分 ≤ 权重 × 120%</td><td>权重10 → 上限12</td></tr>
+                <tr><td>单项得分</td><td>单项得分 = 完成率 × 权重</td><td>104% × 权重10 → 10.4</td></tr>
+                <tr><td>结算完成率</td><td>以上月结算率 85% 为目标，完成率 = 结算率 ÷ 85%</td><td>结算率90% → 106%</td></tr>
+              </tbody>
+            </table>
           </div>
           <div class="rule-section">
             <h5>二、基期选择规则（重要）</h5>
-            <ul>
-              <li>【有同期数据】优先使用去年同期流量作为基期</li>
-              <li>【无同期数据或同期为 0】使用上月流量作为基期（环比）</li>
-              <li>【新项目】按环比计算</li>
-            </ul>
+            <table class="rule-table">
+              <thead><tr><th>场景</th><th>规则</th><th>示例</th></tr></thead>
+              <tbody>
+                <tr><td>有同期数据</td><td>优先使用去年同期流量作为基期</td><td>去年同月100 → 基期100</td></tr>
+                <tr><td>无同期数据或同期为 0</td><td>使用上月流量作为基期（环比）</td><td>上月80 → 基期80</td></tr>
+                <tr><td>新项目</td><td>按环比计算</td><td>首月无同期 → 取上月</td></tr>
+              </tbody>
+            </table>
             <div class="rule-note">
               <strong>流量增量</strong>：每个项目按「实际订单金额 − 基期流量」计算；<strong class="rule-highlight">区域负责人</strong>的增量 = 其区域内所有项目增量之和；区域评分①的基期 = 区域内各项目基期之和（每项目同期为 0/缺失时同样用上月流量，逐项目回退）。
             </div>
