@@ -718,79 +718,101 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
           </div>
           <div class="rule-section">
             <h5>四、主观打分项说明</h5>
-            <ul>
-              <li><strong>区域主管</strong>（主观满分30分）
-                <ul>
-                  <li><strong>团队培训/内部会议（8分）</strong>
-                    <ul>
-                      <li>a 按目标组织团队培训/内部会议次数（≥4场/月）— 3分</li>
-                      <li>b 培训/会议有明确主题、议程及纪要记录 — 3分</li>
-                      <li>c 会后形成可执行动作并跟踪反馈 — 2分</li>
-                    </ul>
-                  </li>
-                  <li><strong>区域任务拆解合理性及完成度（8分）</strong>
-                    <ul>
-                      <li>a 月度/周度任务拆解为清晰里程碑，可验收 — 2分</li>
-                      <li>b 任务时间节点与责任人分配合理 — 2分</li>
-                      <li>c 区域成员任务按时完成率达到预期 — 2分</li>
-                      <li>d 任务执行中有风险意识，对未完成任务及时复盘并提出优化方案 — 2分</li>
-                    </ul>
-                  </li>
-                  <li><strong>上级交办重点任务（7分）</strong>
-                    <ul>
-                      <li>a 任务接收与理解准确，关键要求无遗漏 — 2分</li>
-                      <li>b 按节点推进，过程反馈及时 — 2分</li>
-                      <li>c 最终交付质量达标，结果可验收 — 3分</li>
-                    </ul>
-                  </li>
-                  <li><strong>业务模式创新/新渠道开发（7分）</strong>
-                    <ul>
-                      <li>a 主动识别并提出创新/新渠道机会 — 2分</li>
-                      <li>b 有试点动作或落地方案 — 2分</li>
-                      <li>c 产生可量化成果或可复制经验 — 3分</li>
-                    </ul>
-                  </li>
-                </ul>
-              </li>
-              <li><strong>营销项目负责人</strong>（主观满分15分）
-                <ul>
-                  <li><strong>配合区域主管完成任务（8分）</strong>
-                    <ul>
-                      <li>a 配合主管合理拆解任务 — 2分</li>
-                      <li>b 按时间节点执行并完成任务 — 2分</li>
-                      <li>c 积极复盘并提出优化建议 — 2分</li>
-                      <li>d 积极配合完成主管提出的其他工作 — 2分</li>
-                    </ul>
-                  </li>
-                  <li><strong>项目统筹与独立交付（7分）</strong>
-                    <ul>
-                      <li>a 独立完整输出可执行营销方案 — 3分</li>
-                      <li>b 全局把控项目、独立完成梳理并提出改进方案（运营服务报告/学校整改报告等）— 2分</li>
-                      <li>c 从结果出发积极配合跨部门、跨单位合作 — 2分</li>
-                    </ul>
-                  </li>
-                </ul>
-              </li>
-              <li><strong>运营专员</strong>（主观满分15分）
-                <ul>
-                  <li><strong>区域主管配合度（7分）</strong>
-                    <ul>
-                      <li>配合主管合理拆解任务 — 2分</li>
-                      <li>按时间节点执行完成任务 — 2分</li>
-                      <li>积极复盘并提出优化建议 — 1分</li>
-                      <li>积极配合完成主管其他工作 — 2分</li>
-                    </ul>
-                  </li>
-                  <li><strong>响应速度/用户满意度（8分）</strong>
-                    <ul>
-                      <li>主管部门满意 — 3分（零有效投诉=满分）</li>
-                      <li>科研师生满意 — 3分（零有效投诉=满分）</li>
-                      <li>积极响应各方问题 — 2分</li>
-                    </ul>
-                  </li>
-                </ul>
-              </li>
-            </ul>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+              <style>
+                .subj-tbl{border-collapse:collapse;width:100%;font-size:12px;line-height:1.5}
+                .subj-tbl th,.subj-tbl td{border:0.5px solid #d3d1c7;padding:6px 8px;vertical-align:top}
+                .subj-tbl th{background:#f1efe8;font-weight:500;text-align:left}
+                .subj-tbl .dim{background:#f1efe8;font-weight:500}
+                .subj-tbl .dim small{font-weight:400;color:#5f5e5a}
+                .subj-tbl .score{text-align:right;color:#0c447c;font-weight:500;white-space:nowrap}
+              </style>
+              <div style="flex:1 1 440px;min-width:300px;">
+                <div style="font-weight:500;font-size:13px;margin-bottom:8px;">区域主管（主观满分30分）</div>
+                <table class="subj-tbl">
+                  <thead><tr><th>维度</th><th>行为标准</th><th>分值</th></tr></thead>
+                  <tbody>
+                    <tr>
+                      <td class="dim" rowspan="3">团队培训/内部会议<small>（8分）</small></td>
+                      <td>a 按目标组织团队培训/内部会议次数（≥4场/月）</td>
+                      <td class="score">3分</td>
+                    </tr>
+                    <tr><td>b 培训/会议有明确主题、议程及纪要记录</td><td class="score">3分</td></tr>
+                    <tr><td>c 会后形成可执行动作并跟踪反馈</td><td class="score">2分</td></tr>
+                    <tr>
+                      <td class="dim" rowspan="4">区域任务拆解合理性及完成度<small>（8分）</small></td>
+                      <td>a 月度/周度任务拆解为清晰里程碑，可验收</td>
+                      <td class="score">2分</td>
+                    </tr>
+                    <tr><td>b 任务时间节点与责任人分配合理</td><td class="score">2分</td></tr>
+                    <tr><td>c 区域成员任务按时完成率达到预期</td><td class="score">2分</td></tr>
+                    <tr><td>d 任务执行中有风险意识，对未完成任务及时复盘并提出优化方案</td><td class="score">2分</td></tr>
+                    <tr>
+                      <td class="dim" rowspan="3">上级交办重点任务<small>（7分）</small></td>
+                      <td>a 任务接收与理解准确，关键要求无遗漏</td>
+                      <td class="score">2分</td>
+                    </tr>
+                    <tr><td>b 按节点推进，过程反馈及时</td><td class="score">2分</td></tr>
+                    <tr><td>c 最终交付质量达标，结果可验收</td><td class="score">3分</td></tr>
+                    <tr>
+                      <td class="dim" rowspan="3">业务模式创新/新渠道开发<small>（7分）</small></td>
+                      <td>a 主动识别并提出创新/新渠道机会</td>
+                      <td class="score">2分</td>
+                    </tr>
+                    <tr><td>b 有试点动作或落地方案</td><td class="score">2分</td></tr>
+                    <tr><td>c 产生可量化成果或可复制经验</td><td class="score">3分</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div style="flex:1 1 440px;min-width:300px;display:flex;flex-direction:column;gap:16px;">
+                <div>
+                  <div style="font-weight:500;font-size:13px;margin-bottom:8px;">营销项目负责人（主观满分15分）</div>
+                  <table class="subj-tbl">
+                    <thead><tr><th>维度</th><th>行为标准</th><th>分值</th></tr></thead>
+                    <tbody>
+                      <tr>
+                        <td class="dim" rowspan="4">配合区域主管完成任务<small>（8分）</small></td>
+                        <td>a 配合主管合理拆解任务</td>
+                        <td class="score">2分</td>
+                      </tr>
+                      <tr><td>b 按时间节点执行并完成任务</td><td class="score">2分</td></tr>
+                      <tr><td>c 积极复盘并提出优化建议</td><td class="score">2分</td></tr>
+                      <tr><td>d 积极配合完成主管提出的其他工作</td><td class="score">2分</td></tr>
+                      <tr>
+                        <td class="dim" rowspan="3">项目统筹与独立交付<small>（7分）</small></td>
+                        <td>a 独立完整输出可执行营销方案</td>
+                        <td class="score">3分</td>
+                      </tr>
+                      <tr><td>b 全局把控项目、独立完成梳理并提出改进方案（运营服务报告/学校整改报告等）</td><td class="score">2分</td></tr>
+                      <tr><td>c 从结果出发积极配合跨部门、跨单位合作</td><td class="score">2分</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div>
+                  <div style="font-weight:500;font-size:13px;margin-bottom:8px;">运营专员（主观满分15分）</div>
+                  <table class="subj-tbl">
+                    <thead><tr><th>维度</th><th>行为标准</th><th>分值</th></tr></thead>
+                    <tbody>
+                      <tr>
+                        <td class="dim" rowspan="4">区域主管配合度<small>（7分）</small></td>
+                        <td>配合主管合理拆解任务</td>
+                        <td class="score">2分</td>
+                      </tr>
+                      <tr><td>按时间节点执行完成任务</td><td class="score">2分</td></tr>
+                      <tr><td>积极复盘并提出优化建议</td><td class="score">1分</td></tr>
+                      <tr><td>积极配合完成主管其他工作</td><td class="score">2分</td></tr>
+                      <tr>
+                        <td class="dim" rowspan="3">响应速度/用户满意度<small>（8分）</small></td>
+                        <td>主管部门满意（零有效投诉=满分）</td>
+                        <td class="score">3分</td>
+                      </tr>
+                      <tr><td>科研师生满意（零有效投诉=满分）</td><td class="score">3分</td></tr>
+                      <tr><td>积极响应各方问题</td><td class="score">2分</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
