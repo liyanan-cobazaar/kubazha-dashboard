@@ -724,7 +724,11 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
           </div>
           <div class="rule-section">
             <h5>四、主观打分项说明</h5>
-            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+            <div class="subj-wrap" style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">
+              <style>
+                .subj-wrap .rule-table td:nth-child(2){text-align:left}
+                .subj-wrap .rule-table td[rowspan]{background:#dbeafe;font-weight:600;border-left:3px solid #1a73e8}
+              </style>
               <div style="flex:1 1 440px;min-width:300px;">
                 <div style="font-weight:500;font-size:13px;margin-bottom:8px;">区域主管（主观满分30分）</div>
                 <table class="rule-table">
@@ -794,19 +798,19 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
                       <tbody>
                         <tr>
                           <td rowspan="4">区域主管配合度<small>（7分）</small></td>
-                          <td>配合主管合理拆解任务</td>
+                          <td>a 配合主管合理拆解任务</td>
                           <td>2分</td>
                         </tr>
-                        <tr><td>按时间节点执行完成任务</td><td>2分</td></tr>
-                        <tr><td>积极复盘并提出优化建议</td><td>1分</td></tr>
-                        <tr><td>积极配合完成主管其他工作</td><td>2分</td></tr>
+                        <tr><td>b 按时间节点执行完成任务</td><td>2分</td></tr>
+                        <tr><td>c 积极复盘并提出优化建议</td><td>1分</td></tr>
+                        <tr><td>d 积极配合完成主管其他工作</td><td>2分</td></tr>
                         <tr>
                           <td rowspan="3">响应速度/用户满意度<small>（8分）</small></td>
-                          <td>主管部门满意（零有效投诉=满分）</td>
+                          <td>a 主管部门满意（零有效投诉=满分）</td>
                           <td>3分</td>
                         </tr>
-                        <tr><td>科研师生满意（零有效投诉=满分）</td><td>3分</td></tr>
-                        <tr><td>积极响应各方问题</td><td>2分</td></tr>
+                        <tr><td>b 科研师生满意（零有效投诉=满分）</td><td>3分</td></tr>
+                        <tr><td>c 积极响应各方问题</td><td>2分</td></tr>
                       </tbody>
                     </table>
                   </div>
