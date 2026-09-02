@@ -3557,25 +3557,33 @@ function initUserPool() {
     };
   });
 
-  // 填充学校筛选下拉框（按角色范围）
+  fillUserPoolFilterOptions();
+  renderUpSubTab();
+}
+
+// 填充用户池模块的学校/走访人筛选下拉（含用户池导入数据中出现的学校与负责人，导入后也会刷新）
+function fillUserPoolFilterOptions() {
   var ss = $("upSchoolSelect");
   var vsf = $("visitSchoolFilter");
+  var schoolOpts = {};
+  scopeSchools(SCHOOL_PROFILES).forEach(function(s){ schoolOpts[s.name] = 1; });
+  var poolSchools = {};
+  USER_POOL_CRM.forEach(function(u){ if (u.school && inSchoolScope(u.school)) { schoolOpts[u.school] = 1; poolSchools[u.school] = 1; } });
+  var schoolNames = Object.keys(schoolOpts).sort();
   ss.innerHTML = "<option value='all'>全部学校</option>";
   vsf.innerHTML = "<option value='all'>全部学校</option>";
-  scopeSchools(SCHOOL_PROFILES).forEach(function(s){
-    ss.innerHTML += "<option value='"+s.name+"'>"+s.name+"</option>";
-    vsf.innerHTML += "<option value='"+s.name+"'>"+s.name+"</option>";
+  schoolNames.forEach(function(n){
+    ss.innerHTML += "<option value='"+n+"'>"+n+"</option>";
+    vsf.innerHTML += "<option value='"+n+"'>"+n+"</option>";
   });
-  // 走访人筛选（按范围内的走访记录）
+  // 走访人筛选（按范围内的走访记录，含用户池导入的负责人）
   var vpf = $("visitPersonFilter");
   var vpSet = {};
-  VISIT_RECORDS.forEach(function(v){ if (inSchoolScope(v.school)) vpSet[v.person] = 1; });
+  getVisitRecords().forEach(function(v){ if (v.person && inSchoolScope(v.school)) vpSet[v.person] = 1; });
   vpf.innerHTML = "<option value='all'>全部走访人</option>";
-  Object.keys(vpSet).forEach(function(p){
+  Object.keys(vpSet).sort().forEach(function(p){
     vpf.innerHTML += "<option value='"+p+"'>"+p+"</option>";
   });
-
-  renderUpSubTab();
 }
 
 function renderUpSubTab() {
@@ -3695,11 +3703,39 @@ function renderUpVIP() {
 }
 
 // --- Tab4: 走访记录时间线 ---
+// 走访记录数据源：用户池导入的真实走访（走访内容/走访类型/最近触达 任一非空即生成一条）+ 原演示数据
+function getVisitRecords() {
+  var list = [];
+  USER_POOL_CRM.forEach(function(u){
+    var hasVisit = (u.visitContent && String(u.visitContent).trim())
+      || (u.visitType && String(u.visitType).trim())
+      || (u.lastTouch && String(u.lastTouch).trim());
+    if (!hasVisit) return;
+    list.push({
+      date: String(u.lastTouch || u.addDate || ''),
+      time: '',
+      type: u.visitType || '用户走访',
+      school: u.school,
+      person: u.leader || u.contact || '',
+      users: 0,
+      content: u.visitContent || '',
+      name: u.name || '',
+      fromPool: true
+    });
+  });
+  VISIT_RECORDS.forEach(function(v){
+    var c = {}; for (var k in v) c[k] = v[k];
+    c.fromPool = false;
+    list.push(c);
+  });
+  return list;
+}
+
 function renderUpVisits() {
   var sf = $("visitSchoolFilter").value;
   var pf = $("visitPersonFilter").value;
 
-  var filtered = VISIT_RECORDS.filter(function(v){
+  var filtered = getVisitRecords().filter(function(v){
     if(!inSchoolScope(v.school)) return false;
     if(sf!=="all" && v.school!==sf) return false;
     if(pf!=="all" && v.person!==pf) return false;
@@ -3708,7 +3744,7 @@ function renderUpVisits() {
 
   var tl = $("visitTimeline");
   if(filtered.length === 0) {
-    tl.innerHTML = "<div style='text-align:center;color:#999;padding:40px'>暂无走访记录</div>";
+    tl.innerHTML = "<div style='text-align:center;color:#999;padding:40px'>暂无走访记录（在用户池导入数据中填写「走访内容/走访类型/最近触达」任一项，即可在此生成走访记录）</div>";
     return;
   }
 
@@ -3716,13 +3752,16 @@ function renderUpVisits() {
   filtered.forEach(function(v){
     var item = document.createElement("div");
     item.className = "timeline-item";
+    var badge = v.fromPool
+      ? '<span style="font-size:10px;background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:8px;margin-left:6px">导入</span>'
+      : '<span style="font-size:10px;background:#f1f5f9;color:#64748b;padding:1px 6px;border-radius:8px;margin-left:6px">示例</span>';
     item.innerHTML =
-      '<div class="time">'+v.date+' '+v.time+'</div>' +
+      '<div class="time">'+v.date+(v.time?' '+v.time:'')+badge+'</div>' +
       '<div class="content">' +
         '<strong>'+v.type+'</strong> - '+v.school+
         '<div style="margin-top:6px;display:flex;gap:12px;align-items:flex-start;font-size:10px;flex-wrap:wrap">' +
-          '<span class="visitor">👤 '+v.person+'</span>' +
-          '<span style="color:#22c55e">👥 新增线索: '+v.users+'人</span>' +
+          '<span class="visitor">👤 '+v.person+(v.name?' · '+v.name:'')+'</span>' +
+          (v.fromPool ? '' : '<span style="color:#22c55e">👥 新增线索: '+v.users+'人</span>') +
           (v.content ? '<span style="color:#555;flex:1;min-width:180px">📝 '+v.content+'</span>' : '') +
         '</div>' +
       '</div>';
@@ -4143,6 +4182,7 @@ var MODULE_TEMPLATES = {
     afterAppend: function(items){
       items.forEach(function(u){ USER_POOL_CRM.push(u); });
       saveUserPool();
+      fillUserPoolFilterOptions();
       renderUpSubTab();
     }
   }
