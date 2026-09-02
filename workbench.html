@@ -78,6 +78,10 @@ tr:hover td{background:#f8fafc}
 .score-item{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dashed #eee;font-size:11px}
 .flow-calc{font-size:10px;color:#555;background:#f6f8fb;border-radius:4px;padding:3px 8px;margin:-1px 0 5px;line-height:1.6}
 .flow-calc.flow-sub{padding-left:14px;color:#666}
+.perf-detail-toggle{cursor:pointer;user-select:none}
+.perf-detail-toggle:hover{background:#f0f7ff}
+.detail-arrow{display:inline-block;width:12px;font-size:9px;color:#1a73e8;transition:transform .15s}
+.perf-detail-toggle.open .detail-arrow{transform:rotate(90deg)}
 .score-item > span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px}
 .score-item > span:last-child{flex-shrink:0;text-align:right;color:#666;font-weight:500;min-width:28px}
 .score-item:last-child{border-bottom:none}
@@ -2867,14 +2871,16 @@ function renderPerfCardsHtml(filtered) {
     // 客观分明细 - 显示完成率 + 得分靠右
     objResult.details.forEach(function(d) {
       if(d.flowMain){
-        // 流量增长：透明化两行式展示（第一行 指标名+得分，第二行 计算过程）
-        out += '<div class="score-item">';
-        out += '<span>'+d.name+(d.projCount>1?'（'+d.projCount+'项目）':'')+'</span>';
+        // 透明化指标：默认收起，点击小三角展开计算过程与明细
+        out += '<div class="score-item perf-detail-toggle" onclick="togglePerfDetail(this)">';
+        out += '<span><span class="detail-arrow">▶</span> '+d.name+(d.projCount>1?'（'+d.projCount+'项目）':'')+'</span>';
         out += '<span style="font-weight:600;color:#1a73e8">'+d.score.toFixed(1)+'分</span><span style="color:#999;font-size:10px">/'+d.max+'</span>';
         out += '</div>';
+        out += '<div class="flow-detail-wrap" style="display:none">';
         out += '<div class="flow-calc">'+d.flowMain+'</div>';
         if(d.flowProjects) out += '<div class="flow-calc flow-sub">'+d.flowProjects+'</div>';
         if(d.flowBasis) out += '<div class="flow-calc flow-sub">'+d.flowBasis+'</div>';
+        out += '</div>';
         return;
       }
       var targetStr = d.target ? ' 目标'+d.target : '';
@@ -2982,6 +2988,16 @@ function confirmPerfResult(name, btn) {
   saveConfirmRec(rec);
   alert('已确认 ' + formatMonthLabel(perfMonth) + ' 绩效考核结果。');
 }
+// 绩效指标详情折叠：默认收起，点击小三角展开计算过程与明细
+function togglePerfDetail(el) {
+  var wrap = el.nextElementSibling;
+  if (!wrap || wrap.className.indexOf('flow-detail-wrap') < 0) return;
+  var open = wrap.style.display !== 'none';
+  wrap.style.display = open ? 'none' : 'block';
+  if (open) el.className = el.className.replace(/\s*open/g, '');
+  else el.className += ' open';
+}
+
 function toggleAppealForm(btn) {
   var f = btn.parentNode.nextElementSibling;
   if (f) f.style.display = (f.style.display === 'none' || !f.style.display) ? 'block' : 'none';
