@@ -1575,8 +1575,8 @@ function calcFlowIncrement(p) {
 
 // ===== 流量增长"透明化计算"展示（2026-09 用户确认）：让被考评人直观看到计算用的数据、过程、结果 =====
 // FLOW_SCORE_BASIS 计分口径开关（展示文本与得分由同一变量驱动，保证"看到的计算过程=实际得分过程"）：
-//   "avg" = 各项目完成率算术平均（现行口径）；"sum" = 合计当月÷(合计基期×1.15)（合计口径）
-var FLOW_SCORE_BASIS = "avg";
+//   "avg" = 各项目完成率算术平均（旧口径）；"sum" = 合计当月÷(合计基期×1.15)（现行口径，2026-09-02 用户确认）
+var FLOW_SCORE_BASIS = "sum";
 function _fwan(v){ return (v/10000).toFixed(2)+"万"; }
 function _fpct(r){ return (Math.round(r*1000)/10).toString().replace(/\.0$/,"")+"%"; }
 
@@ -1597,8 +1597,8 @@ function calcFlowDetail(projs, weight) {
   var multi = projs.length > 1;
   var main, projLine = "", basisLine = "";
   if(!multi){
-    // 单项目：当月 112.74万 ｜ 基期 130.57万 ｜ 完成率=112.74万÷(130.57万×1.15)=75%
-    main = "当月 "+_fwan(totActual)+" ｜ 基期 "+_fwan(totBase)+
+    // 单项目：西北工业大学 当月 112.74万 ｜ 基期 130.57万 ｜ 完成率=112.74万÷(130.57万×1.15)=75%
+    main = (rows[0].school ? rows[0].school+" " : "")+"当月 "+_fwan(totActual)+" ｜ 基期 "+_fwan(totBase)+
       (totBase>0 ? " ｜ 完成率="+_fwan(totActual)+"÷("+_fwan(totBase)+"×1.15)="+_fpct(sumRatio) : " ｜ 基期为0，记100%");
   } else {
     main = "当月合计 "+_fwan(totActual)+" ｜ 基期合计 "+_fwan(totBase)+"（"+projs.length+"项目）";
