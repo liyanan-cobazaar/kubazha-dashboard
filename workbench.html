@@ -587,7 +587,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
   <h1>📊 运营管理工作台</h1>
   <div style="display:flex;gap:10px;align-items:center">
     <button id="downloadTplBtn" onclick="downloadTemplate()" title="下载「月度数据」模板（用于总体概况/绩效评估/增量分析，同一份数据只需导入一次）" style="padding:6px 16px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='#fff'">📄 月度模板</button>
-    <button id="importBtn" onclick="document.getElementById('importFileInput').click()" style="padding:6px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#1557b0'" onmouseout="this.style.background='#1a73e8'">📥 导入新增数据</button>
+    <button id="importBtn" onclick="document.getElementById('importFileInput').click()" title="仅导入「月度运营数据」（用于概况/绩效/增量），不是用户池/营销/校园行导入" style="padding:6px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#1557b0'" onmouseout="this.style.background='#1a73e8'">📥 导入月度数据</button>
     <div class="user-badge" id="userBadge"></div>
     <button id="syncPushBtn" onclick="syncCurrentModule('push')" title="把本机刚导入/编辑的数据立即推送到云端，让其他人也能看到" style="padding:6px 12px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;display:none" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='#fff'">☁ 立即同步</button>
     <button id="syncPullBtn" onclick="syncCurrentModule('pull')" title="从云端拉取最新数据（其他人已同步的内容）" style="padding:6px 12px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;display:none" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='#fff'">⬇ 从云端刷新</button>
@@ -5789,6 +5789,20 @@ function handleImportFile(input) {
         var hidx = detectHeaderRow(rows);
         if (hidx < 0) { skipped.push(sheetName + '（未找到表头）'); return; }
         var headers = rows[hidx];
+        // === 防误触：若拿其他模块模板来走月度导入，提前给出明确引导 ===
+        var headerStr = headers.map(function(h){ return String(h||'').trim().toLowerCase().replace(/\s/g,''); }).join('|');
+        if (/下单金额\(元\)|走访类型|走访内容|最近触达/.test(headerStr)) {
+          alert('检测到你上传的是「用户池CRM」模板，这里只能导入月度运营数据。\n\n请切换到左侧「用户池管理」模块，再点该模块里的「导入」按钮。');
+          return;
+        }
+        if (/活动主题|预算\(元\)|实际花费\(元\)|活动负责人|活动状态/.test(headerStr)) {
+          alert('检测到你上传的是「营销活动管理」模板，这里只能导入月度运营数据。\n\n请切换到左侧「营销活动管理」模块，再点该模块里的「导入」按钮。');
+          return;
+        }
+        if (/活动模式|触达人数|7日下单人数|7日下单金额/.test(headerStr)) {
+          alert('检测到你上传的是「校园行管理」模板，这里只能导入月度运营数据。\n\n请切换到左侧「校园行管理」模块，再点该模块里的「导入」按钮。');
+          return;
+        }
         var colMap = matchColumn(headers);
         colMap.role = detectRoleColumn(rows, hidx, colMap);
         var missing = [];
