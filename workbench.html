@@ -76,6 +76,8 @@ tr:hover td{background:#f8fafc}
 .score-card{border:1px solid #e2e8f0;border-radius:8px;padding:10px}
 .score-card h4{font-size:12px;margin-bottom:6px;color:#444}
 .score-item{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px dashed #eee;font-size:11px}
+.flow-calc{font-size:10px;color:#555;background:#f6f8fb;border-radius:4px;padding:3px 8px;margin:-1px 0 5px;line-height:1.6}
+.flow-calc.flow-sub{padding-left:14px;color:#666}
 .score-item > span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px}
 .score-item > span:last-child{flex-shrink:0;text-align:right;color:#666;font-weight:500;min-width:28px}
 .score-item:last-child{border-bottom:none}
@@ -1571,6 +1573,60 @@ function calcFlowIncrement(p) {
   return actual - base;                // 负数即下降
 }
 
+// ===== 流量增长"透明化计算"展示（2026-09 用户确认）：让被考评人直观看到计算用的数据、过程、结果 =====
+// FLOW_SCORE_BASIS 计分口径开关（展示文本与得分由同一变量驱动，保证"看到的计算过程=实际得分过程"）：
+//   "avg" = 各项目完成率算术平均（现行口径）；"sum" = 合计当月÷(合计基期×1.15)（合计口径）
+var FLOW_SCORE_BASIS = "avg";
+function _fwan(v){ return (v/10000).toFixed(2)+"万"; }
+function _fpct(r){ return (Math.round(r*1000)/10).toString().replace(/\.0$/,"")+"%"; }
+
+// 生成流量增长的得分与透明化展示数据；weight=该项权重(营销30/运营25)
+function calcFlowDetail(projs, weight) {
+  var rows = projs.map(function(pr){
+    var base = getBaseFlow(pr);
+    var actual = pr.actual_order || 0;
+    var ratio = base <= 0 ? 1.0 : (actual > 0 ? actual / (base * 1.15) : 0);
+    return {school: pr.school || "", actual: actual, base: base, ratio: ratio};
+  });
+  var totActual = rows.reduce(function(a,r){ return a + r.actual; }, 0);
+  var totBase = rows.reduce(function(a,r){ return a + r.base; }, 0);
+  var avgRatio = rows.reduce(function(a,r){ return a + r.ratio; }, 0) / rows.length;
+  var sumRatio = totBase > 0 ? totActual / (totBase * 1.15) : 1.0;
+  var useRatio = (FLOW_SCORE_BASIS === "sum") ? sumRatio : avgRatio;
+  var res = calcItemScoreByRatio(useRatio, weight);
+  var multi = projs.length > 1;
+  var main, projLine = "", basisLine = "";
+  if(!multi){
+    // 单项目：当月 112.74万 ｜ 基期 130.57万 ｜ 完成率=112.74万÷(130.57万×1.15)=75%
+    main = "当月 "+_fwan(totActual)+" ｜ 基期 "+_fwan(totBase)+
+      (totBase>0 ? " ｜ 完成率="+_fwan(totActual)+"÷("+_fwan(totBase)+"×1.15)="+_fpct(sumRatio) : " ｜ 基期为0，记100%");
+  } else {
+    main = "当月合计 "+_fwan(totActual)+" ｜ 基期合计 "+_fwan(totBase)+"（"+projs.length+"项目）";
+    // 各项目明细：学校 当月/基期→完成率
+    projLine = "各项目（当月÷(基期×1.15)）：" + rows.map(function(r){
+      return r.base<=0 ? r.school+" 基期0记100%" : r.school+" "+_fwan(r.actual)+"÷("+_fwan(r.base)+"×1.15)="+_fpct(r.ratio);
+    }).join("；");
+    if(FLOW_SCORE_BASIS === "avg"){
+      basisLine = "计分口径：各项目完成率平均 ("+rows.map(function(r){ return _fpct(r.ratio); }).join("+")+")÷"+projs.length+"="+_fpct(avgRatio);
+    } else {
+      basisLine = "计分口径：合计 "+_fwan(totActual)+"÷("+_fwan(totBase)+"×1.15)="+_fpct(sumRatio);
+    }
+  }
+  return {
+    score: res.score,
+    detail: {name:"流量增长", projCount: projs.length, ratio: res.ratio, score: res.score, max: weight,
+      flowMain: main, flowProjects: projLine, flowBasis: basisLine}
+  };
+}
+
+// 剔除"当月兼任区域主管"的运营专员记录（如周滨既是区域主管又有运营专员记录）：
+// 仅在展示层过滤（打分卡片/排行/图表不出现其运营专员身份），数据本身不删，区域汇总与主管评分不受影响
+function removeDualRoleStaff(list) {
+  var leaderNames = {};
+  list.forEach(function(p){ if(p.role === "区域主管") leaderNames[p.name] = true; });
+  return list.filter(function(p){ return !(p.role === "运营专员" && leaderNames[p.name]); });
+}
+
 // 将 md.people(按项目拆分的记录) 聚合成"按人"的记录：
 // - 运营专员 / 项目营销负责人：同名(同岗位)合并，campus/train/touch/user_pool/actual_order 求和；_projects 保留各项目用于结算率/流量增长平均
 // - 区域主管：按"人名"去重，只保留一条（整区域汇总评估）
@@ -1649,9 +1705,11 @@ function calcObjectiveScore(p, role) {
     var flowRatioR = regionBaseFlow > 0 ? regionActualFlow / (regionBaseFlow * 1.15) : 1;
     var flowResult = calcItemScoreByRatio(flowRatioR, 30);
     s += flowResult.score;
-    details.push({name:"①区域流量", val:(regionActualFlow/10000).toFixed(1)+"万",
+    var rFlowMain = "区域当月 "+_fwan(regionActualFlow)+" ｜ 基期 "+_fwan(regionBaseFlow)+
+      (regionBaseFlow>0 ? " ｜ 完成率="+_fwan(regionActualFlow)+"÷("+_fwan(regionBaseFlow)+"×1.15)="+_fpct(flowRatioR) : " ｜ 基期为0，记100%");
+    details.push({name:"①区域流量", projCount:0,
       ratio:flowResult.ratio, score:flowResult.score, max:30,
-      target:"基期"+(regionBaseFlow/10000).toFixed(1)+"万×1.15"});
+      flowMain:rFlowMain, flowProjects:"", flowBasis:""});
 
     // ---- ② 区域重点项目结算率(15分): 完成率=各项目结算率均值/85%（数值型结算率计入,含0;"未对接财务"等文本不计入） ----
     var srNums = regionPeople.map(function(pp){ return parseFloat(pp.settle_rate); }).filter(function(v){ return !isNaN(v); });
@@ -1713,20 +1771,10 @@ function calcObjectiveScore(p, role) {
     // 个人实际值 = 名下各项目求和；目标固定(不随项目数翻倍)
     var projsM = p._projects && p._projects.length ? p._projects : [p];
 
-    // ---- 流量增长(30分): 各项目(实际订单/(基期×115%))的算术平均；基期为0的项目视为达标100% ----
-    var flowRatiosM = projsM.map(function(pr){
-      var base = getBaseFlow(pr);
-      if(base <= 0) return 1.0;
-      var tgt = base * 1.15;
-      return pr.actual_order > 0 ? (pr.actual_order / tgt) : 0;
-    });
-    var avgFlowM = flowRatiosM.reduce(function(a,b){return a+b;},0) / flowRatiosM.length;
-    var fResultM = calcItemScoreByRatio(avgFlowM, 30);
-    var pActualM = p.actual_order || 0;
-    var pBaseM = projsM.reduce(function(a,pr){return a+getBaseFlow(pr);},0);
-    s += fResultM.score;
-    details.push({name:"流量增长", val:((pActualM-pBaseM)/10000).toFixed(2)+"万("+projsM.length+"项目均)",
-      ratio:fResultM.ratio, score:fResultM.score, max:30, target:"各项目基期×115%平均"});
+    // ---- 流量增长(30分): 口径见 FLOW_SCORE_BASIS（calcFlowDetail 内展示与得分同源）；基期为0的项目视为达标100% ----
+    var fDetailM = calcFlowDetail(projsM, 30);
+    s += fDetailM.score;
+    details.push(fDetailM.detail);
 
     // ---- 结算率(15分): 各项目 settle_rate>0 的算术平均；全为0记为"无结算数据"给0分 ----
     var srValsM = projsM.map(function(pr){return parseFloat(pr.settle_rate)||0;}).filter(function(v){return v>0;});
@@ -1786,20 +1834,10 @@ function calcObjectiveScore(p, role) {
     s += tcResult.score;
     details.push({name:"触达", val:p.touch||0, ratio:tcResult.ratio, score:tcResult.score, max:7, target:"100次"});
 
-    // ---- 流量增长(25分): 各项目(实际订单/(基期×115%))的算术平均；基期为0的项目视为达标100% ----
-    var sFlowRatios = projsS.map(function(pr){
-      var base = getBaseFlow(pr);
-      if(base <= 0) return 1.0;
-      var tgt = base * 1.15;
-      return pr.actual_order > 0 ? (pr.actual_order / tgt) : 0;
-    });
-    var avgSFlowRatio = sFlowRatios.reduce(function(a,b){return a+b;},0) / sFlowRatios.length;
-    var flResult = calcItemScoreByRatio(avgSFlowRatio, 25);
-    var staffActual = p.actual_order || 0;
-    var staffBase = projsS.reduce(function(a,pr){return a+getBaseFlow(pr);},0);
-    s += flResult.score;
-    details.push({name:"流量增长", val:((staffActual-staffBase)/10000).toFixed(2)+"万("+projsS.length+"项目均)",
-      ratio:flResult.ratio, score:flResult.score, max:25, target:"各项目基期×115%平均"});
+    // ---- 流量增长(25分): 口径见 FLOW_SCORE_BASIS（calcFlowDetail 内展示与得分同源）；基期为0的项目视为达标100% ----
+    var fDetailS = calcFlowDetail(projsS, 25);
+    s += fDetailS.score;
+    details.push(fDetailS.detail);
 
     // ---- 结算率(10分): 各项目 settle_rate>0 的算术平均；全为0记为"无结算数据"给0分 ----
     var sSrVals = projsS.map(function(pr){return parseFloat(pr.settle_rate)||0;}).filter(function(v){return v>0;});
@@ -2712,7 +2750,7 @@ function updatePerformanceContent() {
     return;
   }
 
-  var allPeople = scopePersonLevel(getPersonLevelPeople(md));
+  var allPeople = removeDualRoleStaff(scopePersonLevel(getPersonLevelPeople(md)));
   var filtered = allPeople;
   if(currentViewMode === "leaders") filtered = allPeople.filter(function(p){ return p.role === "区域主管"; });
   else if(currentViewMode === "managers") filtered = allPeople.filter(function(p){ return p.role === "项目营销负责人"; });
@@ -2732,6 +2770,17 @@ function updatePerformanceContent() {
 
     // 客观分明细 - 显示完成率 + 得分靠右
     objResult.details.forEach(function(d) {
+      if(d.flowMain){
+        // 流量增长：透明化两行式展示（第一行 指标名+得分，第二行 计算过程）
+        out += '<div class="score-item">';
+        out += '<span>'+d.name+(d.projCount>1?'（'+d.projCount+'项目）':'')+'</span>';
+        out += '<span style="font-weight:600;color:#1a73e8">'+d.score.toFixed(1)+'分</span><span style="color:#999;font-size:10px">/'+d.max+'</span>';
+        out += '</div>';
+        out += '<div class="flow-calc">'+d.flowMain+'</div>';
+        if(d.flowProjects) out += '<div class="flow-calc flow-sub">'+d.flowProjects+'</div>';
+        if(d.flowBasis) out += '<div class="flow-calc flow-sub">'+d.flowBasis+'</div>';
+        return;
+      }
       var targetStr = d.target ? ' 目标'+d.target : '';
       var ratioStr = d.ratio ? d.ratio+'%' : '-';
       out += '<div class="score-item">';
@@ -2840,7 +2889,7 @@ function calcSubjectiveTotal(person, role) {
 
 // 绩效排名视图（排行榜）
 function renderRankingView(md) {
-  var people = scopePersonLevel(getPersonLevelPeople(md));
+  var people = removeDualRoleStaff(scopePersonLevel(getPersonLevelPeople(md)));
 
   var scored = people.map(function(p) {
     var objResult = calcObjectiveScore(p, p.role);
@@ -2897,7 +2946,7 @@ function renderRankingView(md) {
 
 // 绩效评估图表视图
 function renderEvalChartView(md) {
-  var people = scopePersonLevel(getPersonLevelPeople(md));
+  var people = removeDualRoleStaff(scopePersonLevel(getPersonLevelPeople(md)));
 
   var scored = people.map(function(p) {
     var objResult = calcObjectiveScore(p, p.role);
