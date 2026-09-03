@@ -1720,6 +1720,73 @@ function getBaseFlow(p) {
   return 0;
 }
 
+/* ===== 新旧系统并行项目组（2026-09-03 用户确认）=====
+同一学校带「（新）」与「（老/旧）」标注的多条记录 = 同一项目处于新旧系统并行期，
+负责人实际负责的是一个项目（如：中国医科大学（新）+ 中国医科大学（老）→ 负责人王桐桐只算一个项目）：
+- 当月流量 = 组内各条 actual_order 之和（新+老 合计口径）
+- 基期流量 = 只取「老/旧」标注记录的基期（getBaseFlow：同期优先、为0回落上月）；「新」记录不计基期
+  （并行期目标=新旧合计不流失订单，故对比旧系统同期流量即可）
+- 完成率 = 并行当月 ÷ (并行基期 × 1.15)，保底30%/封顶120% 规则不变
+- 展示合并为一行「XX（新旧并行）」，明细保留新/老各自当月与基期说明
+适用于按人/按区域集合内 school 去掉标注后相同的记录组（2026-05 起自动命中，无需逐月手改） */
+function splitParallelSchool(school) {
+  var s = school || "";
+  var m = /^(.*?)（新）$/.exec(s); if (m) return { base: m[1], tag: "新" };
+  m = /^(.*?)（(老|旧)）$/.exec(s); if (m) return { base: m[1], tag: "老" };
+  return null;
+}
+function mergeParallelProjects(list) {
+  if (!list || list.length < 2) return list;
+  var groups = {}, order = [];
+  list.forEach(function (pr, i) {
+    var sp = splitParallelSchool(pr.school);
+    var key = sp ? sp.base : "__" + i;
+    if (!groups[key]) {
+      groups[key] = { base: sp ? sp.base : null, recs: [], hasNew: false, hasOld: false };
+      order.push(key);
+    }
+    var g = groups[key];
+    g.recs.push(pr);
+    if (sp) { if (sp.tag === "新") g.hasNew = true; else g.hasOld = true; }
+  });
+  var out = [];
+  order.forEach(function (k) {
+    var g = groups[k];
+    if (!(g.hasNew && g.hasOld)) { g.recs.forEach(function (r) { out.push(r); }); return; }
+    var first = g.recs[0];
+    var merged = {
+      name: first.name,
+      school: g.base + "（新旧并行）",
+      role: first.role, leader: first.leader, region: first.region,
+      actual_order: 0, prev_flow: 0, base_flow_yoy: 0,
+      _parallelParts: g.recs
+    };
+    g.recs.forEach(function (r) {
+      merged.actual_order += (r.actual_order || 0);
+      var sp = splitParallelSchool(r.school);
+      if (sp && sp.tag !== "新") merged.base_flow_yoy += getBaseFlow(r); // 基期只取老系统
+    });
+    out.push(merged);
+  });
+  return out;
+}
+// 并行组明细摘要（当月新/老拆分、老系统基期），供透明化展示
+function parallelPartText(parts) {
+  var newA = 0, oldA = 0, oldBase = 0;
+  (parts || []).forEach(function (r) {
+    var sp = splitParallelSchool(r.school);
+    var a = r.actual_order || 0;
+    if (sp && sp.tag === "新") newA += a; else { oldA += a; oldBase += getBaseFlow(r); }
+  });
+  return { newA: newA, oldA: oldA, oldBase: oldBase, total: newA + oldA };
+}
+// 并行组合并行的短备注文案（追加在明细行/合计后）
+function parallelNote(parts) {
+  if (!parts || !parts.length) return "";
+  var pt = parallelPartText(parts);
+  return "（当月＝新系统" + _fwan(pt.newA) + "＋老系统" + _fwan(pt.oldA) + "）";
+}
+
 // 计算增量: 实际订单金额 - 基期流量
 // 基期 = 同期流量(base_flow_yoy)；为0或缺失时用上月流量(prev_flow)；增量为负(下降)则保留负数
 function calcFlowIncrement(p) {
@@ -1737,11 +1804,13 @@ function _fpct(r){ return (Math.round(r*1000)/10).toString().replace(/\.0$/,"")+
 
 // 生成流量增长的得分与透明化展示数据；weight=该项权重(营销30/运营25)
 function calcFlowDetail(projs, weight) {
+  // 2026-09-03：新旧系统并行项目先合并（新+老当月合计、基期只取老系统），再按项目口径计分
+  projs = mergeParallelProjects(projs);
   var rows = projs.map(function(pr){
     var base = getBaseFlow(pr);
     var actual = pr.actual_order || 0;
     var ratio = base <= 0 ? 1.0 : (actual > 0 ? actual / (base * 1.15) : 0);
-    return {school: pr.school || "", actual: actual, base: base, ratio: ratio};
+    return {school: pr.school || "", actual: actual, base: base, ratio: ratio, parts: pr._parallelParts || null};
   });
   var totActual = rows.reduce(function(a,r){ return a + r.actual; }, 0);
   var totBase = rows.reduce(function(a,r){ return a + r.base; }, 0);
@@ -1753,13 +1822,17 @@ function calcFlowDetail(projs, weight) {
   var main, projLine = "", basisLine = "";
   if(!multi){
     // 单项目：西北工业大学 当月 112.74万 ｜ 基期 130.57万 ｜ 完成率=112.74万÷(130.57万×1.15)=75%
-    main = (rows[0].school ? rows[0].school+" " : "")+"当月 "+_fwan(totActual)+" ｜ 基期 "+_fwan(totBase)+
+    // 并行项目（新+老）：中国医科大学（新旧并行） 当月 406.93万（＝新245.60万＋老161.33万） ｜ 基期 341.09万（老系统同期，新系统不计）
+    var r0 = rows[0];
+    var baseNote = r0.parts ? "（老系统同期" + _fwan(totBase) + "，新系统不计）" : "";
+    main = (r0.school ? r0.school + " " : "") + "当月 " + _fwan(totActual) + (r0.parts ? "（＝新系统" + _fwan(parallelPartText(r0.parts).newA) + "＋老系统" + _fwan(parallelPartText(r0.parts).oldA) + "）" : "") +
+      " ｜ 基期 " + _fwan(totBase) + baseNote +
       (totBase>0 ? " ｜ 完成率="+_fwan(totActual)+"÷("+_fwan(totBase)+"×1.15)="+_fpct(sumRatio) : " ｜ 基期为0，记100%");
   } else {
     main = "当月合计 "+_fwan(totActual)+" ｜ 基期合计 "+_fwan(totBase)+"（"+projs.length+"项目）";
     // 各项目明细：学校 当月/基期→完成率
     projLine = "各项目（当月÷(基期×1.15)）：" + rows.map(function(r){
-      return r.base<=0 ? r.school+" 基期0记100%" : r.school+" "+_fwan(r.actual)+"÷("+_fwan(r.base)+"×1.15)="+_fpct(r.ratio);
+      return r.base<=0 ? r.school+" 基期0记100%" : r.school+" "+_fwan(r.actual)+"÷("+_fwan(r.base)+"×1.15)="+_fpct(r.ratio)+parallelNote(r.parts);
     }).join("；");
     if(FLOW_SCORE_BASIS === "avg"){
       basisLine = "计分口径：各项目完成率平均 ("+rows.map(function(r){ return _fpct(r.ratio); }).join("+")+")÷"+projs.length+"="+_fpct(avgRatio);
@@ -1855,8 +1928,10 @@ function calcObjectiveScore(p, role) {
     });
 
     // ---- ① 区域整体流量同比增长率(30分): 完成率=区域总流量/(基期×1.15)；基期=区域内各项目基期之和(每项目:同期流量>0用同期,同期为0/缺失用上月流量——逐项目回退) ----
-    var regionActualFlow = regionPeople.reduce(function(a,pp){ return a + (pp.actual_order||0); }, 0);
-    var regionBaseFlow = regionPeople.reduce(function(a,pp){ return a + getBaseFlow(pp); }, 0);
+    // 2026-09-03 用户确认：区域内新旧并行项目（同校带（新）+（老/旧）标注）先合并成一项——当月=新+老合计、基期只取老系统（防并行期基期被新系统无同期回落的上月流量抬高）；仅影响①流量行，②~⑥仍按原项目列表
+    var flowPeople = mergeParallelProjects(regionPeople);
+    var regionActualFlow = flowPeople.reduce(function(a,pp){ return a + (pp.actual_order||0); }, 0);
+    var regionBaseFlow = flowPeople.reduce(function(a,pp){ return a + getBaseFlow(pp); }, 0);
     var flowRatioR = regionBaseFlow > 0 ? regionActualFlow / (regionBaseFlow * 1.15) : 1;
     var flowResult = calcItemScoreByRatio(flowRatioR, 30);
     s += flowResult.score;
@@ -1864,11 +1939,13 @@ function calcObjectiveScore(p, role) {
       (regionBaseFlow>0 ? " ｜ 完成率="+_fwan(regionActualFlow)+"÷("+_fwan(regionBaseFlow)+"×1.15)="+_fpct(flowRatioR) : " ｜ 基期为0，记100%");
     if(flowRatioR < 0.3) rFlowMain += "（保底30%）";
     else if(flowRatioR > 1.2) rFlowMain += "（封顶120%）";
-    // 各项目明细行：学校 当月(基期)，与合计口径透明化展示一致
-    var rFlowProjLine = regionPeople.map(function(pp){
-      return (pp.school||pp.name)+" "+_fwan(pp.actual_order||0)+"（基期"+_fwan(getBaseFlow(pp))+"）";
+    // 各项目明细行：学校 当月(基期)，与合计口径透明化展示一致；并行组合并显示并附新/老拆分备注
+    var rFlowProjLine = flowPeople.map(function(pp){
+      var seg = (pp.school||pp.name)+" "+_fwan(pp.actual_order||0)+"（基期"+_fwan(getBaseFlow(pp))+"）";
+      if (pp._parallelParts) seg += parallelNote(pp._parallelParts);
+      return seg;
     }).join("、");
-    details.push({name:"①区域流量", projCount:regionPeople.length,
+    details.push({name:"①区域流量", projCount:flowPeople.length,
       ratio:flowResult.ratio, score:flowResult.score, max:30,
       flowMain:rFlowMain, flowProjects:"各项目："+rFlowProjLine, flowBasis:""});
 
