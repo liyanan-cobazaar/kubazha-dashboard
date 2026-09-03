@@ -197,28 +197,32 @@ tr:hover td{background:#f8fafc}
 .timeline-item .content{background:#f8fafc;padding:10px 12px;border-radius:8px;font-size:12px}
 .timeline-item .visitor{font-size:10px;color:#1a73e8;margin-top:4px}
 
-/* 走访记录：按走访人分组 + 客户卡片 + 横向展开历史回访 */
-.vp-person{margin-bottom:22px}
-.vp-person-head{font-size:14px;font-weight:700;color:#1f2937;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#eff6ff,#ffffff);border-left:3px solid #1a73e8;border-radius:0 8px 8px 0}
-.vp-person-meta{font-size:11px;font-weight:400;color:#64748b;margin-left:8px}
-.vp-cust-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;padding-left:10px}
-.vp-cust{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;transition:box-shadow .2s}
-.vp-cust:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.vp-cust-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* 走访记录：竖向时间轴，按天分组，卡内竖向历史走访时间轴 */
+.vp-summary{font-size:11px;color:#64748b;margin-bottom:10px}
+.vp-day{font-size:13px;font-weight:700;color:#1f2937;margin:16px 0 8px;display:flex;align-items:center;gap:8px}
+.vp-day-meta{font-size:11px;font-weight:400;color:#64748b}
+.vp-timeline{position:relative;margin-left:7px;padding-left:22px;border-left:2px solid #bfdbfe}
+.vp-card{position:relative;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-bottom:10px;transition:box-shadow .2s}
+.vp-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.vp-card:before{content:'';position:absolute;left:-28px;top:12px;width:12px;height:12px;border-radius:50%;background:#1a73e8;border:2.5px solid #eff6ff}
+.vp-card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .vp-cust-name{font-weight:700;font-size:13px;color:#1f2937}
 .vp-cust-school{font-size:11px;color:#64748b}
+.vp-type-tag{font-size:10px;background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 6px}
 .vp-badge-import{font-size:10px;background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:8px}
 .vp-badge-demo{font-size:10px;background:#f1f5f9;color:#64748b;padding:1px 6px;border-radius:8px}
-.vp-latest{font-size:12px;color:#334155;margin-top:6px;line-height:1.6}
-.vp-latest .vp-latest-date{color:#1a73e8;font-weight:700;margin-right:6px}
+.vp-who{font-size:11px;color:#64748b;margin-left:auto}
+.vp-body{font-size:12px;color:#334155;margin-top:6px;line-height:1.6}
+.vp-body .vp-date{color:#1a73e8;font-weight:700;margin-right:6px}
 .vp-toggle{font-size:11px;color:#1a73e8;cursor:pointer;margin-top:6px;user-select:none}
 .vp-toggle:hover{text-decoration:underline}
-.vp-hist{display:none;margin-top:8px}
-.vp-hist.open{display:flex;gap:8px;overflow-x:auto;padding:8px;background:#f8fafc;border-radius:8px;align-items:stretch}
-.vp-chip{flex:0 0 auto;min-width:150px;max-width:230px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;font-size:11px}
-.vp-chip-date{display:block;color:#1a73e8;font-weight:700}
-.vp-chip-type{display:inline-block;background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 6px;margin:3px 0;font-size:10px}
-.vp-chip-txt{display:block;color:#555;line-height:1.5;word-break:break-all}
+.vp-hist{display:none}
+.vp-hist.open{display:block;margin-top:8px;padding:10px 10px 2px 20px;background:#f8fafc;border-left:2px solid #a5b4fc;border-radius:8px}
+.vp-hist-item{position:relative;margin-bottom:10px}
+.vp-hist-item:before{content:'';position:absolute;left:-15px;top:5px;width:8px;height:8px;border-radius:50%;background:#6366f1}
+.vp-hist-date{display:block;font-size:12px;color:#4338ca;font-weight:700}
+.vp-hist-type{display:inline-block;background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 6px;margin:3px 0;font-size:10px}
+.vp-hist-txt{display:block;font-size:11px;color:#555;line-height:1.5;word-break:break-all}
 
 /* 营销活动管理样式 */
 .marketing-tab-content{padding-top:10px}
@@ -995,6 +999,9 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
           </select>
           <select id="visitPersonFilter" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px">
             <option value="all">全部走访人</option>
+          </select>
+          <select id="visitMonthFilter" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px">
+            <option value="all">全部月份</option>
           </select>
         </div>
         <div id="visitTimeline" style="position:relative"></div>
@@ -4197,16 +4204,53 @@ function getVisitRecords() {
   return list;
 }
 
+// 天分组组头：YYYY-MM-DD → "08-28 周五"（选中月份时）或完整日期（全部月份时）
+function formatDayHead(d, full) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+  var p = d.split("-");
+  var dt = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+  var wd = ["周日","周一","周二","周三","周四","周五","周六"][dt.getDay()];
+  return (full ? d : p[1]+"-"+p[2]) + " " + wd;
+}
+
+// 月份下拉选项动态重建（选项集合变化才重写，保留当前选择；选择失效回落"全部月份"）
+function refreshVisitMonthOptions(base) {
+  var sel = $("visitMonthFilter");
+  if (!sel) return;
+  var months = {};
+  base.forEach(function(v){
+    var m = /^(\d{4}-\d{2})/.exec(v.date || "");
+    if (m) months[m[1]] = 1;
+  });
+  var keys = Object.keys(months).sort().reverse();
+  var cur = sel.value || "all";
+  var want = '<option value="all">全部月份</option>' + keys.map(function(m){
+    return '<option value="'+m+'">'+m.slice(0,4)+'年'+parseInt(m.slice(5,7),10)+'月</option>';
+  }).join("");
+  if (sel.innerHTML !== want) sel.innerHTML = want;
+  sel.value = (cur === "all" || keys.indexOf(cur) >= 0) ? cur : "all";
+}
+
 function renderUpVisits() {
   var sf = $("visitSchoolFilter").value;
   var pf = $("visitPersonFilter").value;
 
-  var filtered = getVisitRecords().filter(function(v){
+  // 基础集合：学校范围 + 学校/走访人筛选（不过月份——卡内历史时间轴要看该客户全量历史）
+  var base = getVisitRecords().filter(function(v){
     if(!inSchoolScope(v.school)) return false;
     if(sf!=="all" && v.school!==sf) return false;
     if(pf!=="all" && v.person!==pf) return false;
     return true;
-  }).sort(function(a,b){return b.date.localeCompare(a.date);});
+  });
+
+  refreshVisitMonthOptions(base);
+  var mf = $("visitMonthFilter").value;
+
+  // 展示集合 = 基础集合再过月份
+  var filtered = (mf === "all") ? base.slice() : base.filter(function(v){
+    var m = /^(\d{4}-\d{2})/.exec(v.date || "");
+    return !!m && m[1] === mf;
+  });
 
   var tl = $("visitTimeline");
   if(filtered.length === 0) {
@@ -4214,69 +4258,82 @@ function renderUpVisits() {
     return;
   }
 
-  // === 按走访人（运营人员）分组，组内按客户聚合成卡片；多张卡片的客户可横向展开查看全部历史走访 ===
-  var byPerson = {};
+  filtered.sort(function(a,b){return b.date.localeCompare(a.date);});
+
+  // 汇总行
+  var persons = {}, custs = {};
   filtered.forEach(function(v){
-    var p = (v.person && String(v.person).trim()) || '未指定负责人';
-    (byPerson[p] = byPerson[p] || []).push(v);
+    if (v.person) persons[v.person] = 1;
+    custs[(v.name||'')+'|'+(v.school||'')] = 1;
   });
-  var persons = Object.keys(byPerson).sort(function(a,b){
-    return byPerson[b].length - byPerson[a].length; // 走访量多的排前面
+  var label = mf === "all" ? "全部月份" : mf.slice(0,4)+'年'+parseInt(mf.slice(5,7),10)+'月';
+  tl.innerHTML = '<div class="vp-summary">'+esc(label)+' 共 <strong>'+filtered.length+'</strong> 次走访 · '
+    + Object.keys(persons).length+' 位走访人 · '+Object.keys(custs).length+' 位用户（点开卡片可看完整历史走访，不受月份筛选限制）</div>';
+
+  // 客户历史索引：从基础集合按 客户+学校 聚合（含全部月份）
+  var histIdx = {};
+  base.forEach(function(v){
+    var key = (v.name||'')+'|'+(v.school||'');
+    (histIdx[key] = histIdx[key] || []).push(v);
   });
 
-  tl.innerHTML = "";
-  persons.forEach(function(p){
-    var recs = byPerson[p];
-    // 组内按客户（姓名+学校）聚合；filtered 已按日期倒序，每组第一条即该客户最新一次走访
-    var byCust = {}, custKeys = [];
+  // 按天分组（日期倒序）
+  var byDay = {}, dayKeys = [];
+  filtered.forEach(function(v){
+    var d = (v.date || '').slice(0,10) || '未知日期';
+    if (!byDay[d]) { byDay[d] = []; dayKeys.push(d); }
+    byDay[d].push(v);
+  });
+  dayKeys.sort(function(a,b){ return b.localeCompare(a); });
+
+  dayKeys.forEach(function(d){
+    var recs = byDay[d];
+    var head = document.createElement("div");
+    head.className = "vp-day";
+    head.innerHTML = esc(formatDayHead(d, mf === "all")) + '<span class="vp-day-meta">'+recs.length+' 次走访</span>';
+    tl.appendChild(head);
+
+    var line = document.createElement("div");
+    line.className = "vp-timeline";
     recs.forEach(function(v){
-      var key = (v.name||'') + '|' + (v.school||'');
-      if (!byCust[key]) { byCust[key] = []; custKeys.push(key); }
-      byCust[key].push(v);
-    });
-    custKeys.sort(function(a,b){
-      var da = byCust[a][0].date || '', db = byCust[b][0].date || '';
-      return db.localeCompare(da); // 最新走访的客户排前面
-    });
-
-    var custHtml = custKeys.map(function(key){
-      var vs = byCust[key];
-      var latest = vs[0];
-      var badge = latest.fromPool ? '<span class="vp-badge-import">导入</span>' : '<span class="vp-badge-demo">示例</span>';
-      var latestLine = '<div class="vp-latest"><span class="vp-latest-date">'+esc(latest.date + (latest.time ? ' ' + latest.time : ''))+'</span>'
-        + esc(latest.type)
-        + (!latest.fromPool && latest.users ? ' · <span style="color:#22c55e">新增线索 '+latest.users+'人</span>' : '')
-        + (latest.content ? '<br>📝 ' + esc(latest.content) : '')
-        + '</div>';
-      // 历史回访条懒加载：数据存 data-hist（JSON），首次展开才渲染，避免大数据量卡顿
+      var card = document.createElement("div");
+      card.className = "vp-card";
+      var badge = v.fromPool ? '<span class="vp-badge-import">导入</span>' : '<span class="vp-badge-demo">示例</span>';
+      var key = (v.name||'')+'|'+(v.school||'');
+      var hist = histIdx[key] || [v];
+      // 历史时间轴：该客户全部走访从旧到新；多于 1 条才提供展开
       var histPart = '';
-      if (vs.length > 1) {
-        var histData = JSON.stringify(vs.map(function(v){
-          return { d: v.date + (v.time ? ' ' + v.time : ''), t: v.type, c: v.content || '' };
+      if (hist.length > 1) {
+        var histData = JSON.stringify(hist.slice().sort(function(a,b){ return a.date.localeCompare(b.date); }).map(function(h){
+          return { d: h.date + (h.time ? ' ' + h.time : ''), t: h.type, c: h.content || '' };
         }));
-        histPart = '<div class="vp-toggle" onclick="toggleVisitHist(this)">▸ 历史走访 '+vs.length+' 次</div>'
+        histPart = '<div class="vp-toggle" onclick="toggleVisitHist(this)">▸ 历史走访 '+hist.length+' 次</div>'
           + '<div class="vp-hist" data-hist="'+esc(histData)+'"></div>';
       }
-      return '<div class="vp-cust">'
-        + '<div class="vp-cust-head"><span class="vp-cust-name">'+esc(latest.name || '(未填姓名)')+'</span>'
-        + '<span class="vp-cust-school">'+esc(latest.school)+'</span>' + badge + '</div>'
-        + latestLine + histPart
-        + '</div>';
-    }).join('');
-
-    var sec = document.createElement("div");
-    sec.className = "vp-person";
-    sec.innerHTML = '<div class="vp-person-head">👤 '+esc(p)
-      + '<span class="vp-person-meta">'+recs.length+' 次走访 · '+custKeys.length+' 位用户</span></div>'
-      + '<div class="vp-cust-list">'+custHtml+'</div>';
-    tl.appendChild(sec);
+      card.innerHTML = '<div class="vp-card-head">'
+        + '<span class="vp-cust-name">'+esc(v.name || '(未填姓名)')+'</span>'
+        + '<span class="vp-cust-school">'+esc(v.school)+'</span>'
+        + '<span class="vp-type-tag">'+esc(v.type)+'</span>'
+        + badge
+        + '<span class="vp-who">走访人：'+esc(v.person || '未指定')+'</span>'
+        + '</div>'
+        + '<div class="vp-body">'
+        + (v.time ? '<span class="vp-date">'+esc(v.time)+'</span>' : '')
+        + (!v.fromPool && v.users ? '<span style="color:#22c55e">新增线索 '+v.users+'人</span>' : '')
+        + (v.content ? ((v.time || (!v.fromPool && v.users)) ? '<br>' : '') + '📝 ' + esc(v.content) : '')
+        + '</div>'
+        + histPart;
+      line.appendChild(card);
+    });
+    tl.appendChild(line);
   });
 
   $("visitSchoolFilter").onchange = renderUpVisits;
   $("visitPersonFilter").onchange = renderUpVisits;
+  $("visitMonthFilter").onchange = renderUpVisits;
 }
 
-// 展开/收起客户卡片的历史回访（横向滚动条展示，从旧到新排列）
+// 展开/收起卡片的历史走访（竖向小时间轴，从旧到新排列；懒加载，首次展开才渲染）
 function toggleVisitHist(el) {
   var hist = el.nextElementSibling;
   if (!hist || !hist.classList || !hist.classList.contains('vp-hist')) return;
@@ -4284,14 +4341,14 @@ function toggleVisitHist(el) {
   if (open && !hist.innerHTML) {
     var data;
     try { data = JSON.parse(hist.getAttribute('data-hist') || '[]'); } catch (e) { data = []; }
-    // data 按日期倒序存（最新在前），展示时反转：从旧到新，最右侧是最新
-    data.slice().reverse().forEach(function(h){
-      var chip = document.createElement('div');
-      chip.className = 'vp-chip';
-      chip.innerHTML = '<span class="vp-chip-date">'+esc(h.d)+'</span>'
-        + (h.t ? '<span class="vp-chip-type">'+esc(h.t)+'</span>' : '')
-        + (h.c ? '<span class="vp-chip-txt">📝 '+esc(h.c)+'</span>' : '');
-      hist.appendChild(chip);
+    // data 已按日期升序存（从旧到新），直接顺序渲染
+    data.forEach(function(h){
+      var item = document.createElement('div');
+      item.className = 'vp-hist-item';
+      item.innerHTML = '<span class="vp-hist-date">'+esc(h.d)+'</span>'
+        + (h.t ? '<span class="vp-hist-type">'+esc(h.t)+'</span>' : '')
+        + (h.c ? '<span class="vp-hist-txt">📝 '+esc(h.c)+'</span>' : '');
+      hist.appendChild(item);
     });
     if (!data.length) hist.innerHTML = '<div style="font-size:11px;color:#999;padding:6px">暂无历史回访明细</div>';
   }
