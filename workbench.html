@@ -2124,7 +2124,18 @@ function statusDot(cls) { return '<span class="status-dot status-'+cls+'"></span
 /* ===== 三角色登录与权限系统 ===== */
 var CURRENT_USER = null;
 var ACCOUNTS = null;
-var ROLE_LABEL = { admin: '管理员', leader: '区域主管', staff: '运营专员' };
+var ROLE_LABEL = { admin: '管理员', leader: '区域主管', staff: '运营人员' };
+
+// 账号名清洗：未填写/双人拼接/占位等非真实人名不作为登录账号
+function isDirtyName(n) {
+  if (!n) return true;
+  var s = String(n).trim();
+  if (!s) return true;
+  if (s === '未填写') return true;
+  if (/[/、,，]/.test(s)) return true; // 「王春光/亚娟」式双人拼接名
+  if (/占位|待定|未知|_synthetic|系统占位|\(系统\)/.test(s)) return true;
+  return false;
+}
 
 function ensureAccounts() {
   if (ACCOUNTS) return ACCOUNTS;
@@ -2133,12 +2144,21 @@ function ensureAccounts() {
   var months = Object.keys(WORKBENCH_DATA.monthly_data || {});
   months.forEach(function(m) {
     var md = WORKBENCH_DATA.monthly_data[m];
-    Object.keys(md.regions || {}).forEach(function(k) { if (k !== '合计') lset[k] = 1; });
-    (md.people || []).forEach(function(p) { if (p.name) sset[p.name] = 1; });
+    Object.keys(md.regions || {}).forEach(function(k) { if (k !== '合计' && !isDirtyName(k)) lset[k] = 1; });
+    (md.people || []).forEach(function(p) {
+      if (!p.name) return;
+      var r = (p.role || '').trim();
+      // 运营人员账号 = 运营专员 / 项目营销负责人（role 空缺按运营人员计，防漏）
+      if (r === '运营专员' || r === '项目营销负责人' || r === '') sset[p.name] = 1;
+    });
   });
   // 营销活动 leader 可能带"驻场运营"等前缀，不作为独立账号（避免冗余），由名称模糊匹配覆盖
   ACCOUNTS.leader = Object.keys(lset).sort();
-  ACCOUNTS.staff = Object.keys(sset).sort();
+  ACCOUNTS.staff = Object.keys(sset).filter(function(n) {
+    if (isDirtyName(n)) return false; // 剔除「未填写」「王春光/亚娟」等
+    if (lset[n]) return false;        // 已是区域主管的人不再出现在运营人员账号里
+    return true;
+  }).sort();
   return ACCOUNTS;
 }
 
@@ -8495,7 +8515,7 @@ function initTaskDispatch() {
       <select id="loginRole" onchange="renderLoginAccounts()">
         <option value="admin">管理员</option>
         <option value="leader">区域主管</option>
-        <option value="staff">运营专员</option>
+        <option value="staff">运营人员</option>
       </select>
     </div>
     <div class="login-field">
