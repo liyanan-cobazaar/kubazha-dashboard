@@ -197,6 +197,29 @@ tr:hover td{background:#f8fafc}
 .timeline-item .content{background:#f8fafc;padding:10px 12px;border-radius:8px;font-size:12px}
 .timeline-item .visitor{font-size:10px;color:#1a73e8;margin-top:4px}
 
+/* 走访记录：按走访人分组 + 客户卡片 + 横向展开历史回访 */
+.vp-person{margin-bottom:22px}
+.vp-person-head{font-size:14px;font-weight:700;color:#1f2937;margin-bottom:10px;padding:8px 12px;background:linear-gradient(90deg,#eff6ff,#ffffff);border-left:3px solid #1a73e8;border-radius:0 8px 8px 0}
+.vp-person-meta{font-size:11px;font-weight:400;color:#64748b;margin-left:8px}
+.vp-cust-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;padding-left:10px}
+.vp-cust{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;transition:box-shadow .2s}
+.vp-cust:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.vp-cust-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.vp-cust-name{font-weight:700;font-size:13px;color:#1f2937}
+.vp-cust-school{font-size:11px;color:#64748b}
+.vp-badge-import{font-size:10px;background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:8px}
+.vp-badge-demo{font-size:10px;background:#f1f5f9;color:#64748b;padding:1px 6px;border-radius:8px}
+.vp-latest{font-size:12px;color:#334155;margin-top:6px;line-height:1.6}
+.vp-latest .vp-latest-date{color:#1a73e8;font-weight:700;margin-right:6px}
+.vp-toggle{font-size:11px;color:#1a73e8;cursor:pointer;margin-top:6px;user-select:none}
+.vp-toggle:hover{text-decoration:underline}
+.vp-hist{display:none;margin-top:8px}
+.vp-hist.open{display:flex;gap:8px;overflow-x:auto;padding:8px;background:#f8fafc;border-radius:8px;align-items:stretch}
+.vp-chip{flex:0 0 auto;min-width:150px;max-width:230px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:6px 8px;font-size:11px}
+.vp-chip-date{display:block;color:#1a73e8;font-weight:700}
+.vp-chip-type{display:inline-block;background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 6px;margin:3px 0;font-size:10px}
+.vp-chip-txt{display:block;color:#555;line-height:1.5;word-break:break-all}
+
 /* 营销活动管理样式 */
 .marketing-tab-content{padding-top:10px}
 .mkt-card{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px;margin-bottom:10px;transition:all .2s}
@@ -861,6 +884,47 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
               <strong>确认与申诉效力：</strong>逾期未确认且未提出申诉的，视为对当月考核结果无异议。申诉期间当月考核结果暂按原结果执行；裁决后如需调整，差额随最近一次工资发放补足或核减。确认记录（姓名、时间、当月考核版本）由系统自动留存。
             </div>
           </div>
+          <div class="rule-section">
+            <h5>六、用户池与触达口径</h5>
+            <div class="rule-note">
+              <strong>1. 用户池建档：</strong>以<strong>采购人</strong>为最小单元建档，信息链：学校 → 学院 → 实验室/课题组 → 采购人。同一采购人服务多个课题组/实验室的，多个课题组填在同一格（顿号分隔），只建一个档案，不重复建档。
+            </div>
+            <table class="rule-table">
+              <thead><tr><th>建档必填项</th><th>填写要求</th></tr></thead>
+              <tbody>
+                <tr><td>姓名</td><td>采购人真实姓名</td></tr>
+                <tr><td>学校 / 学院 / 实验室/课题组</td><td>完整填写；多个课题组填同一格，顿号分隔</td></tr>
+                <tr><td>联系方式</td><td>手机 / 微信 / 邮箱<strong>至少填一项</strong></td></tr>
+                <tr><td>采购用户</td><td>与表格导入时的「采购人」对应</td></tr>
+                <tr><td>用户角色</td><td>PI/课题组负责人 / 采购老师 / 实验员 / 采购秘书 / 研究生 / 其他</td></tr>
+                <tr><td>新增日期</td><td>年-月-日（如 2026-08-20）</td></tr>
+                <tr><td>负责人</td><td>归属运营人员</td></tr>
+              </tbody>
+            </table>
+            <div class="rule-note">
+              <strong>2. 用户池新增</strong> = 当月首次建档且必填字段完整的采购人数。回访、补录信息、变更归属<strong>不计新增</strong>；同一人当月重复录入只计 1 次；同一采购人同一学校只算 1 条。
+            </div>
+            <div class="rule-note">
+              <strong>3. 回访：</strong>回访是用户池的持续运营动作。每次回访在用户池表格末尾追加一组「回访时间N / 回访N类型 / 回访N内容」（N 按顺序递增，几次回访填几组）；回访类型沿用 8 类：首次拜访、常规走访、深度回访、问题处理、需求发掘、新品推介、售后跟进、其他。回访只更新档案（最近触达 / 走访类型 / 走访内容自动取最新一组），<strong>不计用户池新增、也不计触达</strong>。
+            </div>
+            <table class="rule-table">
+              <thead><tr><th>渠道</th><th>留痕要求</th><th>触达计数规则</th></tr></thead>
+              <tbody>
+                <tr><td>电话</td><td>通话记录或 CRM 日志</td><td>每通有记录的通话计 1 次</td></tr>
+                <tr><td>微信 / 企微</td><td>聊天记录截图或 CRM 备注</td><td>每次主动沟通计 1 次</td></tr>
+                <tr><td>站内信 / 短信</td><td>平台后台发送记录</td><td>每次发送计 1 次</td></tr>
+                <tr><td>培训现场</td><td>培训活动记录</td><td>按<strong>实际沟通人数</strong>计，一人 1 次（不按场次）</td></tr>
+                <tr><td>校园行现场</td><td>校园行活动记录</td><td>按<strong>实际沟通人数</strong>计，一人 1 次（不按场次）</td></tr>
+                <tr><td>线下走访 / 回访</td><td>回访列组记录</td><td><strong>不直接计触达</strong>，仅下面两种情况计：①走访中为老用户首次加到微信/拿到手机号等新联系方式，计 1 次（同一用户仅计一次）；②新用户在现场扫码登记、发 DM 单、留联系方式，计 1 次（通常同时建档为用户池新增）</td></tr>
+              </tbody>
+            </table>
+            <div class="rule-note">
+              <strong>4. 触达：</strong>通过可追溯渠道向用户传递一次明确信息并留痕，计 1 次（渠道与留痕见上表）。例行回访、已有联系方式的日常走访，<strong>不计触达</strong>——触达看的是有没有新增一个可联系的连接，不是有没有见面。
+            </div>
+            <div class="rule-note">
+              <strong>5. 去重：</strong>同一用户同一天同一渠道多次触达合并计 1 次；不同渠道可分别计；同一活动内与同一人的多次互动合并计 1 次；为同一用户新增联系方式只计 1 次（首次加微信后，后续再补邮箱等不重复计）。
+            </div>
+          </div>
         </div>
       </div>
 
@@ -933,7 +997,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
             <option value="all">全部走访人</option>
           </select>
         </div>
-        <div id="visitTimeline" style="position:relative;padding-left:30px"></div>
+        <div id="visitTimeline" style="position:relative"></div>
       </div>
     </div>
 
@@ -3997,7 +4061,7 @@ function renderUpSchoolList() {
   var tbody = "";
   filtered.slice(0,100).forEach(function(u){
     var lc = u.level==="S"?"#ef4444":(u.level==="A"?"#f59e0b":(u.level==="B"?"#3b82f6":"#6b7280"));
-    tbody += "<tr><td><strong>"+u.name+"</strong></td><td><span style='color:"+lc+";font-weight:700'>● "+u.level+"</span></td><td>"+u.school+"<br><span style='font-size:10px;color:#888'>"+u.college+"</span></td><td style='font-size:11px'>"+u.lab+"</td><td>"+u.addDate+"</td><td>"+u.lastTouch+"</td><td style='font-size:11px;max-width:240px;white-space:normal;line-height:1.5'>"+(u.visitContent||'')+"</td><td>"+(u.visitType?("<span style='background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 7px;font-size:11px'>"+u.visitType+"</span>"):'')+"</td><td>¥"+u.order.toFixed(1)+"</td><td>"+(u.leader||u.contact||'')+"</td></tr>";
+    tbody += "<tr><td><strong>"+u.name+"</strong></td><td><span style='color:"+lc+";font-weight:700'>● "+u.level+"</span></td><td>"+u.school+"<br><span style='font-size:10px;color:#888'>"+u.college+"</span></td><td style='font-size:11px'>"+u.lab+"</td><td>"+u.addDate+"</td><td>"+u.lastTouch+"</td><td style='font-size:11px;max-width:240px;white-space:normal;line-height:1.5'>"+(u.visitContent||'')+"</td><td>"+(u.visitType?("<span style='background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 7px;font-size:11px'>"+u.visitType+"</span>"):'')+"</td><td>¥"+u.order.toFixed(1)+"</td><td>"+(u.leader||'')+(u.contact?"<br><span style='font-size:10px;color:#888'>"+u.contact+"</span>":"")+"</td></tr>";
   });
   $("upUserTable").innerHTML = tbody || "<tr><td colspan='10' style='text-align:center;color:#999;padding:20px'>暂无数据</td></tr>";
 
@@ -4074,9 +4138,12 @@ function renderUpVIP() {
         '<div>📞 最近触达: '+u.lastTouch+'</div>' +
         (u.visitType?'<div>🏷 走访类型: '+u.visitType+'</div>':'') +
         (u.visitContent?'<div>📝 走访内容: '+u.visitContent+'</div>':'') +
+        (u.contact?'<div>📱 联系方式: '+u.contact+'</div>':'') +
+        (u.buyer?'<div>🧑‍🔬 采购用户: '+u.buyer+'</div>':'') +
+        (u.userRole?'<div>💼 用户角色: '+u.userRole+'</div>':'') +
       '</div>' +
       '<div class="vip-stat">' +
-        '<span>负责人: '+(u.leader||u.contact||'')+'</span>' +
+        '<span>负责人: '+(u.leader||'')+'</span>' +
         '<span>下单: ¥'+u.order.toFixed(1)+'万</span>' +
       '</div>';
     cards.appendChild(card);
@@ -4084,10 +4151,28 @@ function renderUpVIP() {
 }
 
 // --- Tab4: 走访记录时间线 ---
-// 走访记录数据源：用户池导入的真实走访（走访内容/走访类型/最近触达 任一非空即生成一条）+ 原演示数据
+// 走访记录数据源：用户池导入的真实走访 + 原演示数据
+// 用户池带回访列组（回访时间N/回访N类型/回访N内容）导入的，visits 每一组各生成一条走访记录；老数据（无 visits）按 主表最近触达/走访类型/走访内容 生成一条
 function getVisitRecords() {
   var list = [];
   USER_POOL_CRM.forEach(function(u){
+    if (u.visits && u.visits.length) {
+      u.visits.forEach(function(vs){
+        if (!vs.date && !vs.type && !vs.content) return;
+        list.push({
+          date: String(vs.date || ''),
+          time: '',
+          type: vs.type || '用户走访',
+          school: u.school,
+          person: u.leader || '',
+          users: 0,
+          content: vs.content || '',
+          name: u.name || '',
+          fromPool: true
+        });
+      });
+      return;
+    }
     var hasVisit = (u.visitContent && String(u.visitContent).trim())
       || (u.visitType && String(u.visitType).trim())
       || (u.lastTouch && String(u.lastTouch).trim());
@@ -4097,7 +4182,7 @@ function getVisitRecords() {
       time: '',
       type: u.visitType || '用户走访',
       school: u.school,
-      person: u.leader || u.contact || '',
+      person: u.leader || '',
       users: 0,
       content: u.visitContent || '',
       name: u.name || '',
@@ -4125,32 +4210,93 @@ function renderUpVisits() {
 
   var tl = $("visitTimeline");
   if(filtered.length === 0) {
-    tl.innerHTML = "<div style='text-align:center;color:#999;padding:40px'>暂无走访记录（在用户池导入数据中填写「走访内容/走访类型/最近触达」任一项，即可在此生成走访记录）</div>";
+    tl.innerHTML = "<div style='text-align:center;color:#999;padding:40px'>暂无走访记录（在用户池导入数据中填写「走访内容/走访类型/最近触达」或「回访列组」，即可在此生成走访记录）</div>";
     return;
   }
 
-  tl.innerHTML = "";
+  // === 按走访人（运营人员）分组，组内按客户聚合成卡片；多张卡片的客户可横向展开查看全部历史走访 ===
+  var byPerson = {};
   filtered.forEach(function(v){
-    var item = document.createElement("div");
-    item.className = "timeline-item";
-    var badge = v.fromPool
-      ? '<span style="font-size:10px;background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:8px;margin-left:6px">导入</span>'
-      : '<span style="font-size:10px;background:#f1f5f9;color:#64748b;padding:1px 6px;border-radius:8px;margin-left:6px">示例</span>';
-    item.innerHTML =
-      '<div class="time">'+v.date+(v.time?' '+v.time:'')+badge+'</div>' +
-      '<div class="content">' +
-        '<strong>'+v.type+'</strong> - '+v.school+
-        '<div style="margin-top:6px;display:flex;gap:12px;align-items:flex-start;font-size:10px;flex-wrap:wrap">' +
-          '<span class="visitor">👤 '+v.person+(v.name?' · '+v.name:'')+'</span>' +
-          (v.fromPool ? '' : '<span style="color:#22c55e">👥 新增线索: '+v.users+'人</span>') +
-          (v.content ? '<span style="color:#555;flex:1;min-width:180px">📝 '+v.content+'</span>' : '') +
-        '</div>' +
-      '</div>';
-    tl.appendChild(item);
+    var p = (v.person && String(v.person).trim()) || '未指定负责人';
+    (byPerson[p] = byPerson[p] || []).push(v);
+  });
+  var persons = Object.keys(byPerson).sort(function(a,b){
+    return byPerson[b].length - byPerson[a].length; // 走访量多的排前面
+  });
+
+  tl.innerHTML = "";
+  persons.forEach(function(p){
+    var recs = byPerson[p];
+    // 组内按客户（姓名+学校）聚合；filtered 已按日期倒序，每组第一条即该客户最新一次走访
+    var byCust = {}, custKeys = [];
+    recs.forEach(function(v){
+      var key = (v.name||'') + '|' + (v.school||'');
+      if (!byCust[key]) { byCust[key] = []; custKeys.push(key); }
+      byCust[key].push(v);
+    });
+    custKeys.sort(function(a,b){
+      var da = byCust[a][0].date || '', db = byCust[b][0].date || '';
+      return db.localeCompare(da); // 最新走访的客户排前面
+    });
+
+    var custHtml = custKeys.map(function(key){
+      var vs = byCust[key];
+      var latest = vs[0];
+      var badge = latest.fromPool ? '<span class="vp-badge-import">导入</span>' : '<span class="vp-badge-demo">示例</span>';
+      var latestLine = '<div class="vp-latest"><span class="vp-latest-date">'+esc(latest.date + (latest.time ? ' ' + latest.time : ''))+'</span>'
+        + esc(latest.type)
+        + (!latest.fromPool && latest.users ? ' · <span style="color:#22c55e">新增线索 '+latest.users+'人</span>' : '')
+        + (latest.content ? '<br>📝 ' + esc(latest.content) : '')
+        + '</div>';
+      // 历史回访条懒加载：数据存 data-hist（JSON），首次展开才渲染，避免大数据量卡顿
+      var histPart = '';
+      if (vs.length > 1) {
+        var histData = JSON.stringify(vs.map(function(v){
+          return { d: v.date + (v.time ? ' ' + v.time : ''), t: v.type, c: v.content || '' };
+        }));
+        histPart = '<div class="vp-toggle" onclick="toggleVisitHist(this)">▸ 历史走访 '+vs.length+' 次</div>'
+          + '<div class="vp-hist" data-hist="'+esc(histData)+'"></div>';
+      }
+      return '<div class="vp-cust">'
+        + '<div class="vp-cust-head"><span class="vp-cust-name">'+esc(latest.name || '(未填姓名)')+'</span>'
+        + '<span class="vp-cust-school">'+esc(latest.school)+'</span>' + badge + '</div>'
+        + latestLine + histPart
+        + '</div>';
+    }).join('');
+
+    var sec = document.createElement("div");
+    sec.className = "vp-person";
+    sec.innerHTML = '<div class="vp-person-head">👤 '+esc(p)
+      + '<span class="vp-person-meta">'+recs.length+' 次走访 · '+custKeys.length+' 位用户</span></div>'
+      + '<div class="vp-cust-list">'+custHtml+'</div>';
+    tl.appendChild(sec);
   });
 
   $("visitSchoolFilter").onchange = renderUpVisits;
   $("visitPersonFilter").onchange = renderUpVisits;
+}
+
+// 展开/收起客户卡片的历史回访（横向滚动条展示，从旧到新排列）
+function toggleVisitHist(el) {
+  var hist = el.nextElementSibling;
+  if (!hist || !hist.classList || !hist.classList.contains('vp-hist')) return;
+  var open = hist.classList.toggle('open');
+  if (open && !hist.innerHTML) {
+    var data;
+    try { data = JSON.parse(hist.getAttribute('data-hist') || '[]'); } catch (e) { data = []; }
+    // data 按日期倒序存（最新在前），展示时反转：从旧到新，最右侧是最新
+    data.slice().reverse().forEach(function(h){
+      var chip = document.createElement('div');
+      chip.className = 'vp-chip';
+      chip.innerHTML = '<span class="vp-chip-date">'+esc(h.d)+'</span>'
+        + (h.t ? '<span class="vp-chip-type">'+esc(h.t)+'</span>' : '')
+        + (h.c ? '<span class="vp-chip-txt">📝 '+esc(h.c)+'</span>' : '');
+      hist.appendChild(chip);
+    });
+    if (!data.length) hist.innerHTML = '<div style="font-size:11px;color:#999;padding:6px">暂无历史回访明细</div>';
+  }
+  // 只切换箭头方向，保留「历史走访 N 次」计数
+  el.textContent = (open ? '▾' : '▸') + el.textContent.slice(1);
 }
 
 
@@ -4420,7 +4566,7 @@ function progressNum(v) {
 }
 
 // 用户池CRM模板（含走访类型下拉）由本地 ExcelJS 预生成后内嵌，下载时直接解码，无需浏览器端额外库
-var USERPOOL_TEMPLATE_B64 = "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";
+var USERPOOL_TEMPLATE_B64 = "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";
 
 var MODULE_TEMPLATES = {
   marketing: {
@@ -4521,28 +4667,36 @@ var MODULE_TEMPLATES = {
     b64: USERPOOL_TEMPLATE_B64,
     sheets: [{
       name: '用户池CRM',
-      headers: ['姓名','等级(S/A/B/C)','学校','学院','实验室/课题组','新增日期','最近触达','走访内容','走访类型','下单金额(元)','负责人'],
+      headers: ['姓名','等级(S/A/B/C)','学校','学院','实验室/课题组','联系方式','采购用户','用户角色','新增日期','最近触达','走访内容','走访类型','下单金额(元)','负责人','回访时间1','回访1类型','回访1内容','回访时间2','回访2类型','回访2内容','回访时间3','回访3类型','回访3内容'],
       aliases: {
         name:['姓名'], level:['等级(S/A/B/C)','等级'], school:['学校'],
         college:['学院'], lab:['实验室/课题组','课题组'],
+        contact:['联系方式'], buyer:['采购用户'], userRole:['用户角色','采购角色'],
         addDate:['新增日期'], lastTouch:['最近触达'],
         visitContent:['走访内容'], visitType:['走访类型'],
         order:['下单金额(元)','下单金额'], leader:['负责人']
       },
       sample: [
-        ['张教授','A','南方医科大学','基础医学院','XX课题组','2026-03-15','2026-08-20','拜访化学系张教授课题组，了解新学期试剂采购计划，预计采购额15万+','常规走访','50w','陈宝华'],
-        ['李同学','B','华南理工大学','材料学院','YY实验室','2026-05-10','2026-08-18','生科院王老师课题组有大型仪器采购需求，已安排技术支持对接','需求发掘','8w','卢婉炫']
+        ['张教授','A','南方医科大学','基础医学院','XX课题组','138****8888（微信同号）','张教授','采购老师','2026-03-15','2026-08-20','拜访化学系张教授课题组，了解新学期试剂采购计划，预计采购额15万+','常规走访','50w','陈宝华','2026-07-10','首次拜访','初次拜访介绍平台，拿到微信','2026-08-20','常规走访','了解新学期试剂采购计划，预计采购额15万+','','',''],
+        ['李同学','B','华南理工大学','材料学院','YY实验室','微信 li_xxx','李同学','研究生','2026-05-10','2026-08-18','生科院王老师课题组有大型仪器采购需求，已安排技术支持对接','需求发掘','8w','卢婉炫','2026-08-18','需求发掘','大型仪器采购需求，已安排技术支持对接','','','']
       ],
       required: ['name','school'],
       requiredLabels: { name:'姓名', school:'学校' },
       validate: function(p){
         if(!isFullDate(p.addDate)) return '新增日期 必须填完整的「年-月-日」(如 2026-08-20)，不能只填月份或年份';
         if(!isFullDate(p.lastTouch)) return '最近触达 必须填完整的「年-月-日」(如 2026-08-20)，不能只填月份或年份';
+        var vs = p.visits || [];
+        for (var i = 0; i < vs.length; i++) {
+          if(!isFullDate(vs[i].date)) return '第'+(i+1)+'组回访时间 必须填完整的「年-月-日」(如 2026-08-20)，不能只填月份或年份';
+        }
         return null;
       },
       current: function(){ return USER_POOL_CRM; },
-      build: function(row, col) {
+      build: function(row, col, headers) {
         var get = function(f){ var i = col[f]; return i===undefined ? '' : row[i]; };
+        var visits = parseVisitGroups(headers || [], row);
+        // 最新一组回访自动带出 主表最近触达/走访类型/走访内容（回访列组优先，手填为兜底）
+        var latest = visits.length ? visits[visits.length - 1] : null;
         return {
           id: 'up_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
           name: String(get('name')||'').trim(),
@@ -4550,12 +4704,16 @@ var MODULE_TEMPLATES = {
           school: String(get('school')||'').trim(),
           college: String(get('college')||'').trim(),
           lab: String(get('lab')||'').trim(),
+          contact: String(get('contact')||'').trim(),
+          buyer: String(get('buyer')||'').trim(),
+          userRole: String(get('userRole')||'').trim(),
           addDate: formatDateCell(get('addDate')),
-          lastTouch: formatDateCell(get('lastTouch')),
-          visitContent: String(get('visitContent')||'').trim(),
-          visitType: String(get('visitType')||'').trim(),
+          lastTouch: latest ? latest.date : formatDateCell(get('lastTouch')),
+          visitContent: latest ? latest.content : String(get('visitContent')||'').trim(),
+          visitType: latest ? latest.type : String(get('visitType')||'').trim(),
           order: numYuan(get('order')) / 10000,
-          leader: String(get('leader')||'').trim()
+          leader: String(get('leader')||'').trim(),
+          visits: visits
         };
       },
       keyOf: function(p){ return (p.name||'')+'|'+(p.school||''); }
@@ -4614,10 +4772,44 @@ function formatDateCell(v){
   }
   var s = String(v).trim();
   if(!s) return '';
-  // 把 2026/8/20、2026.8.20、2026年8月20日 统一转成 2026-08-20
+  // 把 2026/8/20、2026.8.20、2026年8月20日 统一转成 2026-08-20（注意：m[2] 是字符串，必须先转数字再补零，否则 '07' 会被重复补成 '007'）
   var m = s.match(/^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$/);
-  if(m){ var p = function(n){ return n < 10 ? '0'+n : ''+n; }; return m[1]+'-'+p(m[2])+'-'+p(m[3]); }
+  if(m){ var p = function(n){ n = Number(n); return n < 10 ? '0'+n : ''+n; }; return m[1]+'-'+p(m[2])+'-'+p(m[3]); }
   return s;
+}
+
+// 解析回访列组：表头中形如「回访时间N / 回访N类型 / 回访N内容」（N=1,2,3...，用户可按需扩展列组）
+// 每组三列任一非空即记一条回访；返回按回访时间升序排列的数组（最后一项 = 最新一次回访）
+function parseVisitGroups(headers, row) {
+  var groups = {}; // N -> {date,type,content} 存列下标
+  (headers || []).forEach(function(h, i){
+    var s = String(h || '').trim();
+    if (!s) return;
+    var m = s.match(/^回访时间(\d+)$/) || s.match(/^回访(\d+)时间$/);
+    if (m) { (groups[m[1]] = groups[m[1]] || {}).date = i; return; }
+    m = s.match(/^回访(\d+)类型$/);
+    if (m) { (groups[m[1]] = groups[m[1]] || {}).type = i; return; }
+    m = s.match(/^回访(\d+)内容$/);
+    if (m) { (groups[m[1]] = groups[m[1]] || {}).content = i; return; }
+  });
+  var visits = [];
+  Object.keys(groups).map(Number).sort(function(a,b){ return a-b; }).forEach(function(n){
+    var g = groups[n];
+    var date   = g.date    !== undefined ? formatDateCell(row[g.date]) : '';
+    var type   = g.type    !== undefined ? String(row[g.type]||'').trim() : '';
+    var content= g.content !== undefined ? String(row[g.content]||'').trim() : '';
+    if (!date && !type && !content) return; // 整组全空则跳过
+    visits.push({ date: date, type: type, content: content });
+  });
+  // 按日期升序（YYYY-MM-DD 字符串比较即时间序；空日期排最前），保证最后一组是最新
+  visits.sort(function(a,b){
+    var da = a.date || '', db = b.date || '';
+    if (da === db) return 0;
+    if (!da) return -1;
+    if (!db) return 1;
+    return da < db ? -1 : 1;
+  });
+  return visits;
 }
 
 function moduleNoteLines(modKey) {  if (modKey==='marketing') return [
@@ -4644,9 +4836,13 @@ function moduleNoteLines(modKey) {  if (modKey==='marketing') return [
     '本表用于「用户池CRM」批量导入真实客户名单（原表按学校分 sheet，汇总到此表）。',
     '等级(S/A/B/C)：填 S / A / B / C（大小写均可）。',
     '学校/学院/实验室课题组：直接按原表填写。',
+    '联系方式：填采购用户的手机号/微信号（如 138****8888（微信同号）），可留空。',
+    '采购用户：填实际下单/对接的采购人姓名（默认与「姓名」相同，如不同请单独填写）。',
+    '用户角色：在下拉中选择 —— 采购老师 / 研究生 / 教授/PI / 实验室管理员 / 仪器管理员 / 其他。',
     '【日期填写规则·必看】“新增日期”“最近触达”必须填完整的「年-月-日」，格式为 2026-08-20（4位年 - 2位月 - 2位日，用短横线“-”分隔）。❌ 不要只填月份或年份（如 2026-08、2026年8月、8月 均不符合要求），必须精确到具体哪一天；也支持 2026/08/20、2026.8.20、2026年8月20日 写法。',
     '走访内容：填写本次走访的具体情况，例如：①拜访化学系张教授课题组，了解新学期试剂采购计划，预计采购额15万+；②生科院王老师课题组有大型仪器采购需求，已安排技术支持对接。请写清「对象 + 动作 + 结果/下一步」。',
     '走访类型：在本列下拉选择其一 —— 首次拜访 / 常规走访 / 深度回访 / 问题处理 / 需求发掘 / 新品推介 / 售后跟进；若以上都不符合，请选「其他」并在单元格内自填具体类型。',
+    '【回访列组·多次回访】同一用户反复回访时，按「回访时间1 / 回访1类型 / 回访1内容」填写第1次，第2次填「回访时间2 / 回访2类型 / 回访2内容」，依此类推（模板预留3组，需要更多组可自行在表尾按同样格式加列）。回访时间同样必须填完整「年-月-日」。导入后：每组回访各生成一条走访记录；「最近触达/走访类型/走访内容」自动取最新一组回访，无需重复填写。',
     '下单金额(元)：支持 50w=500000 元；导入后自动 ÷10000 显示为「万」。',
     '负责人：填对应运营人员。',
     '必填：姓名、学校；其余可选。导入为「仅追加」（相同 姓名+学校 不会重复导入）。'
@@ -4713,7 +4909,7 @@ function handleModuleImportFile(modKey, input) {
         var existing = {};
         (sh.current ? sh.current() : []).forEach(function(p){ existing[sh.keyOf(p)] = true; });
         for (var i = hidx+1; i < rows.length; i++) {
-          var p = sh.build(rows[i], colMap);
+          var p = sh.build(rows[i], colMap, rows[hidx]);
           // === 逐行必填字段为空 → 记为「已丢弃」并在预览标红 ===
           var emptyReq = (sh.required||[]).filter(function(f){ return !String(p[f]||'').trim(); });
           if (emptyReq.length) {
