@@ -4061,7 +4061,7 @@ function renderUpSchoolList() {
   var tbody = "";
   filtered.slice(0,100).forEach(function(u){
     var lc = u.level==="S"?"#ef4444":(u.level==="A"?"#f59e0b":(u.level==="B"?"#3b82f6":"#6b7280"));
-    tbody += "<tr><td><strong>"+u.name+"</strong></td><td><span style='color:"+lc+";font-weight:700'>● "+u.level+"</span></td><td>"+u.school+"<br><span style='font-size:10px;color:#888'>"+u.college+"</span></td><td style='font-size:11px'>"+u.lab+"</td><td>"+u.addDate+"</td><td>"+u.lastTouch+"</td><td style='font-size:11px;max-width:240px;white-space:normal;line-height:1.5'>"+(u.visitContent||'')+"</td><td>"+(u.visitType?("<span style='background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 7px;font-size:11px'>"+u.visitType+"</span>"):'')+"</td><td>¥"+u.order.toFixed(1)+"</td><td>"+(u.leader||'')+(u.contact?"<br><span style='font-size:10px;color:#888'>"+u.contact+"</span>":"")+"</td></tr>";
+    tbody += "<tr><td><strong>"+u.name+"</strong></td><td><span style='color:"+lc+";font-weight:700'>● "+u.level+"</span></td><td>"+u.school+"<br><span style='font-size:10px;color:#888'>"+u.college+"</span></td><td style='font-size:11px'>"+u.lab+"</td><td>"+formatDateCell(u.addDate)+"</td><td>"+formatDateCell(u.lastTouch)+"</td><td style='font-size:11px;max-width:240px;white-space:normal;line-height:1.5'>"+(u.visitContent||'')+"</td><td>"+(u.visitType?("<span style='background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 7px;font-size:11px'>"+u.visitType+"</span>"):'')+"</td><td>¥"+u.order.toFixed(1)+"</td><td>"+(u.leader||'')+(u.contact?"<br><span style='font-size:10px;color:#888'>"+u.contact+"</span>":"")+"</td></tr>";
   });
   $("upUserTable").innerHTML = tbody || "<tr><td colspan='10' style='text-align:center;color:#999;padding:20px'>暂无数据</td></tr>";
 
@@ -4132,10 +4132,10 @@ function renderUpVIP() {
     card.innerHTML =
       '<h4>⭐ '+u.name+' <span style="float:right;font-size:11px;color:#92400e">'+u.school+'</span></h4>' +
       '<div style="font-size:11px;color:#78716c;line-height:1.6">' +
-        '<div>🏫 学院: '+u.college.split("/")[0]+'</div>' +
+        '<div>🏫 学院: '+(u.college ? u.college.split("/")[0] : '')+'</div>' +
         '<div>🔬 实验室: '+u.lab+'</div>' +
-        '<div>📅 入池日期: '+u.addDate+'</div>' +
-        '<div>📞 最近触达: '+u.lastTouch+'</div>' +
+        '<div>📅 入池日期: '+formatDateCell(u.addDate)+'</div>' +
+        '<div>📞 最近触达: '+formatDateCell(u.lastTouch)+'</div>' +
         (u.visitType?'<div>🏷 走访类型: '+u.visitType+'</div>':'') +
         (u.visitContent?'<div>📝 走访内容: '+u.visitContent+'</div>':'') +
         (u.contact?'<div>📱 联系方式: '+u.contact+'</div>':'') +
@@ -4160,7 +4160,7 @@ function getVisitRecords() {
       u.visits.forEach(function(vs){
         if (!vs.date && !vs.type && !vs.content) return;
         list.push({
-          date: String(vs.date || ''),
+          date: formatDateCell(vs.date),
           time: '',
           type: vs.type || '用户走访',
           school: u.school,
@@ -4178,7 +4178,7 @@ function getVisitRecords() {
       || (u.lastTouch && String(u.lastTouch).trim());
     if (!hasVisit) return;
     list.push({
-      date: String(u.lastTouch || u.addDate || ''),
+      date: formatDateCell(u.lastTouch || u.addDate || ''),
       time: '',
       type: u.visitType || '用户走访',
       school: u.school,
@@ -4503,7 +4503,15 @@ function loadUserPool() {
     var arr = JSON.parse(raw);
     if (!Array.isArray(arr)) return;
     USER_POOL_CRM.length = 0;
-    arr.forEach(function(u) { USER_POOL_CRM.push(u); });
+    var changed = false;
+    arr.forEach(function(u) {
+      var before = JSON.stringify({ addDate: u.addDate, lastTouch: u.lastTouch, visits: u.visits });
+      normalizeUserPoolRecord(u);
+      var after = JSON.stringify({ addDate: u.addDate, lastTouch: u.lastTouch, visits: u.visits });
+      if (before !== after) changed = true;
+      USER_POOL_CRM.push(u);
+    });
+    if (changed) saveUserPool();
   } catch (e) { console.warn('load user pool failed', e); }
 }
 
@@ -4719,7 +4727,7 @@ var MODULE_TEMPLATES = {
       keyOf: function(p){ return (p.name||'')+'|'+(p.school||''); }
     }],
     afterAppend: function(items){
-      items.forEach(function(u){ USER_POOL_CRM.push(u); });
+      items.forEach(function(u){ normalizeUserPoolRecord(u); USER_POOL_CRM.push(u); });
       saveUserPool();
       fillUserPoolFilterOptions();
       renderUpSubTab();
@@ -4755,6 +4763,18 @@ function isFullDate(s){
   s = String(s||'').trim();
   if(!s) return true;
   return /^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$/.test(s);
+}
+
+// 把用户池记录里的日期字段（新增日期/最近触达/回访组日期）统一规范化为 YYYY-MM-DD；
+// 用于清洗存量脏数据（早期导入把 Excel 序列号直接存了进去）
+function normalizeUserPoolRecord(u){
+  if (!u) return u;
+  u.addDate = formatDateCell(u.addDate);
+  u.lastTouch = formatDateCell(u.lastTouch);
+  if (u.visits && Array.isArray(u.visits)) {
+    u.visits.forEach(function(vs){ if (vs) vs.date = formatDateCell(vs.date); });
+  }
+  return u;
 }
 
 // Excel 日期单元格统一格式化：Date对象 / Excel序列号 / 日期字符串 → YYYY-MM-DD；空值保留空字符串
@@ -5005,6 +5025,8 @@ function mergeUserPoolVisitGroups() {
     if (!x.exists || !x.visitNew || !x.p || !x.p.visits) return;
     var ex = byKey[keyOf(x.p)];
     if (!ex) return;
+    normalizeUserPoolRecord(ex);
+    normalizeUserPoolRecord(x.p);
     var seen = {};
     (ex.visits = ex.visits || []).forEach(function(vs){
       seen[(vs.date||'')+'|'+(vs.type||'')+'|'+(vs.content||'')] = true;
@@ -5038,7 +5060,7 @@ function mergeUserPoolVisitGroups() {
 function confirmModuleImport() {
   var st = window.__moduleImportPlan;
   if (!st) { closeModuleImportModal(); return; }
-  var newItems = st.plan.filter(function(x){return !x.exists;}).map(function(x){return x.p;});
+  var newItems = st.plan.filter(function(x){return !x.exists;}).map(function(x){ normalizeUserPoolRecord(x.p); return x.p;});
   var hasMerge = st.plan.some(function(x){return x.exists && x.visitNew;});
   if (newItems.length === 0 && !hasMerge) { closeModuleImportModal(); return; }
   var tpl = MODULE_TEMPLATES[st.modKey];
