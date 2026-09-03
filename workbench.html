@@ -133,6 +133,19 @@ tr:hover td{background:#f8fafc}
 .confirm-review-block{background:#f0f7ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px;margin-top:6px;line-height:1.6}
 .confirm-sumbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;margin:8px 0;font-size:12px}
 .confirm-sumbar b{font-size:13px}
+.maintain-table{border-collapse:collapse;width:100%;font-size:12px;white-space:nowrap}
+.maintain-table th{position:sticky;top:0;background:#f1f5f9;color:#334155;font-weight:600;padding:7px 8px;border-bottom:2px solid #e2e8f0;text-align:left;z-index:2}
+.maintain-table td{padding:6px 8px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.maintain-table tr:hover td{background:#f8fafc}
+.maintain-table tr.dm-synthetic td{color:#94a3b8;background:#f8fafc}
+.maintain-table .dm-num{text-align:right;font-variant-numeric:tabular-nums}
+.dm-op-btn{border:1px solid #d0d7de;background:#fff;border-radius:5px;font-size:11px;padding:2px 7px;cursor:pointer;color:#1a73e8;margin-right:4px}
+.dm-op-btn:hover{background:#e8f0fe}
+.dm-op-del{color:#dc2626;border-color:#fecaca}
+.dm-op-del:hover{background:#fef2f2}
+.dm-audit-row td{color:#64748b;padding:4px 10px}
+.dm-tag-ok{color:#16a34a;font-weight:600}
+.dm-tag-chg{color:#d97706;font-weight:600}
 /* ===== 确认台账（2026-09-03 上线） ===== */
 .arch-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;margin:6px 0 10px;font-size:12px}
 .arch-toolbar select,.arch-toolbar input{border:1px solid #cbd5e1;border-radius:6px;padding:4px 8px;font-size:12px;background:#fff;color:#1e293b;max-width:150px}
@@ -601,6 +614,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
   <div style="display:flex;gap:10px;align-items:center">
     <button id="downloadTplBtn" onclick="downloadTemplate()" title="下载「月度数据」模板（用于总体概况/绩效评估/增量分析，同一份数据只需导入一次）" style="padding:6px 16px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='#fff'">📄 月度模板</button>
     <button id="importBtn" onclick="document.getElementById('importFileInput').click()" title="仅导入「月度运营数据」（用于概况/绩效/增量），不是用户池/营销/校园行导入" style="padding:6px 16px;background:#1a73e8;color:#fff;border:none;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#1557b0'" onmouseout="this.style.background='#1a73e8'">📥 导入月度数据</button>
+    <button id="maintainBtn" onclick="openDataMaintenance()" title="逐条新增/修改/删除月度运营数据（仅管理员），修正导入错误；支持合并覆盖导入与备份恢复" style="padding:6px 16px;background:#fff;color:#b45309;border:1px solid #f59e0b;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600;transition:background .2s" onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='#fff'">🛠 数据维护</button>
     <div class="user-badge" id="userBadge"></div>
     <button id="syncPushBtn" onclick="syncCurrentModule('push')" title="把本机刚导入/编辑的数据立即推送到云端，让其他人也能看到" style="padding:6px 12px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;display:none" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='#fff'">☁ 立即同步</button>
     <button id="syncPullBtn" onclick="syncCurrentModule('pull')" title="从云端拉取最新数据（其他人已同步的内容）" style="padding:6px 12px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:6px;font-size:12px;cursor:pointer;font-weight:600;display:none" onmouseover="this.style.background='#e8f0fe'" onmouseout="this.style.background='#fff'">⬇ 从云端刷新</button>
@@ -1144,7 +1158,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
 <div id="importModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:center">
   <div style="background:#fff;border-radius:12px;padding:28px;width:680px;max-height:85vh;overflow:auto;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
-      <h3 style="font-size:18px;color:#1a73e8">📥 导入新增数据（方案甲）</h3>
+      <h3 style="font-size:18px;color:#1a73e8">📥 导入月度数据</h3>
       <span onclick="closeImportModal()" style="cursor:pointer;font-size:22px;color:#999;line-height:1">×</span>
     </div>
     <div id="importStep1">
@@ -1153,12 +1167,17 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
         <div style="font-size:12px;color:#555;line-height:1.8">
           ① 优先按每行「月份」列识别（如 <b>2026-08</b>），无该列则按工作表名识别（如「2026年8月」）；<b>新月份会自动出现在时间筛选器</b>；<br>
           ② 此模板同时驱动 <b>总体概况 / 绩效评估 / 增量分析</b> 三个模块，<b>只需导入一次</b>；<br>
-          ③ <b>仅追加</b>库中不存在的记录（唯一键 = 月份 + 学校 + 运营人员），<b>不覆盖/不修改</b>已有数据；<br>
+          ③ 唯一键 = <b>月份 + 学校 + 运营人员</b>；默认「仅追加」新增不存在记录、<b>不覆盖已有数据</b>；如需修正导入错误，可在下方切换「合并更新」模式（有变化才覆盖、留空不覆盖）；<br>
           ④ 3/4月与无法识别月份的表/行自动跳过；<br>
           ⑤ 表头支持第1行标题+第2行表头，列名自动识别（含附件原格式）；<br>
           ⑥ 「角色」列<b>可选</b>：填 区域主管 / 项目营销负责人 / 运营专员 则按所填判定，<b>留空则自动判定</b>；<br>
           ⑦ <b>填写格式</b>：金额列支持 <b>3w = 30000元</b>（或纯数字）；结算率支持 <b>0.57</b> 或 <b>57%</b>；"未对接财务"留空即可。详见模板内「填写说明」表。
         </div>
+      </div>
+      <div id="importModeBox" style="background:#f6f8fb;border:1px solid #e2e8f0;border-radius:8px;padding:10px 14px;margin-bottom:12px">
+        <span style="font-weight:600;font-size:13px;margin-right:14px">🔄 导入模式：</span>
+        <label style="font-size:13px;cursor:pointer;margin-right:18px"><input type="radio" name="importMode" value="append" checked onchange="setImportMode('append')"> 仅追加（默认·安全）</label>
+        <label style="font-size:13px;cursor:pointer"><input type="radio" name="importMode" value="merge" onchange="setImportMode('merge')"> 合并更新（同键记录：有变化才覆盖，留空不覆盖）</label>
       </div>
       <div id="importSummary" style="margin-bottom:16px"></div>
       <div style="display:flex;gap:10px">
@@ -1168,6 +1187,76 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
       </div>
     </div>
     <div id="importResult" style="display:none"></div>
+  </div>
+</div>
+
+<!-- 月度数据维护弹窗（仅管理员）：逐条新增/编辑/删除 + 备份恢复 + 操作留痕 -->
+<div id="maintainModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9998;justify-content:center;align-items:flex-start;overflow:auto">
+  <div style="background:#fff;border-radius:12px;padding:22px 20px;width:1200px;max-width:97vw;margin:24px auto;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h3 style="font-size:18px;color:#b45309">🛠 月度数据维护（仅管理员）</h3>
+      <span onclick="closeDataMaintenance()" style="cursor:pointer;font-size:22px;color:#999;line-height:1">×</span>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+      <span style="font-size:13px;font-weight:600">月份：</span>
+      <select id="dmMonthSel" onchange="switchDmMonth()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px"></select>
+      <span style="font-size:12px;color:#888">新月份：</span>
+      <input id="dmNewMonthInput" placeholder="如 2026-08" style="width:90px;padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px">
+      <button onclick="dmAddNewMonth()" style="padding:5px 10px;border:1px solid #1a73e8;border-radius:6px;font-size:12px;background:#fff;color:#1a73e8;cursor:pointer">➕ 建月</button>
+      <button id="dmAddBtn" onclick="openDmForm('add')" style="padding:6px 14px;border:none;border-radius:6px;font-size:13px;background:#1a73e8;color:#fff;cursor:pointer;font-weight:600">＋ 新增一条</button>
+      <span style="margin-left:6px;font-size:12px;color:#888">搜索：</span>
+      <input id="dmKw" placeholder="姓名/学校" oninput="renderMaintainTable()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px;width:130px">
+      <span id="dmStatLine" style="font-size:12px;color:#666;margin-left:auto"></span>
+    </div>
+    <div id="dmTableWrap" style="border:1px solid #e2e8f0;border-radius:8px;overflow:auto;max-height:52vh;background:#fff"></div>
+    <div style="margin-top:12px;font-size:12px;color:#666;line-height:1.7;background:#f8fafc;border:1px solid #eee;border-radius:8px;padding:8px 12px">
+      💡 修改任何一行后系统会<b>自动重算</b>区域汇总/总分并同步到总体概况·绩效·增量分析。灰色行 = 系统占位的主管汇总行（自动维护，勿删）。金额单位：<b>元</b>（表内以「万」显示）；结算率支持 0.57 / 57% / 未对接财务。
+    </div>
+    <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:13px;font-weight:600;cursor:pointer" onclick="toggleDmAudit(this)">📜 操作留痕（点击展开）<span id="dmAuditCount" style="color:#1a73e8"></span></span>
+      <span style="margin-left:auto"></span>
+      <button onclick="exportMonthlyDataBackup()" style="padding:6px 14px;border:1px solid #0f766e;border-radius:6px;font-size:12px;background:#fff;color:#0f766e;cursor:pointer">⬇ 导出月度数据备份 JSON</button>
+      <button onclick="document.getElementById('dmRestoreFile').click()" style="padding:6px 14px;border:1px solid #b45309;border-radius:6px;font-size:12px;background:#fff;color:#b45309;cursor:pointer">⬆ 从备份恢复</button>
+      <input type="file" id="dmRestoreFile" accept=".json" style="display:none" onchange="handleMonthlyRestore(this)">
+    </div>
+    <div id="dmAuditList" style="display:none;margin-top:10px;border:1px solid #e2e8f0;border-radius:8px;max-height:220px;overflow:auto;background:#fff"></div>
+  </div>
+</div>
+
+<!-- 月度数据 单条新增/编辑 表单弹窗 -->
+<div id="dmFormModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;justify-content:center;align-items:flex-start;overflow:auto">
+  <div style="background:#fff;border-radius:12px;padding:22px;width:760px;max-width:96vw;margin:50px auto;box-shadow:0 8px 32px rgba(0,0,0,0.2)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 id="dmfTitle" style="font-size:17px;color:#1a73e8">＋ 新增月度记录</h3>
+      <span onclick="closeDmForm()" style="cursor:pointer;font-size:22px;color:#999;line-height:1">×</span>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 14px;font-size:13px">
+      <div><label style="color:#555">月份 *</label><br><select id="dmfMonth" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px"></select></div>
+      <div><label style="color:#555">运营人员 *</label><br><input id="dmfName" placeholder="姓名" style="width:calc(100% - 18px);padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px"></div>
+      <div><label style="color:#555">学校/项目 *</label><br><input id="dmfSchool" placeholder="学校或项目名称" style="width:calc(100% - 18px);padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px"></div>
+      <div><label style="color:#555">角色</label><br>
+        <select id="dmfRole" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px">
+          <option value="运营专员">运营专员</option>
+          <option value="项目营销负责人">项目营销负责人</option>
+          <option value="区域主管">区域主管</option>
+        </select>
+      </div>
+      <div><label style="color:#555">区域主管</label><br><input id="dmfLeader" placeholder="所属区域主管姓名" style="width:calc(100% - 18px);padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px"></div>
+      <div><label style="color:#555">区域</label><br><input id="dmfRegion" placeholder="如 广东 / 北京" style="width:calc(100% - 18px);padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px"></div>
+      <div><label style="color:#555">用户池（人）</label><br><input id="dmfUserPool" type="number" min="0" placeholder="0" style="width:calc(100% - 18px);padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px"></div>
+      <div><label style="color:#555">有效触达（次）</label><br><input id="dmfTouch" type="number" min="0" placeholder="0" style="width:calc(100% - 18px);padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px"></div>
+      <div><label style="color:#555">培训场次（场）</label><br><input id="dmfTrain" type="number" min="0" placeholder="0" style="width:calc(100% - 18px);padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px"></div>
+      <div><label style="color:#555">校园行场次（场）</label><br><input id="dmfCampus" type="number" min="0" placeholder="0" style="width:calc(100% - 18px);padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px"></div>
+      <div><label style="color:#555">计划订单金额（元，可写 3w）</label><br><input id="dmfPlanOrder" placeholder="0" style="width:calc(100% - 18px);padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px"></div>
+      <div><label style="color:#555">实际线上订单金额（元，可写 3w）*</label><br><input id="dmfActualOrder" placeholder="0" style="width:calc(100% - 18px);padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px"></div>
+      <div><label style="color:#555">上月流量（元，可写 3w）</label><br><input id="dmfPrevFlow" placeholder="0" style="width:calc(100% - 18px);padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px"></div>
+      <div><label style="color:#555">同期流量（元，可写 3w）</label><br><input id="dmfBaseFlow" placeholder="0" style="width:calc(100% - 18px);padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px"></div>
+      <div style="grid-column:1/3"><label style="color:#555">结算率（0.57 / 57% / 未对接财务）</label><br><input id="dmfSettleRate" placeholder="如 0.57 或 57%；未开始结算可填：未对接财务" style="width:calc(100% - 18px);padding:6px 8px;border:1px solid #ccc;border-radius:6px;margin-top:3px"></div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeDmForm()" style="padding:8px 22px;border:1px solid #ddd;border-radius:6px;font-size:13px;background:#fff;cursor:pointer">取消</button>
+      <button onclick="saveDmForm()" style="padding:8px 26px;border:none;border-radius:6px;font-size:13px;background:#1a73e8;color:#fff;cursor:pointer;font-weight:600">保存</button>
+    </div>
   </div>
 </div>
 
@@ -2462,6 +2551,8 @@ function updateGlobalImportButtonsVisibility() {
   if (importBtn) importBtn.style.display = show ? 'inline-block' : 'none';
   var downloadTplBtn = $('downloadTplBtn');
   if (downloadTplBtn) downloadTplBtn.style.display = show ? 'inline-block' : 'none';
+  var maintainBtn = $('maintainBtn');
+  if (maintainBtn) maintainBtn.style.display = show ? 'inline-block' : 'none';
   // 同步按钮：仅在用户池/营销/校园行三个数据模块显示（staff 已在 switchModule 被拦截，无需再判角色）
   var showSync = (currentModule === 'modUserPool' || currentModule === 'modMarketing' || currentModule === 'modCampus');
   var sp = $('syncPushBtn'), sl = $('syncPullBtn');
@@ -5994,6 +6085,7 @@ function ensureRegionLeads(month) {
 
 var importedPlan = null;
 var importSkipped = [];
+var importMode = 'append';
 
 function handleImportFile(input) {
   var file = input.files[0];
@@ -6010,7 +6102,7 @@ function handleImportFile(input) {
         if (existingCache[m]) return existingCache[m];
         var ek = {};
         if (WORKBENCH_DATA.monthly_data[m] && WORKBENCH_DATA.monthly_data[m].people) {
-          WORKBENCH_DATA.monthly_data[m].people.forEach(function(p) { ek[recordKey(m, p)] = true; });
+          WORKBENCH_DATA.monthly_data[m].people.forEach(function(p) { ek[recordKey(m, p)] = p; });
         }
         existingCache[m] = ek;
         return ek;
@@ -6067,20 +6159,19 @@ function handleImportFile(input) {
             role: role,
             leader: leader,
             region: region,
-            user_pool: num(row, colMap.user_pool),
-            touch: num(row, colMap.touch),
-            train: num(row, colMap.train),
-            campus: num(row, colMap.campus),
-            actual_order: num(row, colMap.actual_order),
-            prev_flow: num(row, colMap.prev_flow),
-            base_flow_yoy: num(row, colMap.base_flow_yoy),
-            settle_rate: colMap.settle_rate !== undefined ? parseSettleRate(row[colMap.settle_rate]) : '',
-            plan_order: colMap.plan_order !== undefined ? parsePlan(row[colMap.plan_order]) : 0,
-            flow: num(row, colMap.actual_order)
+            user_pool: cellNum(row, colMap.user_pool),
+            touch: cellNum(row, colMap.touch),
+            train: cellNum(row, colMap.train),
+            campus: cellNum(row, colMap.campus),
+            actual_order: cellNum(row, colMap.actual_order),
+            prev_flow: cellNum(row, colMap.prev_flow),
+            base_flow_yoy: cellNum(row, colMap.base_flow_yoy),
+            settle_rate: cellSettle(row, colMap.settle_rate),
+            plan_order: colMap.plan_order !== undefined ? cellNum(row, colMap.plan_order) : undefined
           };
           var ek = getExisting(rowMonth);
           var key = recordKey(rowMonth, p);
-          plan.push({ month: rowMonth, p: p, exists: !!ek[key] });
+          plan.push({ month: rowMonth, p: p, exists: !!ek[key], cur: ek[key] || null });
         }
       });
       if (plan.length === 0) {
@@ -6111,29 +6202,28 @@ function num(row, idx) {
   return (parseFloat(s) || 0) * mult;
 }
 
+// 单元格数值解析：单元格留空返回 undefined（区别于「填 0」），供合并更新模式判断「留空不覆盖」
+function cellNum(row, idx) {
+  if (idx === undefined || !row) return undefined;
+  var v = row[idx];
+  if (v === '' || v === null || v === undefined) return undefined;
+  return num(row, idx);
+}
+// 结算率同理：留空 undefined；填了"未对接财务"等文本则覆盖为空字符串（视为清空结算率）
+function cellSettle(row, idx) {
+  if (idx === undefined || !row) return undefined;
+  var v = row[idx];
+  if (v === '' || v === null || v === undefined) return undefined;
+  return parseSettleRate(v);
+}
+
 function showImportModal(plan, skipped) {
   var modal = $('importModal');
   modal.style.display = 'flex';
-  var byMonth = {};
-  plan.forEach(function(rec) {
-    if (!byMonth[rec.month]) byMonth[rec.month] = { add: 0, exist: 0 };
-    if (rec.exists) byMonth[rec.month].exist++; else byMonth[rec.month].add++;
-  });
-  var months = Object.keys(byMonth).sort();
-  var html = '<div style="font-size:13px;line-height:1.9">';
-  html += '<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:12px;margin-bottom:14px;color:#2e7d32;font-weight:600">✅ 解析完成：仅追加新记录，不会覆盖/修改现有数据</div>';
-  months.forEach(function(m) {
-    var s = byMonth[m];
-    html += '<div style="padding:8px 12px;border:1px solid #eee;border-radius:6px;margin-bottom:8px">'
-      + '<b>' + formatMonthLabel(m) + '</b>：新增 <span style="color:#1a73e8;font-weight:700">' + s.add + '</span> 条'
-      + (s.exist ? '，已存在 <span style="color:#888">' + s.exist + '</span> 条（跳过）' : '')
-      + '</div>';
-  });
-  if (skipped.length) {
-    html += '<div style="margin-top:10px;font-size:12px;color:#b26a00">⚠️ 已跳过：<br>' + skipped.join('<br>') + '</div>';
-  }
-  html += '</div>';
-  $('importSummary').innerHTML = html;
+  importMode = 'append';
+  var radios = document.getElementsByName ? document.getElementsByName('importMode') : [];
+  if (radios && radios.length) { for (var i = 0; i < radios.length; i++) radios[i].checked = (radios[i].value === 'append'); }
+  refreshImportSummary();
   $('importConfirmBtn').style.display = 'inline-block';
   $('importResult').style.display = 'none';
   $('importStep1').style.display = 'block';
@@ -6143,13 +6233,60 @@ function closeImportModal() {
   $('importModal').style.display = 'none';
   importedPlan = null;
   importSkipped = [];
+  importMode = 'append';
+}
+
+function setImportMode(m) {
+  importMode = (m === 'merge') ? 'merge' : 'append';
+  refreshImportSummary();
+}
+
+function refreshImportSummary() {
+  if (!importedPlan) return;
+  var mode = importMode;
+  var byMonth = {};
+  importedPlan.forEach(function(rec) {
+    if (!byMonth[rec.month]) byMonth[rec.month] = { add: 0, exist: 0, upd: 0, same: 0 };
+    var s = byMonth[rec.month];
+    if (!rec.exists) s.add++;
+    else if (mode === 'merge') { var d = diffRecord(rec.cur, rec.p); if (d && d.length) s.upd++; else s.same++; }
+    else s.exist++;
+  });
+  var months = Object.keys(byMonth).sort();
+  var html = '';
+  if (mode === 'append') {
+    html += '<div style="background:#e8f5e9;border:1px solid #a5d6a7;border-radius:8px;padding:12px;margin-bottom:14px;color:#2e7d32;font-weight:600">✅ 解析完成（仅追加模式）：不会覆盖/修改任何已有记录</div>';
+  } else {
+    html += '<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:12px;margin-bottom:14px;color:#9a3412;font-weight:600">🔄 解析完成（合并更新模式）：同「月份+学校+姓名」的记录，仅有变化的字段会被覆盖为表格新值；表格中留空的字段保持原值不动</div>';
+  }
+  months.forEach(function(m) {
+    var s = byMonth[m];
+    var line = '<div style="padding:8px 12px;border:1px solid #eee;border-radius:6px;margin-bottom:8px"><b>' + formatMonthLabel(m) + '</b>';
+    if (s.add) line += '：新增 <span style="color:#1a73e8;font-weight:700">' + s.add + '</span> 条';
+    if (mode === 'merge') {
+      if (s.upd) line += '，将更新 <span style="color:#d97706;font-weight:700">' + s.upd + '</span> 条';
+      if (s.same) line += '，无变化跳过 <span style="color:#888">' + s.same + '</span> 条';
+    } else if (s.exist) {
+      line += '，已存在跳过 <span style="color:#888">' + s.exist + '</span> 条';
+    }
+    line += '</div>';
+    html += line;
+  });
+  if (importSkipped && importSkipped.length) {
+    html += '<div style="margin-top:10px;font-size:12px;color:#b26a00">⚠️ 已跳过：<br>' + importSkipped.join('<br>') + '</div>';
+  }
+  $('importSummary').innerHTML = html;
+  var btn = $('importConfirmBtn');
+  if (btn) btn.textContent = (mode === 'merge') ? '确认合并更新' : '确认导入';
 }
 
 function confirmImport() {
   if (!importedPlan) return;
-  var stats = { added: 0, existed: 0, newMonths: [] };
+  var mode = importMode;
+  var stats = { added: 0, existed: 0, updated: 0, unchanged: 0, newMonths: [] };
   var byMonth = {};
   importedPlan.forEach(function(rec) { (byMonth[rec.month] = byMonth[rec.month] || []).push(rec); });
+  var auditLines = [];
   Object.keys(byMonth).forEach(function(month) {
     var recs = byMonth[month];
     if (!WORKBENCH_DATA.monthly_data[month]) {
@@ -6158,8 +6295,19 @@ function confirmImport() {
     }
     var md = WORKBENCH_DATA.monthly_data[month];
     recs.forEach(function(rec) {
-      if (rec.exists) { stats.existed++; }
-      else { md.people.push(rec.p); stats.added++; }
+      if (!rec.exists) {
+        md.people.push(normRecord(rec.p));
+        stats.added++;
+      } else if (mode === 'merge') {
+        if (!rec.cur) { md.people.push(normRecord(rec.p)); stats.added++; return; }
+        var ch = mergeInto(rec.cur, rec.p);
+        if (ch.length) {
+          stats.updated++;
+          auditLines.push({ month: month, key: recordKey(month, rec.cur), detail: ch.map(function(c) { return c.field + ': ' + strVal(c.from) + ' → ' + strVal(c.to); }).join('；') });
+        } else { stats.unchanged++; }
+      } else {
+        stats.existed++;
+      }
     });
     rebuildMonthAggregates(month);
     ensureRegionLeads(month);
@@ -6169,6 +6317,7 @@ function confirmImport() {
       WORKBENCH_DATA.available_months.sort();
     }
   });
+  auditLines.forEach(function(al) { auditLog('合并导入·更新', al.month, al.key, al.detail); });
   if (stats.newMonths.length) {
     stats.newMonths.forEach(function(m) { if (selectedMonths.indexOf(m) < 0) selectedMonths.push(m); });
     currentMonth = stats.newMonths[stats.newMonths.length - 1];
@@ -6177,8 +6326,14 @@ function confirmImport() {
 
   $('importStep1').style.display = 'none';
   $('importResult').style.display = 'block';
-  var msg = '导入完成！新增 ' + stats.added + ' 条' + (stats.existed ? '，已存在跳过 ' + stats.existed + ' 条' : '')
-    + (stats.newMonths.length ? '；新增月份：' + stats.newMonths.map(formatMonthLabel).join('、') : '');
+  var msg = '导入完成！新增 ' + stats.added + ' 条';
+  if (mode === 'merge') {
+    if (stats.updated) msg += '，更新 ' + stats.updated + ' 条';
+    if (stats.unchanged) msg += '，无变化跳过 ' + stats.unchanged + ' 条';
+  } else if (stats.existed) {
+    msg += '，已存在跳过 ' + stats.existed + ' 条';
+  }
+  msg += (stats.newMonths.length ? '；新增月份：' + stats.newMonths.map(formatMonthLabel).join('、') : '');
   $('importResult').innerHTML =
     '<div style="text-align:center;padding:30px 10px">' +
     '<div style="font-size:48px;margin-bottom:12px">✅</div>' +
@@ -6196,6 +6351,490 @@ function confirmImport() {
   renderMonthPicker();
   refreshCurrentModule();
 }
+
+// ====================== 月度数据合并/归一（导入「合并更新」模式用） ======================
+var DM_NUM_FIELDS = ['user_pool','touch','train','campus','actual_order','prev_flow','base_flow_yoy','plan_order'];
+var DM_STR_FIELDS = ['role','leader','region'];
+var DM_KEY_FIELDS = ['name','school'];
+var FIELD_LABEL = { name:'运营人员', school:'学校/项目', role:'角色', leader:'区域主管', region:'区域', user_pool:'用户池', touch:'有效触达', train:'培训场次', campus:'校园行场次', plan_order:'计划订单金额', actual_order:'线上订单金额', prev_flow:'上月流量', base_flow_yoy:'同期流量', settle_rate:'结算率' };
+
+function strVal(v) {
+  if (v === undefined || v === null || v === '') return '空';
+  return String(v);
+}
+
+// 结算率宽松相等：'' / '未对接财务' 与空等价
+function settleEq(a, b) {
+  function n(v) {
+    if (typeof v === 'number') return v;
+    var s = parseSettleRate(v === null || v === undefined ? '' : String(v));
+    return (s === '' || s === undefined) ? -1 : s;
+  }
+  return n(a) === n(b);
+}
+
+// 归一化入库记录：undefined 字段 → 数值 0 / 结算率 ''
+function normRecord(p) {
+  var out = {};
+  DM_KEY_FIELDS.concat(DM_STR_FIELDS).forEach(function(f) {
+    out[f] = (p[f] === undefined || p[f] === null) ? '' : String(p[f]).trim();
+  });
+  if (!out.name) out.name = '未填写';
+  if (!out.role) out.role = '运营专员';
+  DM_NUM_FIELDS.forEach(function(f) {
+    var v = p[f];
+    out[f] = (typeof v === 'number' && !isNaN(v)) ? v : 0;
+  });
+  var sr = p.settle_rate;
+  out.settle_rate = (sr === undefined || sr === null) ? '' : ((typeof sr === 'number') ? sr : parseSettleRate(String(sr)));
+  out.flow = out.actual_order;
+  return out;
+}
+
+// 合并更新：仅对「有值（非留空）且与原值不同」的字段覆盖，返回实际变更列表（真实修改 cur）
+function mergeInto(cur, p) {
+  var changes = diffRecord(cur, p);
+  changes.forEach(function(c) { cur[c.field] = c.to; });
+  if (p.actual_order !== undefined && p.actual_order !== null) cur.flow = (typeof p.actual_order === 'number') ? p.actual_order : 0;
+  return changes;
+}
+
+// 纯计算：p 中留空的字段不覆盖（跳过），有值才对比 cur，返回 {field,from,to}
+function diffRecord(cur, p) {
+  var changes = [];
+  if (!cur || !p) return changes;
+  DM_STR_FIELDS.forEach(function(f) {
+    var nv = p[f];
+    if (nv === undefined || nv === null) return;
+    nv = String(nv).trim();
+    if (!nv) return;
+    if (String(cur[f] === undefined || cur[f] === null ? '' : cur[f]).trim() !== nv) changes.push({ field: f, from: cur[f], to: nv });
+  });
+  DM_NUM_FIELDS.forEach(function(f) {
+    var nv = p[f];
+    if (nv === undefined || nv === null) return;
+    if (typeof nv !== 'number' || isNaN(nv)) nv = 0;
+    var ov = (typeof cur[f] === 'number') ? cur[f] : (parseFloat(cur[f]) || 0);
+    if (ov !== nv) changes.push({ field: f, from: cur[f], to: nv });
+  });
+  if (p.settle_rate !== undefined && p.settle_rate !== null) {
+    var ns = (typeof p.settle_rate === 'number') ? p.settle_rate : parseSettleRate(String(p.settle_rate));
+    if (!settleEq(cur.settle_rate, ns)) changes.push({ field: 'settle_rate', from: cur.settle_rate, to: ns });
+  }
+  return changes;
+}
+
+// ====================== 操作留痕（谁 / 何时 / 改了哪条 / 从什么值到什么值） ======================
+var DATA_AUDIT_KEY = 'wb_data_audit_v1';
+var DATA_AUDIT = [];
+function loadDataAudit() {
+  try { var raw = localStorage.getItem(DATA_AUDIT_KEY); DATA_AUDIT = raw ? JSON.parse(raw) : []; }
+  catch (e) { DATA_AUDIT = []; }
+}
+function auditLog(action, month, key, detail) {
+  if (!DATA_AUDIT.length && localStorage) loadDataAudit();
+  var who = (typeof CURRENT_USER !== 'undefined' && CURRENT_USER && CURRENT_USER.name) ? CURRENT_USER.name : '';
+  DATA_AUDIT.push({ t: new Date().toISOString(), who: who, action: action, month: month, key: key, detail: detail || '' });
+  if (DATA_AUDIT.length > 500) DATA_AUDIT = DATA_AUDIT.slice(-500);
+  try { localStorage.setItem(DATA_AUDIT_KEY, JSON.stringify(DATA_AUDIT)); } catch (e) {}
+}
+
+// ====================== 月度数据维护（仅管理员）：逐条新增/编辑/删除 ======================
+var dmEdit = null; // { month, idx } ；新增时为 null
+var dmMonth = null;
+
+function fillDmMonthOptions() {
+  var sel = $('dmfMonth');
+  var months = (WORKBENCH_DATA.available_months || []).slice().sort();
+  var cur = dmMonth || (months.length ? months[months.length - 1] : '');
+  sel.innerHTML = months.map(function(m) { return '<option value="' + m + '"' + (m === cur ? ' selected' : '') + '>' + formatMonthLabel(m) + '</option>'; }).join('');
+  if (!sel.innerHTML) sel.innerHTML = '<option value="">（请先在上方创建月份）</option>';
+}
+
+function openDataMaintenance() {
+  if (!isAdmin()) { alert('仅管理员可进行数据维护'); return; }
+  var months = (WORKBENCH_DATA.available_months || []).slice().sort();
+  if (!months.length) { alert('当前还没有任何月份数据'); return; }
+  var target = (typeof perfMonth !== 'undefined' && perfMonth && months.indexOf(perfMonth) >= 0) ? perfMonth
+    : (months.indexOf(currentMonth) >= 0 ? currentMonth : months[months.length - 1]);
+  dmMonth = target;
+  var sel = $('dmMonthSel');
+  sel.innerHTML = months.map(function(m) { return '<option value="' + m + '"' + (m === target ? ' selected' : '') + '>' + formatMonthLabel(m) + '</option>'; }).join('');
+  $('dmNewMonthInput').value = '';
+  $('dmKw').value = '';
+  fillDmMonthOptions();
+  loadDataAudit();
+  renderMaintainTable();
+  renderAuditList();
+  $('maintainModal').style.display = 'flex';
+}
+function closeDataMaintenance() { $('maintainModal').style.display = 'none'; dmEdit = null; }
+
+function switchDmMonth() {
+  dmMonth = $('dmMonthSel').value;
+  dmEdit = null;
+  fillDmMonthOptions();
+  renderMaintainTable();
+}
+function dmAddNewMonth() {
+  var v = $('dmNewMonthInput').value;
+  var m = parseMonthCell(v);
+  if (!m) { alert('月份格式不正确，示例：2026-08'); return; }
+  var mm = parseInt(m.split('-')[1], 10);
+  if (mm <= 4) { alert('3/4月为基础运营期，不纳入月度维护，请填写 5 月及以后'); return; }
+  if (!WORKBENCH_DATA.monthly_data[m]) { WORKBENCH_DATA.monthly_data[m] = { regions: {}, people: [] }; auditLog('新建月份', m, '', '创建空月份'); }
+  if (WORKBENCH_DATA.available_months.indexOf(m) < 0) { WORKBENCH_DATA.available_months.push(m); WORKBENCH_DATA.available_months.sort(); }
+  saveWorkbenchData();
+  dmMonth = m;
+  var sel = $('dmMonthSel');
+  sel.innerHTML = WORKBENCH_DATA.available_months.slice().sort().map(function(x) { return '<option value="' + x + '"' + (x === m ? ' selected' : '') + '>' + formatMonthLabel(x) + '</option>'; }).join('');
+  fillDmMonthOptions();
+  $('dmNewMonthInput').value = '';
+  renderMaintainTable();
+  renderAuditList();
+  renderMonthPicker();
+  refreshCurrentModule();
+}
+
+function dmYuan(v) {
+  v = Number(v) || 0;
+  if (v === 0) return '0';
+  if (Math.abs(v) >= 10000) return (v / 10000).toFixed(2) + '万';
+  return String(Math.round(v * 100) / 100);
+}
+function dmSettleCell(v) {
+  if (v === '' || v === undefined || v === null) return '未对接';
+  if (typeof v === 'number') return (Math.round(v * 10000) / 100) + '%';
+  return String(v);
+}
+function dmRecSummary(rec) {
+  if (!rec) return '';
+  var parts = [
+    '学校:' + rec.school, '姓名:' + rec.name, '角色:' + rec.role, '主管:' + rec.leader, '区域:' + rec.region,
+    '用户池:' + rec.user_pool, '触达:' + rec.touch, '培训:' + rec.train, '校园行:' + rec.campus,
+    '计划:' + dmYuan(rec.plan_order), '订单:' + dmYuan(rec.actual_order),
+    '上月:' + dmYuan(rec.prev_flow), '同期:' + dmYuan(rec.base_flow_yoy), '结算:' + dmSettleCell(rec.settle_rate)
+  ];
+  return parts.join(' | ');
+}
+
+function renderMaintainTable() {
+  var month = dmMonth = $('dmMonthSel').value || dmMonth;
+  var md = WORKBENCH_DATA.monthly_data[month];
+  var wrap = $('dmTableWrap');
+  if (!md || !md.people) {
+    wrap.innerHTML = '<div style="text-align:center;color:#999;padding:40px">该月暂无记录 —— 点上方「＋ 新增一条」开始录入，或用顶部「📥 导入月度数据」批量导入</div>';
+    $('dmStatLine').textContent = '';
+    return;
+  }
+  var kw = ($('dmKw').value || '').trim();
+  var people = md.people;
+  var stats = { n: 0, schools: 0, order: 0, pool: 0 };
+  var seen = {};
+  var rowsHtml = '';
+  people.forEach(function(p, i) {
+    if (kw && (String(p.name || '').indexOf(kw) < 0) && (String(p.school || '').indexOf(kw) < 0)) return;
+    stats.n++; if (p.school && !seen[p.school]) { seen[p.school] = 1; stats.schools++; }
+    stats.order += (p.actual_order || 0); stats.pool += (p.user_pool || 0);
+    var syn = p._synthetic;
+    rowsHtml += '<tr' + (syn ? ' class="dm-synthetic"' : '') + '>'
+      + '<td>' + (syn ? '⚙' : (i + 1)) + '</td>'
+      + '<td>' + (syn ? '（系统占位）' : escHtml(p.name || '')) + '</td>'
+      + '<td>' + escHtml(p.school || '') + '</td>'
+      + '<td>' + escHtml(p.role || '') + '</td>'
+      + '<td>' + escHtml(p.leader || '') + '</td>'
+      + '<td>' + escHtml(p.region || '') + '</td>'
+      + '<td class="dm-num">' + (p.user_pool || 0) + '</td>'
+      + '<td class="dm-num">' + (p.touch || 0) + '</td>'
+      + '<td class="dm-num">' + (p.train || 0) + '</td>'
+      + '<td class="dm-num">' + (p.campus || 0) + '</td>'
+      + '<td class="dm-num">' + dmYuan(p.plan_order) + '</td>'
+      + '<td class="dm-num">' + dmYuan(p.actual_order) + '</td>'
+      + '<td class="dm-num">' + dmYuan(p.prev_flow) + '</td>'
+      + '<td class="dm-num">' + dmYuan(p.base_flow_yoy) + '</td>'
+      + '<td class="dm-num">' + dmSettleCell(p.settle_rate) + '</td>'
+      + '<td>' + (syn ? '<span style="color:#cbd5e1">—</span>' : '<button class="dm-op-btn" onclick="openDmForm(\'edit\',' + i + ')">✏️ 编辑</button><button class="dm-op-btn dm-op-del" onclick="dmDelete(' + i + ')">🗑 删除</button>') + '</td>'
+      + '</tr>';
+  });
+  wrap.innerHTML = '<table class="maintain-table"><thead><tr>'
+    + '<th style="width:34px">#</th><th>运营人员</th><th>学校/项目</th><th>角色</th><th>区域主管</th><th>区域</th>'
+    + '<th style="text-align:right">用户池</th><th style="text-align:right">触达</th><th style="text-align:right">培训</th><th style="text-align:right">校园行</th>'
+    + '<th style="text-align:right">计划金额</th><th style="text-align:right">线上订单</th><th style="text-align:right">上月流量</th><th style="text-align:right">同期流量</th><th style="text-align:right">结算率</th><th>操作</th>'
+    + '</tr></thead><tbody>' + rowsHtml + '</tbody></table>';
+  $('dmStatLine').innerHTML = formatMonthLabel(month) + '：显示 ' + stats.n + ' 人 / ' + stats.schools + ' 校 ｜ 合计订单 ' + dmYuan(stats.order) + ' ｜ 合计用户池 ' + stats.pool;
+  dmEdit = null;
+}
+function escHtml(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+function openDmForm(mode, idx) {
+  if (!isAdmin()) { alert('仅管理员可操作'); return; }
+  var month = $('dmMonthSel').value || dmMonth;
+  var md = WORKBENCH_DATA.monthly_data[month];
+  var isEdit = (mode === 'edit' && md && md.people && md.people[idx] && !md.people[idx]._synthetic);
+  dmEdit = isEdit ? { month: month, idx: idx } : null;
+  $('dmfTitle').textContent = isEdit ? '✏️ 编辑记录（' + (idx + 1) + ' 号）' : '＋ 新增记录（' + formatMonthLabel(month) + '）';
+  fillDmMonthOptions();
+  var fsel = $('dmfMonth');
+  if (fsel.value !== month) { for (var j = 0; j < fsel.options.length; j++) { if (fsel.options[j].value === month) { fsel.selectedIndex = j; break; } } }
+  if (isEdit) {
+    var rec = md.people[idx];
+    $('dmfName').value = rec.name || '';
+    $('dmfSchool').value = rec.school || '';
+    $('dmfRole').value = rec.role || '运营专员';
+    $('dmfLeader').value = rec.leader || '';
+    $('dmfRegion').value = rec.region || '';
+    $('dmfUserPool').value = rec.user_pool == null ? '' : rec.user_pool;
+    $('dmfTouch').value = rec.touch == null ? '' : rec.touch;
+    $('dmfTrain').value = rec.train == null ? '' : rec.train;
+    $('dmfCampus').value = rec.campus == null ? '' : rec.campus;
+    $('dmfPlanOrder').value = rec.plan_order == null ? '' : String(rec.plan_order);
+    $('dmfActualOrder').value = rec.actual_order == null ? '' : String(rec.actual_order);
+    $('dmfPrevFlow').value = rec.prev_flow == null ? '' : String(rec.prev_flow);
+    $('dmfBaseFlow').value = rec.base_flow_yoy == null ? '' : String(rec.base_flow_yoy);
+    $('dmfSettleRate').value = dmSettleCell(rec.settle_rate) === '未对接' ? '' : dmSettleCell(rec.settle_rate);
+  } else {
+    ['dmfName','dmfSchool','dmfLeader','dmfRegion','dmfPlanOrder','dmfActualOrder','dmfPrevFlow','dmfBaseFlow','dmfSettleRate'].forEach(function(id) { $(id).value = ''; });
+    ['dmfUserPool','dmfTouch','dmfTrain','dmfCampus'].forEach(function(id) { $(id).value = '0'; });
+    $('dmfRole').value = '运营专员';
+  }
+  $('dmFormModal').style.display = 'flex';
+}
+function closeDmForm() { $('dmFormModal').style.display = 'none'; dmEdit = null; }
+
+// 金额/数字解析（用于维护表单）
+function dmParseAmount(s) {
+  if (s === '' || s === null || s === undefined) return 0;
+  if (typeof s === 'number') return isNaN(s) ? NaN : s;
+  var t = String(s).trim().toLowerCase().replace(/[,，\s]/g, '');
+  var mult = 1;
+  if (t.indexOf('万') >= 0) { mult = 10000; t = t.replace('万', ''); }
+  if (t.indexOf('w') >= 0) { mult = 10000; t = t.replace('w', ''); }
+  t = t.replace(/[^0-9.\-]/g, '');
+  var n = parseFloat(t);
+  return isNaN(n) ? NaN : n * mult;
+}
+
+function dmValidateAndRead() {
+  var month = $('dmfMonth').value;
+  if (!/^\d{4}-\d{2}$/.test(month || '')) { alert('请选择月份'); return null; }
+  var name = String($('dmfName').value || '').trim();
+  var school = String($('dmfSchool').value || '').trim();
+  var leader = String($('dmfLeader').value || '').trim();
+  if (!name) { alert('「运营人员」为必填'); return null; }
+  if (!school) { alert('「学校/项目」为必填'); return null; }
+  var role = String($('dmfRole').value || '').trim();
+  var region = String($('dmfRegion').value || '').trim();
+  if (name === leader) role = '区域主管';
+  if (!leader && role !== '区域主管') { alert('「区域主管」为必填（区域汇总按主管归口）'); return null; }
+  if (role === '区域主管') { leader = name; if (!region) region = deriveRegion(name) || ''; }
+  var nums = {};
+  ['dmfUserPool','dmfTouch','dmfTrain','dmfCampus'].forEach(function(id) {
+    var n = parseInt($(id).value, 10);
+    nums[id.replace('dmf', '').toLowerCase()] = isNaN(n) ? 0 : Math.max(0, n);
+  });
+  var amt = {};
+  var amtErr = false;
+  ['dmfPlanOrder','dmfActualOrder','dmfPrevFlow','dmfBaseFlow'].forEach(function(id) {
+    if (amtErr) return;
+    var v = dmParseAmount($(id).value);
+    if (isNaN(v)) { alert('金额「' + $(id).value + '」无法识别，请填纯数字或如 3w / 5万'); amtErr = true; return; }
+    amt[id] = v;
+  });
+  if (amtErr) return null;
+  if (String($('dmfActualOrder').value || '').trim() === '') { alert('「实际线上订单金额」为必填，本月确实无订单请填 0'); return null; }
+  var settleInput = String($('dmfSettleRate').value || '').trim();
+  var settle = '';
+  if (settleInput && !/未对接|未开始|暂无|无/.test(settleInput)) {
+    var pr = parseSettleRate(settleInput);
+    if (pr === '' || isNaN(pr)) { alert('结算率「' + settleInput + '」无法识别，请填 0.57 或 57%（未开始可填：未对接财务）'); return null; }
+    settle = pr;
+  }
+  var p = { name: name, school: school, role: role, leader: leader, region: region,
+    user_pool: nums.userpool, touch: nums.touch, train: nums.train, campus: nums.campus,
+    plan_order: amt.dmfPlanOrder, actual_order: amt.dmfActualOrder, prev_flow: amt.dmfPrevFlow, base_flow_yoy: amt.dmfBaseFlow,
+    settle_rate: settle, flow: amt.dmfActualOrder };
+  return { month: month, p: p };
+}
+
+function dmKeyConflict(month, p, exceptIdx) {
+  var md = WORKBENCH_DATA.monthly_data[month];
+  if (!md || !md.people) return -1;
+  var key = month + '|' + p.school + '|' + p.name;
+  for (var i = 0; i < md.people.length; i++) {
+    if (i === exceptIdx) continue;
+    if (recordKey(month, md.people[i]) === key) return i;
+  }
+  return -1;
+}
+
+function saveDmForm() {
+  if (!isAdmin()) { alert('仅管理员可操作'); return; }
+  var r = dmValidateAndRead();
+  if (!r) return;
+  var month = r.month, p = r.p;
+  var isEdit = dmEdit && dmEdit.month && dmEdit.idx >= 0;
+  var origMonth = isEdit ? dmEdit.month : null;
+  var oldRec = null;
+  var auditLines = [];
+  if (isEdit) {
+    var omd = WORKBENCH_DATA.monthly_data[origMonth];
+    if (!omd || !omd.people[dmEdit.idx] || omd.people[dmEdit.idx]._synthetic) { alert('原记录不存在或为系统占位行，无法编辑'); closeDmForm(); renderMaintainTable(); return; }
+    oldRec = omd.people[dmEdit.idx];
+    var conflict = dmKeyConflict(month, p, (month === origMonth ? dmEdit.idx : -1));
+    if (conflict >= 0) { alert('保存失败：' + formatMonthLabel(month) + ' 已存在「' + p.school + ' / ' + p.name + '」的记录（第 ' + (conflict + 1) + ' 行），请勿重复。若需修正请编辑原行'); return; }
+    if (month !== origMonth) {
+      omd.people.splice(dmEdit.idx, 1);
+      auditLines.push('原月份 ' + formatMonthLabel(origMonth) + ' → ' + formatMonthLabel(month));
+    }
+  } else {
+    var conflict2 = dmKeyConflict(month, p, -1);
+    if (conflict2 >= 0) { alert('新增失败：' + formatMonthLabel(month) + ' 已存在「' + p.school + ' / ' + p.name + '」的记录（第 ' + (conflict2 + 1) + ' 行）'); return; }
+  }
+  var newRec = normRecord(p);
+  var targetMd = WORKBENCH_DATA.monthly_data[month];
+  if (!targetMd) { WORKBENCH_DATA.monthly_data[month] = { regions: {}, people: [] }; targetMd = WORKBENCH_DATA.monthly_data[month]; if (WORKBENCH_DATA.available_months.indexOf(month) < 0) WORKBENCH_DATA.available_months.push(month); }
+  var key = recordKey(month, newRec);
+  if (isEdit && month === origMonth) {
+    targetMd.people[dmEdit.idx] = newRec;
+    var diffStr = dmRecDiff(oldRec, newRec);
+    auditLog('修改', month, key, diffStr || '（无字段变化）');
+  } else if (isEdit) {
+    targetMd.people.push(newRec);
+    auditLog('修改·跨月搬移', month, key, '自 ' + formatMonthLabel(origMonth) + ' 搬入' + (auditLines.length ? '；' + auditLines.join('') : '') + (dmRecDiff(oldRec, newRec) ? '；变化：' + dmRecDiff(oldRec, newRec) : ''));
+  } else {
+    targetMd.people.push(newRec);
+    auditLog('新增', month, key, dmRecSummary(newRec));
+  }
+  var monthsToRebuild = {};
+  if (origMonth) monthsToRebuild[origMonth] = 1;
+  monthsToRebuild[month] = 1;
+  Object.keys(monthsToRebuild).forEach(function(m) {
+    if (WORKBENCH_DATA.monthly_data[m]) {
+      rebuildMonthAggregates(m);
+      ensureRegionLeads(m);
+      WORKBENCH_DATA.totals[m] = WORKBENCH_DATA.monthly_data[m].totals;
+    }
+  });
+  if (WORKBENCH_DATA.available_months.indexOf(month) < 0) WORKBENCH_DATA.available_months.sort();
+  saveWorkbenchData();
+  closeDmForm();
+  renderAuditList();
+  var sel = $('dmMonthSel');
+  if (month !== dmMonth) { dmMonth = month; sel.value = month; }
+  renderMaintainTable();
+  renderMonthPicker();
+  refreshCurrentModule();
+}
+
+function dmRecDiff(a, b) {
+  var out = [];
+  Object.keys(FIELD_LABEL).forEach(function(f) {
+    var av = a[f], bv = b[f];
+    var same;
+    if (f === 'settle_rate') same = settleEq(av, bv);
+    else same = String(av === undefined || av === null ? '' : av) === String(bv === undefined || bv === null ? '' : bv);
+    if (!same) out.push(FIELD_LABEL[f] + ': ' + strVal(av) + ' → ' + strVal(bv));
+  });
+  return out.join('；');
+}
+
+function dmDelete(idx) {
+  if (!isAdmin()) { alert('仅管理员可操作'); return; }
+  var month = $('dmMonthSel').value || dmMonth;
+  var md = WORKBENCH_DATA.monthly_data[month];
+  if (!md || !md.people[idx] || md.people[idx]._synthetic) { alert('系统占位行不可删除'); return; }
+  var rec = md.people[idx];
+  if (!confirm('确定删除 ' + formatMonthLabel(month) + ' 的这条记录？\n\n' + rec.school + ' / ' + rec.name + '（' + (rec.role || '') + '）\n\n删除后其指标将不再计入区域汇总与绩效得分，此操作会留痕，可在下方「操作留痕」中查到。')) return;
+  md.people.splice(idx, 1);
+  auditLog('删除', month, recordKey(month, rec), dmRecSummary(rec));
+  rebuildMonthAggregates(month);
+  ensureRegionLeads(month);
+  WORKBENCH_DATA.totals[month] = WORKBENCH_DATA.monthly_data[month].totals;
+  saveWorkbenchData();
+  renderMaintainTable();
+  renderAuditList();
+  renderMonthPicker();
+  refreshCurrentModule();
+}
+
+// 留痕列表
+function toggleDmAudit(el) {
+  var list = $('dmAuditList');
+  var show = (list.style.display === 'none');
+  list.style.display = show ? 'block' : 'none';
+  el.innerHTML = (show ? '📂 ' : '📜 ') + (show ? '操作留痕（点击收起）' : '操作留痕（点击展开）') + '<span id="dmAuditCount" style="color:#1a73e8">' + (DATA_AUDIT.length ? '（共 ' + DATA_AUDIT.length + ' 条）' : '') + '</span>';
+}
+function renderAuditList() {
+  var cnt = $('dmAuditCount');
+  if (cnt) cnt.textContent = DATA_AUDIT.length ? '（共 ' + DATA_AUDIT.length + ' 条）' : '';
+  var list = $('dmAuditList');
+  if (!list) return;
+  if (!DATA_AUDIT.length) { list.innerHTML = '<div style="padding:14px;color:#999;font-size:12px;text-align:center">暂无操作留痕。对月度数据的每次新增/修改/删除/合并导入都会记录在这里（保留最近 500 条）。</div>'; return; }
+  var items = DATA_AUDIT.slice(-60).reverse();
+  var rows = items.map(function(a) {
+    var tm = a.t ? a.t.replace('T', ' ').slice(0, 19) : '';
+    return '<tr class="dm-audit-row"><td style="white-space:nowrap">' + escHtml(tm) + '</td><td>' + escHtml(a.who || '') + '</td>'
+      + '<td>' + escHtml(a.action || '') + '</td><td>' + escHtml(a.month || '') + '</td>'
+      + '<td style="max-width:220px;overflow:hidden;text-overflow:ellipsis">' + escHtml(a.key || '') + '</td>'
+      + '<td style="color:#475569">' + escHtml(a.detail || '') + '</td></tr>';
+  }).join('');
+  list.innerHTML = '<table class="maintain-table"><thead><tr><th>时间</th><th>操作人</th><th>动作</th><th>月份</th><th>记录（月份+学校+姓名）</th><th>变更详情</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
+// 备份导出 / 恢复
+function exportMonthlyDataBackup() {
+  if (!isAdmin()) { alert('仅管理员可操作'); return; }
+  var payload = { app: 'wb-monthly-data-backup', exportedAt: new Date().toISOString(), by: (CURRENT_USER && CURRENT_USER.name) || '', available_months: WORKBENCH_DATA.available_months, monthly_data: WORKBENCH_DATA.monthly_data, totals: WORKBENCH_DATA.totals || {} };
+  var blob = new Blob([JSON.stringify(payload, null, 1)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '运营月度数据备份_' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click();
+  setTimeout(function() { URL.revokeObjectURL(a.href); a.remove(); }, 800);
+  auditLog('导出备份', '全部', '', '导出月度数据完整备份 JSON（' + (WORKBENCH_DATA.available_months || []).length + ' 个月）');
+}
+function handleMonthlyRestore(input) {
+  if (!isAdmin()) { alert('仅管理员可操作'); input.value = ''; return; }
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      if (!data || !data.monthly_data || !data.available_months) { alert('不是有效的月度数据备份文件（缺少 monthly_data / available_months）'); input.value = ''; return; }
+      if (!confirm('⚠️ 将用备份文件【整体覆盖】当前全部月份的月度运营数据（' + data.available_months.length + ' 个月），此操作不可撤销（建议先点「导出备份」留底）。确定恢复？')) { input.value = ''; return; }
+      var nMonths = data.available_months.length, nPeople = 0;
+      Object.keys(data.monthly_data).forEach(function(m) { nPeople += (data.monthly_data[m].people || []).length; });
+      WORKBENCH_DATA.monthly_data = data.monthly_data;
+      WORKBENCH_DATA.totals = data.totals || {};
+      WORKBENCH_DATA.available_months = (data.available_months || []).slice().sort();
+      Object.keys(WORKBENCH_DATA.monthly_data).forEach(function(m) {
+        var md = WORKBENCH_DATA.monthly_data[m];
+        if (!md.people) md.people = [];
+        if (!md.regions || typeof md.regions !== 'object') md.regions = {};
+      });
+      _leaderRegionCache = null;
+      saveWorkbenchData();
+      auditLog('恢复备份', '全部', '', '从备份恢复 ' + nMonths + ' 个月 / ' + nPeople + ' 条记录');
+      selectedMonths = WORKBENCH_DATA.available_months.slice();
+      currentMonth = WORKBENCH_DATA.available_months[WORKBENCH_DATA.available_months.length - 1];
+      var sel = $('dmMonthSel');
+      sel.innerHTML = WORKBENCH_DATA.available_months.slice().sort().map(function(x) { return '<option value="' + x + '"' + (x === dmMonth ? ' selected' : '') + '>' + formatMonthLabel(x) + '</option>'; }).join('');
+      dmMonth = WORKBENCH_DATA.available_months[WORKBENCH_DATA.available_months.length - 1];
+      fillDmMonthOptions();
+      renderMaintainTable();
+      renderAuditList();
+      renderMonthPicker();
+      refreshCurrentModule();
+      alert('恢复完成：' + nMonths + ' 个月 / ' + nPeople + ' 条记录。请检查各模块数据是否正确。');
+    } catch (err) {
+      alert('备份文件解析失败：' + err.message);
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
 
 function downloadTemplate() {
   // 表头照搬附件 5/6/7 月格式，去掉环比 4 列，不含合计行；新增「月份」列（必填，解决模板无月份导致整张被跳过）与「角色」可选列
