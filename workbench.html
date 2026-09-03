@@ -133,6 +133,19 @@ tr:hover td{background:#f8fafc}
 .confirm-review-block{background:#f0f7ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px;margin-top:6px;line-height:1.6}
 .confirm-sumbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;margin:8px 0;font-size:12px}
 .confirm-sumbar b{font-size:13px}
+/* ===== 确认台账（2026-09-03 上线） ===== */
+.arch-toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;margin:6px 0 10px;font-size:12px}
+.arch-toolbar select,.arch-toolbar input{border:1px solid #cbd5e1;border-radius:6px;padding:4px 8px;font-size:12px;background:#fff;color:#1e293b;max-width:150px}
+.arch-table{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border:1px solid #e2e8f0;border-radius:8px}
+.arch-table th{background:#f1f5f9;color:#475569;text-align:left;padding:8px 10px;border-bottom:1px solid #e2e8f0;font-size:12px;font-weight:600}
+.arch-table td{padding:8px 10px;border-bottom:1px solid #f1f5f9;vertical-align:top;line-height:1.5}
+.arch-row{cursor:pointer}
+.arch-row:hover{background:#f8fafc}
+.arch-row-open{background:#f0f7ff}
+.arch-detail td{background:#f8fafc;padding:10px 14px}
+.arch-tl{display:flex;gap:8px;padding:3px 0;line-height:1.6;font-size:12px}
+.arch-dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:5px}
+.arch-sum{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px;color:#475569}
 .rule-highlight{color:#dc2626;font-weight:600}
 @media(max-width:900px){.sidebar{width:160px}.kpi-row{grid-template-columns:repeat(2,1fr)}.chart-row{grid-template-columns:1fr}}
 
@@ -2795,7 +2808,7 @@ function initPerformance() {
     updatePerformanceContent();
     return;
   }
-  var tabs = [{"id":"all","name":"全部"},{"id":"leaders","name":"区域主管"},{"id":"managers","name":"营销负责人"},{"id":"staff","name":"运营专员"},{"id":"ranking","name":"绩效排名"},{"id":"evalChart","name":"绩效评估"}];
+  var tabs = [{"id":"all","name":"全部"},{"id":"leaders","name":"区域主管"},{"id":"managers","name":"营销负责人"},{"id":"staff","name":"运营专员"},{"id":"ranking","name":"绩效排名"},{"id":"evalChart","name":"绩效评估"},{"id":"confirmArchive","name":"确认台账"}];
   $("perfTabs").innerHTML = tabs.map(function(t){
     return '<button class="tab-btn'+(t.id===currentViewMode?' active':'')+'" data-tab="'+t.id+'" onclick="switchPerfTab(this.dataset.tab)">'+t.name+'</button>';
   }).join("");
@@ -2816,6 +2829,11 @@ function switchPerfTab(mode) {
 }
 
 function updatePerformanceContent() {
+  // === 确认台账：跨月份档案视图（admin 全员 / leader 本区域） ===
+  if(currentViewMode === "confirmArchive") {
+    renderConfirmArchive();
+    return;
+  }
   var md = WORKBENCH_DATA.monthly_data[perfMonth];
   if(!md) return;
 
@@ -2833,12 +2851,13 @@ function updatePerformanceContent() {
 
   var allPeople = removeDualRoleStaff(scopePersonLevel(getPersonLevelPeople(md)));
 
-  // === 运营专员/营销负责人：仅本人绩效卡（含确认/申诉区） ===
+  // === 运营专员/营销负责人：仅本人绩效卡（含确认/申诉区）+ 本人历史只读归档 ===
   if (isStaff()) {
     var mine = allPeople.filter(function(p){ return p.name === CURRENT_USER.name; });
     var outMine = mine.length
       ? renderPerfCardsHtml(mine)
       : noPermHtml(formatMonthLabel(perfMonth) + ' 无本人绩效记录（如为新增人员请等待管理员导入当月数据）');
+    outMine += renderMyConfirmHistory();
     $("perfContent").innerHTML = outMine;
     return;
   }
@@ -3133,6 +3152,180 @@ function renderConfirmArea(p) {
   }
   html += '</div>';
   return html;
+}
+
+// ===== 确认台账：全历史确认/申诉/裁决档案（2026-09-03 上线） =====
+// 数据源 = PERF_CONFIRM（本地 wb_perf_confirm_v1 永久副本 + 云端 performance_confirmations.json 同步），
+// 跨月份累积、按「月份+姓名」唯一归档，不随月份切换丢失。admin 看全员，leader 看本区域（按 leader 字段）。
+var ARCHIVE_MONTH = 'all';
+var ARCHIVE_STATUS = 'all';
+
+function archiveVisibleRecs() {
+  var list = [];
+  PERF_CONFIRM.forEach(function (r) {
+    if (!r || !r.month || !r.name) return;
+    if (ARCHIVE_MONTH !== 'all' && r.month !== ARCHIVE_MONTH) return;
+    if (ARCHIVE_STATUS !== 'all' && r.status !== ARCHIVE_STATUS) return;
+    if (!isAdmin()) {
+      if (r.leader !== CURRENT_USER.name) return; // 主管仅见自己负责的记录
+    }
+    list.push(r);
+  });
+  list.sort(function (a, b) { var c = b.month.localeCompare(a.month); return c !== 0 ? c : a.name.localeCompare(b.name); });
+  return list;
+}
+function setArchiveFilter() { renderConfirmArchive(); }
+
+function renderConfirmArchive() {
+  var sM = $("archiveMonthSel"); if (sM) ARCHIVE_MONTH = sM.value;
+  var sS = $("archiveStatusSel"); if (sS) ARCHIVE_STATUS = sS.value;
+  var kw = ''; var sI = $("archiveKw"); if (sI) kw = sI.value.trim();
+  var recs = archiveVisibleRecs().filter(function (r) { return !kw || r.name.indexOf(kw) >= 0; });
+  var monthSet = {};
+  PERF_CONFIRM.forEach(function (r) { if (r && r.month && (isAdmin() || r.leader === CURRENT_USER.name)) monthSet[r.month] = 1; });
+  var monthOpts = Object.keys(monthSet).sort().reverse().map(function (m) {
+    return '<option value="' + m + '"' + (m === ARCHIVE_MONTH ? ' selected' : '') + '>' + formatMonthLabel(m) + '</option>';
+  }).join('');
+  var cnt = { pending: 0, confirmed: 0, appealing: 0, ruled: 0 };
+  recs.forEach(function (r) { if (cnt[r.status] !== undefined) cnt[r.status]++; });
+
+  var html = '';
+  html += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 2px">';
+  html += '<div style="font-size:14px;font-weight:600;color:#1e293b">📋 绩效确认与申诉台账（历史归档）</div>';
+  html += '<span style="font-size:11px;color:#64748b">全部月份累积记录 · 按「月份+姓名」唯一归档 · 不随月份切换丢失</span>';
+  if (isAdmin()) html += '<span style="margin-left:auto"><button class="btn-minor" onclick="exportConfirmArchive()">⬇ 导出证据包 JSON</button></span>';
+  html += '</div>';
+  html += '<div class="arch-sum">共 ' + recs.length + ' 条　' +
+    '<span class="cs-confirmed">已确认 ' + (cnt.confirmed || 0) + '</span>' +
+    '<span class="cs-pending">待确认 ' + (cnt.pending || 0) + '</span>' +
+    '<span class="cs-appealing">申诉中 ' + (cnt.appealing || 0) + '</span>' +
+    '<span class="cs-ruled">已裁决 ' + (cnt.ruled || 0) + '</span></div>';
+  html += '<div class="arch-toolbar">' +
+    '月份 <select id="archiveMonthSel" onchange="setArchiveFilter()"><option value="all">全部月份</option>' + monthOpts + '</select>' +
+    '状态 <select id="archiveStatusSel" onchange="setArchiveFilter()"><option value="all"' + (ARCHIVE_STATUS === 'all' ? ' selected' : '') + '>全部状态</option>' +
+    '<option value="pending"' + (ARCHIVE_STATUS === 'pending' ? ' selected' : '') + '>待确认</option>' +
+    '<option value="confirmed"' + (ARCHIVE_STATUS === 'confirmed' ? ' selected' : '') + '>已确认</option>' +
+    '<option value="appealing"' + (ARCHIVE_STATUS === 'appealing' ? ' selected' : '') + '>申诉中</option>' +
+    '<option value="ruled"' + (ARCHIVE_STATUS === 'ruled' ? ' selected' : '') + '>已裁决</option></select>' +
+    '姓名 <input id="archiveKw" placeholder="搜索姓名…" value="' + escConfirmHtml(kw) + '" oninput="setArchiveFilter()">' +
+    '</div>';
+  if (!recs.length) {
+    html += '<div style="text-align:center;color:#94a3b8;padding:36px 10px;font-size:12px;border:1px dashed #e2e8f0;border-radius:8px">暂无符合条件的绩效确认/申诉记录。<br>成员完成结果确认或发起申诉后，记录会自动归档到这里（含时间戳与处理全过程原文），历月累积、随时可查可导出。</div>';
+    $("perfContent").innerHTML = html;
+    return;
+  }
+  html += '<table class="arch-table"><tr><th style="width:64px">月份</th><th style="width:70px">姓名</th><th style="width:88px">角色</th><th style="width:90px">区域</th><th style="width:78px">状态</th><th>关键节点</th></tr>';
+  recs.forEach(function (r) {
+    html += '<tr class="arch-row" onclick="toggleArchiveRow(this)">' +
+      '<td>' + r.month + '</td><td style="font-weight:600">' + escConfirmHtml(r.name) + '</td>' +
+      '<td style="color:#64748b">' + escConfirmHtml(r.role || '') + '</td>' +
+      '<td style="color:#64748b">' + escConfirmHtml(r.region || '') + '</td>' +
+      '<td><span class="cs-' + r.status + '" style="font-weight:600">' + CONFIRM_LABEL[r.status] + '</span></td>' +
+      '<td>' + archiveKeyNode(r) + '</td></tr>';
+    html += '<tr class="arch-detail" style="display:none"><td colspan="6">' + archiveDetailHtml(r) + '</td></tr>';
+  });
+  html += '</table>';
+  html += '<div style="color:#94a3b8;font-size:11px;margin-top:6px">点击任一行可展开完整处理时间线（含申诉理由、初审意见、裁决意见原文与全部时间戳）。</div>';
+  $("perfContent").innerHTML = html;
+}
+
+// 列表行：关键节点摘要
+function archiveKeyNode(r) {
+  if (r.status === 'confirmed') return '✓ 确认提交 ' + escConfirmHtml(r.confirmTime || '');
+  if (r.status === 'appealing' && r.appeal) {
+    var s = '申诉中 · ' + escConfirmHtml(r.appeal.items || '') + '（' + escConfirmHtml(r.appeal.submitTime || '') + '）';
+    return '<span style="color:#d93025">' + s + '</span>';
+  }
+  if (r.status === 'ruled' && r.finalRuling) {
+    return (r.finalRuling.adjust ? '<span style="color:#d93025;font-weight:600">裁决：调整原结果</span>' : '<span style="color:#1a8a3a;font-weight:600">裁决：维持原结果</span>') + '（' + escConfirmHtml(r.finalRuling.time || '') + '）';
+  }
+  return '<span style="color:#e08a00">等待本人确认</span>';
+}
+
+// 展开详情：完整处理时间线（证据链展示）
+function archiveDetailHtml(r) {
+  var h = '<div style="font-weight:600;color:#1e293b;margin-bottom:4px">' + formatMonthLabel(r.month) + ' · ' + escConfirmHtml(r.name) + '（' + escConfirmHtml(r.role || '') + (r.region ? ' · ' + escConfirmHtml(r.region) : '') + '）</div>';
+  h += '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">唯一键 ' + r.month + '|' + escConfirmHtml(r.name) + ' · 最近更新 ' + escConfirmHtml((r.updatedAt || '').replace('T', ' ').slice(0, 16)) + '（云端多端同步）</div>';
+  h += '<div class="arch-tl"><span class="arch-dot" style="background:#94a3b8"></span><div><b>评分结果送达本人</b><div style="color:#64748b">当月绩效评分锁定后推送给被考评人查看，进入 3 个工作日确认/申诉期；逾期未操作视为无异议</div></div></div>';
+  if (r.confirmTime) h += '<div class="arch-tl"><span class="arch-dot" style="background:#1a8a3a"></span><div><b>本人确认结果</b><div style="color:#64748b">' + escConfirmHtml(r.confirmTime) + ' 提交（已勾选知悉声明）</div></div></div>';
+  if (r.appeal && r.appeal.submitTime) {
+    h += '<div class="arch-tl"><span class="arch-dot" style="background:#d93025"></span><div><b>本人发起申诉</b><div style="color:#64748b">' + escConfirmHtml(r.appeal.submitTime) + ' · 异议指标：' + escConfirmHtml(r.appeal.items || '') + '</div><div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:6px 8px;margin-top:4px">申诉理由原文：' + escConfirmHtml(r.appeal.reason || '') + '</div></div></div>';
+  }
+  if (r.appeal && r.appeal.firstReview) {
+    h += '<div class="arch-tl"><span class="arch-dot" style="background:#1a73e8"></span><div><b>区域主管初审</b><div style="color:#64748b">' + escConfirmHtml(r.appeal.firstReview.by || '') + ' · ' + escConfirmHtml(r.appeal.firstReview.time || '') + '</div><div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:6px 8px;margin-top:4px">初审意见原文：' + escConfirmHtml(r.appeal.firstReview.comment || '') + '</div></div></div>';
+  }
+  if (r.finalRuling) {
+    h += '<div class="arch-tl"><span class="arch-dot" style="background:#6b4fd8"></span><div><b>管理员裁决：' + (r.finalRuling.adjust ? '调整原结果' : '维持原结果') + '</b><div style="color:#64748b">' + escConfirmHtml(r.finalRuling.time || '') + ' · 申诉期间暂按原结果执行，裁决后差额随最近一次工资补足或核减</div><div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:6px 8px;margin-top:4px">裁决意见原文：' + escConfirmHtml(r.finalRuling.comment || '') + '</div></div></div>';
+  }
+  return h;
+}
+function toggleArchiveRow(tr) {
+  var next = tr.nextElementSibling;
+  if (!next || (next.className || '').indexOf('arch-detail') < 0) return;
+  var show = next.style.display !== 'table-row';
+  next.style.display = show ? 'table-row' : 'none';
+  if (show) tr.classList.add('arch-row-open'); else tr.classList.remove('arch-row-open');
+}
+
+// 导出证据包 JSON（admin 导出全员 / leader 导出本区域；含全部原始字段，供存档/仲裁举证）
+function exportConfirmArchive() {
+  try {
+    var list = archiveVisibleRecs();
+    var data = { tool: 'workbench-perf-confirm-archive', exportedAt: new Date().toISOString(),
+      exportedBy: CURRENT_USER ? CURRENT_USER.name : '', scope: isAdmin() ? 'all' : 'myRegion', total: list.length, records: list };
+    var str = JSON.stringify(data, null, 2);
+    var blob = new Blob([str], { type: 'application/json' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
+    a.href = url;
+    a.download = '绩效确认与申诉台账_' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '.json';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 1000);
+    alert('已导出 ' + list.length + ' 条绩效确认/申诉记录（JSON 证据包，含全部时间戳、申诉理由、初审与裁决意见原文）。请妥善保存——审计或争议处理时可作为用人单位举证材料。');
+  } catch (e) { alert('导出失败：' + e.message); }
+}
+
+// 员工本人历史确认记录（只读，仅本人可见；跨月归档回看，无任何修改入口）
+function renderMyConfirmHistory() {
+  var mine = PERF_CONFIRM.filter(function (r) { return r && r.name === CURRENT_USER.name; });
+  if (!mine.length) return '';
+  mine.sort(function (a, b) { return b.month.localeCompare(a.month); });
+  var h = '<div style="margin-top:14px">';
+  h += '<div style="cursor:pointer;user-select:none;font-size:13px;font-weight:600;color:#1e293b;padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;display:flex;align-items:center;gap:8px" onclick="toggleMyConfirmHistory(this)">';
+  h += '<span class="my-h-arrow" style="font-size:10px;color:#64748b">▶</span> 📁 我的历史确认记录（' + mine.length + ' 条 · 仅本人可见）</div>';
+  h += '<div class="my-h-body" style="display:none;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;padding:2px 12px 10px">';
+  mine.forEach(function (r) {
+    var stColor = { pending: '#e08a00', confirmed: '#1a8a3a', appealing: '#d93025', ruled: '#6b4fd8' }[r.status] || '#94a3b8';
+    h += '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed #e2e8f0;align-items:flex-start">';
+    h += '<div style="width:72px;flex:none;font-weight:600;color:#1e293b;padding-top:2px">' + r.month + '</div>';
+    h += '<div style="flex:1;min-width:0">';
+    h += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + stColor + ';margin-right:6px"></span><b>' + CONFIRM_LABEL[r.status] + '</b>' +
+      (r.status === 'confirmed' && r.confirmTime ? ' <span style="color:#94a3b8;font-size:11px">' + escConfirmHtml(r.confirmTime) + ' 确认</span>' : '') +
+      (r.status === 'ruled' && r.finalRuling ? ' <span style="color:#94a3b8;font-size:11px">裁决：' + (r.finalRuling.adjust ? '调整' : '维持') + '（' + escConfirmHtml(r.finalRuling.time || '') + '）</span>' : '') +
+      '</div>';
+    if (r.appeal && r.appeal.submitTime) {
+      h += '<div style="background:#fef2f2;border-radius:6px;padding:5px 8px;margin-top:4px;font-size:11px;color:#7f1d1d">申诉（' + escConfirmHtml(r.appeal.items || '') + ' · ' + escConfirmHtml(r.appeal.submitTime) + '）：' + escConfirmHtml(r.appeal.reason || '') + '</div>';
+    }
+    if (r.appeal && r.appeal.firstReview) {
+      h += '<div style="color:#475569;font-size:11px;margin-top:3px">主管初审（' + escConfirmHtml(r.appeal.firstReview.by || '') + ' · ' + escConfirmHtml(r.appeal.firstReview.time || '') + '）：' + escConfirmHtml(r.appeal.firstReview.comment || '') + '</div>';
+    }
+    if (r.finalRuling) {
+      h += '<div style="color:#6b4fd8;font-size:11px;margin-top:3px">管理员裁决（' + escConfirmHtml(r.finalRuling.time || '') + '）：' + escConfirmHtml(r.finalRuling.comment || '') + '</div>';
+    }
+    h += '</div></div>';
+  });
+  h += '<div style="color:#94a3b8;font-size:11px;margin-top:6px">本列表为只读归档记录。如需对某月结果发起确认或申诉，请在绩效模块顶部切换到对应月份后操作。</div>';
+  h += '</div></div>';
+  return h;
+}
+function toggleMyConfirmHistory(header) {
+  var body = header.nextElementSibling;
+  if (!body) return;
+  var arrow = header.querySelector('.my-h-arrow');
+  var open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.textContent = open ? '▶' : '▼';
 }
 
 // 主观分本地备份导出：用户可以自己下载一份 JSON 文件，不依赖云端/网络，换设备/清缓存时「导入备份」恢复。
