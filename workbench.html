@@ -4845,7 +4845,7 @@ function moduleNoteLines(modKey) {  if (modKey==='marketing') return [
     '【回访列组·多次回访】同一用户反复回访时，按「回访时间1 / 回访1类型 / 回访1内容」填写第1次，第2次填「回访时间2 / 回访2类型 / 回访2内容」，依此类推（模板预留3组，需要更多组可自行在表尾按同样格式加列）。回访时间同样必须填完整「年-月-日」。导入后：每组回访各生成一条走访记录；「最近触达/走访类型/走访内容」自动取最新一组回访，无需重复填写。',
     '下单金额(元)：支持 50w=500000 元；导入后自动 ÷10000 显示为「万」。',
     '负责人：填对应运营人员。',
-    '必填：姓名、学校；其余可选。导入为「仅追加」（相同 姓名+学校 不会重复导入）。'
+    '必填：姓名、学校；其余可选。导入为「仅追加」（相同 姓名+学校 的新增记录不会重复导入）；已存在的用户若在回访列组里带了新回访，会自动按「日期+类型+内容」去重后合并进去，不用整表重填。'
   ];
 }
 
@@ -4907,7 +4907,7 @@ function handleModuleImportFile(modKey, input) {
           return;
         }
         var existing = {};
-        (sh.current ? sh.current() : []).forEach(function(p){ existing[sh.keyOf(p)] = true; });
+        (sh.current ? sh.current() : []).forEach(function(p){ existing[sh.keyOf(p)] = p; });
         for (var i = hidx+1; i < rows.length; i++) {
           var p = sh.build(rows[i], colMap, rows[hidx]);
           // === 逐行必填字段为空 → 记为「已丢弃」并在预览标红 ===
@@ -4920,7 +4920,21 @@ function handleModuleImportFile(modKey, input) {
           var vErr = sh.validate ? sh.validate(p) : null;
           if (vErr) { dropped.push({ row: i+1, label: (p.school||p.name||p.theme||p.mode||''), reason: vErr }); continue; }
           if (!p || !((p.school||'') + (p.name||'') + (p.theme||''))) { dropped.push({ row: i+1, label: '', reason: '关键字段（学校/姓名/主题）全空' }); continue; }
-          plan.push({ p: p, exists: !!existing[sh.keyOf(p)] });
+          var item = { p: p, exists: !!existing[sh.keyOf(p)] };
+          // === 用户池特例：重复记录（同姓名+学校）带回访列组时不整行跳过，而是合并新增的回访 ===
+          // 场景：下个月同一采购人加了「回访4」再导一次 → 旧回访去重保留，新回访追加，最新一组回写主表字段
+          if (item.exists && modKey === 'userpool' && p.visits && p.visits.length) {
+            var exRec = existing[sh.keyOf(p)];
+            var seenKeys = {};
+            (exRec && exRec.visits ? exRec.visits : []).forEach(function(vs){
+              seenKeys[(vs.date||'')+'|'+(vs.type||'')+'|'+(vs.content||'')] = true;
+            });
+            var newVs = p.visits.filter(function(vs){
+              return !seenKeys[(vs.date||'')+'|'+(vs.type||'')+'|'+(vs.content||'')];
+            });
+            if (newVs.length) item.visitNew = newVs.length;
+          }
+          plan.push(item);
         }
       });
       window.__moduleImportPlan = { modKey: modKey, plan: plan, skipped: skipped, dropped: dropped };
@@ -4935,12 +4949,15 @@ function handleModuleImportFile(modKey, input) {
 function showModuleImportModal(modKey, plan, skipped, dropped) {
   var tpl = MODULE_TEMPLATES[modKey];
   var newItems = plan.filter(function(x){return !x.exists;});
-  var dupItems = plan.filter(function(x){return x.exists;});
+  var dupItems = plan.filter(function(x){return x.exists && !x.visitNew;});
+  var mergeItems = plan.filter(function(x){return x.exists && x.visitNew;});
   var html = '<div style="font-size:13px;line-height:1.9">';
-  if (newItems.length === 0) {
+  if (newItems.length === 0 && mergeItems.length === 0) {
     html += '<div style="background:#fdecea;color:#c0392b;border:1px solid #f5c6cb;border-radius:6px;padding:8px 12px;margin-bottom:8px"><b>⚠ 本次没有可新增的数据</b>，请检查下方问题后重新导入。下方「已丢弃」行即为未成功导入的数据。</div>';
   } else {
-    html += '本次将导入 <b style="color:#22c55e">'+newItems.length+'</b> 条新记录，跳过 <b style="color:#999">'+dupItems.length+'</b> 条已存在记录。<br>';
+    html += '本次将导入 <b style="color:#22c55e">'+newItems.length+'</b> 条新记录'
+      + (mergeItems.length ? ('，为 <b style="color:#d97706">'+mergeItems.length+'</b> 条已存在用户合并新增回访 <b style="color:#d97706">'+mergeItems.reduce(function(s,x){return s+x.visitNew;},0)+'</b> 次') : '')
+      + '，跳过 <b style="color:#999">'+dupItems.length+'</b> 条已存在记录。<br>';
   }
   if (skipped.length) html += '<div style="color:#c0392b;margin:4px 0">⚠ 跳过工作表：'+esc(skipped.join('；'))+'</div>';
   if (dropped.length) {
@@ -4958,28 +4975,82 @@ function showModuleImportModal(modKey, plan, skipped, dropped) {
     plan.slice(0,50).forEach(function(x, idx){
       var p = x.p;
       var label = modKey==='marketing' ? (p.school+' / '+p.theme) : modKey==='campus' ? (p.school+' / '+p.mode) : (p.name+' / '+p.school);
-      html += '<tr><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+ (idx+1) +'</td><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+esc(label||'')+'</td><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+(x.exists?'<span style="color:#999">已存在·跳过</span>':'<span style="color:#22c55e">新增</span>')+'</td></tr>';
+      var status = x.exists
+        ? (x.visitNew ? '<span style="color:#d97706">已存在·合并新增回访 '+x.visitNew+' 次</span>' : '<span style="color:#999">已存在·跳过</span>')
+        : '<span style="color:#22c55e">新增</span>';
+      html += '<tr><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+ (idx+1) +'</td><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+esc(label||'')+'</td><td style="padding:4px 8px;border-bottom:1px solid #f0f0f0">'+status+'</td></tr>';
     });
     html += '</table></div>';
   }
-  html += '<div style="font-size:12px;color:#555;margin-top:6px">导入为「仅追加」，不覆盖已有数据。'+(newItems.length?'确认后写入本机并刷新看板。':'')+'</div></div>';
+  html += '<div style="font-size:12px;color:#555;margin-top:6px">导入为「仅追加」，不覆盖已有数据'
+    + (mergeItems.length ? '；已存在用户若带回访列组，将按「日期+类型+内容」去重后合并新回访并刷新最新一次走访' : '')
+    + '。'+((newItems.length||mergeItems.length)?'确认后写入本机并刷新看板。':'')+'</div></div>';
   $('moduleImportModalBody').innerHTML = html;
   var btn = $('moduleImportConfirmBtn');
-  if (btn) btn.textContent = newItems.length ? '确认导入' : '关闭';
+  if (btn) btn.textContent = (newItems.length||mergeItems.length) ? '确认导入' : '关闭';
   $('moduleImportModal').style.display = 'flex';
 }
 function closeModuleImportModal() {
   var m = $('moduleImportModal'); if (m) m.style.display = 'none';
 }
+// 用户池「重复记录带回访」合并：新回访去重追加（同日期+类型+内容视为同一次），重排升序，最新一组回写主表走访字段
+function mergeUserPoolVisitGroups() {
+  var st = window.__moduleImportPlan;
+  if (!st || st.modKey !== 'userpool') return { users: 0, visits: 0 };
+  var keyOf = MODULE_TEMPLATES.userpool.sheets[0].keyOf;
+  var byKey = {};
+  USER_POOL_CRM.forEach(function(u){ byKey[keyOf(u)] = u; });
+  var mergedUsers = 0, mergedVisits = 0;
+  st.plan.forEach(function(x){
+    if (!x.exists || !x.visitNew || !x.p || !x.p.visits) return;
+    var ex = byKey[keyOf(x.p)];
+    if (!ex) return;
+    var seen = {};
+    (ex.visits = ex.visits || []).forEach(function(vs){
+      seen[(vs.date||'')+'|'+(vs.type||'')+'|'+(vs.content||'')] = true;
+    });
+    var added = 0;
+    x.p.visits.forEach(function(vs){
+      var k = (vs.date||'')+'|'+(vs.type||'')+'|'+(vs.content||'');
+      if (seen[k]) return;
+      seen[k] = true;
+      ex.visits.push({ date: vs.date||'', type: vs.type||'', content: vs.content||'' });
+      added++; mergedVisits++;
+    });
+    if (!added) return; // 实际没有新回访（如重复触发），不计入合并
+    if (ex.visits.length) {
+      ex.visits.sort(function(a,b){
+        var da = a.date||'', db = b.date||'';
+        if (da === db) return 0;
+        if (!da) return -1;
+        if (!db) return 1;
+        return da < db ? -1 : 1;
+      });
+      var last = ex.visits[ex.visits.length-1];
+      ex.lastTouch = last.date;
+      ex.visitType = last.type;
+      ex.visitContent = last.content;
+    }
+    mergedUsers++;
+  });
+  return { users: mergedUsers, visits: mergedVisits };
+}
 function confirmModuleImport() {
   var st = window.__moduleImportPlan;
   if (!st) { closeModuleImportModal(); return; }
   var newItems = st.plan.filter(function(x){return !x.exists;}).map(function(x){return x.p;});
-  if (newItems.length === 0) { closeModuleImportModal(); return; }
+  var hasMerge = st.plan.some(function(x){return x.exists && x.visitNew;});
+  if (newItems.length === 0 && !hasMerge) { closeModuleImportModal(); return; }
   var tpl = MODULE_TEMPLATES[st.modKey];
   tpl.afterAppend(newItems);
+  // 新增记录先落库，再对已存在用户执行回访合并（合并依赖 afterAppend 已写入的 USER_POOL_CRM）
+  var mg = mergeUserPoolVisitGroups();
+  if (mg.users > 0) { saveUserPool(); fillUserPoolFilterOptions(); renderUpSubTab(); }
   closeModuleImportModal();
-  alert('导入完成：新增 '+newItems.length+' 条'+(st.skipped.length?('；跳过工作表：'+st.skipped.join('；')):''));
+  var msg = '导入完成：新增 '+newItems.length+' 条';
+  if (mg.users > 0) msg += '；为 '+mg.users+' 位已存在用户合并新增回访 '+mg.visits+' 次';
+  if (st.skipped.length) msg += '；跳过工作表：'+st.skipped.join('；');
+  alert(msg);
 }
 
 function openAssistModal() {
