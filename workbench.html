@@ -3193,7 +3193,7 @@ function renderConfirmArchive() {
   html += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 2px">';
   html += '<div style="font-size:14px;font-weight:600;color:#1e293b">📋 绩效确认与申诉台账（历史归档）</div>';
   html += '<span style="font-size:11px;color:#64748b">全部月份累积记录 · 按「月份+姓名」唯一归档 · 不随月份切换丢失</span>';
-  if (isAdmin()) html += '<span style="margin-left:auto"><button class="btn-minor" onclick="exportConfirmArchive()">⬇ 导出证据包 JSON</button></span>';
+  if (isAdmin()) html += '<span style="margin-left:auto"><button class="btn-minor" onclick="exportConfirmArchive()">⬇ 导出存档 JSON</button></span>';
   html += '</div>';
   html += '<div class="arch-sum">共 ' + recs.length + ' 条　' +
     '<span class="cs-confirmed">已确认 ' + (cnt.confirmed || 0) + '</span>' +
@@ -3242,7 +3242,7 @@ function archiveKeyNode(r) {
   return '<span style="color:#e08a00">等待本人确认</span>';
 }
 
-// 展开详情：完整处理时间线（证据链展示）
+// 展开详情：完整处理时间线（全程留痕展示）
 function archiveDetailHtml(r) {
   var h = '<div style="font-weight:600;color:#1e293b;margin-bottom:4px">' + formatMonthLabel(r.month) + ' · ' + escConfirmHtml(r.name) + '（' + escConfirmHtml(r.role || '') + (r.region ? ' · ' + escConfirmHtml(r.region) : '') + '）</div>';
   h += '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">唯一键 ' + r.month + '|' + escConfirmHtml(r.name) + ' · 最近更新 ' + escConfirmHtml((r.updatedAt || '').replace('T', ' ').slice(0, 16)) + '（云端多端同步）</div>';
@@ -3267,7 +3267,7 @@ function toggleArchiveRow(tr) {
   if (show) tr.classList.add('arch-row-open'); else tr.classList.remove('arch-row-open');
 }
 
-// 导出证据包 JSON（admin 导出全员 / leader 导出本区域；含全部原始字段，供存档/仲裁举证）
+// 导出存档 JSON（admin 导出全员 / leader 导出本区域；含全部原始字段，供归档备案查询）
 function exportConfirmArchive() {
   try {
     var list = archiveVisibleRecs();
@@ -3282,7 +3282,7 @@ function exportConfirmArchive() {
     a.download = '绩效确认与申诉台账_' + d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '.json';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
     setTimeout(function () { try { URL.revokeObjectURL(url); } catch (e) {} }, 1000);
-    alert('已导出 ' + list.length + ' 条绩效确认/申诉记录（JSON 证据包，含全部时间戳、申诉理由、初审与裁决意见原文）。请妥善保存——审计或争议处理时可作为用人单位举证材料。');
+    alert('已导出 ' + list.length + ' 条绩效确认/申诉记录（JSON 存档，含全部时间戳、申诉理由、初审与裁决意见原文）。请妥善保存，供日后查询与归档备案。');
   } catch (e) { alert('导出失败：' + e.message); }
 }
 
