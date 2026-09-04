@@ -2126,13 +2126,13 @@ function calcObjectiveScore(p, role) {
       var settleResult = calcItemScore(avgSrR, 0.85, 15);
       s += settleResult.score;
       var srRawRatio = avgSrR / 0.85;
-      var srMain = "项目均值 "+(avgSrR*100).toFixed(1)+"%（"+srNums.length+"项目" + (unlinkedCntR > 0 ? "，含未对接" + unlinkedCntR + "项按30%计" : "") + "）｜ 完成率="+(avgSrR*100).toFixed(1)+"%÷85%="+_fpct(srRawRatio);
+      var srMain = "项目均值 "+(avgSrR*100).toFixed(1)+"%（"+srNums.length+"项目" + (unlinkedCntR > 0 ? "，含未对接" + unlinkedCntR + "项按30%完成率计（等效结算率85%×30%=25.5%）" : "") + "）｜ 完成率="+(avgSrR*100).toFixed(1)+"%÷85%="+_fpct(srRawRatio);
       if(srRawRatio < 0.3) srMain += "（保底30%）";
       else if(srRawRatio > 1.2) srMain += "（封顶120%）";
       var srPerLine = regionPeople.map(function(pp){
         var raw = parseFloat(pp.settle_rate);
         if(!isNaN(raw)) return (pp.school||pp.name)+" "+(raw*100).toFixed(0)+"%";
-        return (pp.school||pp.name)+" 未对接财务→按30%计";
+        return (pp.school||pp.name)+" 未对接财务→按30%完成率计（等效结算率25.5%）";
       }).join("、");
       details.push({name:"②区域项目结算率", projCount:srNums.length,
         ratio:settleResult.ratio, score:settleResult.score, max:15, target:"85%",
@@ -2211,15 +2211,15 @@ function calcObjectiveScore(p, role) {
       var avgSrM = srValsM.reduce(function(a,b){return a+b;},0)/srValsM.length;
       var stResultM = calcItemScore(avgSrM, 0.85, 15);
       s += stResultM.score;
-      var stMainM = "项目均值 "+(avgSrM*100).toFixed(1)+"%（"+srValsM.length+"项目" + (unlinkedM > 0 ? "，含未对接" + unlinkedM + "项按30%/酌情计" : "") + "）｜ 完成率="+(avgSrM*100).toFixed(1)+"%÷85%="+_fpct(avgSrM/0.85);
+      var stMainM = "项目均值 "+(avgSrM*100).toFixed(1)+"%（"+srValsM.length+"项目" + (unlinkedM > 0 ? "，含未对接" + unlinkedM + "项按30%完成率/酌情计（等效结算率=85%×完成率，保底项=25.5%）" : "") + "）｜ 完成率="+(avgSrM*100).toFixed(1)+"%÷85%="+_fpct(avgSrM/0.85);
       if(avgSrM/0.85 < 0.3) stMainM += "（保底30%）";
       else if(avgSrM/0.85 > 1.2) stMainM += "（封顶120%）";
       var stPerM = projsM.map(function(pr){
         var raw = parseFloat(pr.settle_rate);
         if(!isNaN(raw)) { if (raw > 0) return (pr.school||pr.name)+" "+(raw*100).toFixed(0)+"%"; return null; }
         var adj = getSettleAdj(perfMonth, pr.name, pr.school);
-        if (adj && isFinite(adj.ratio)) return (pr.school||pr.name)+" 未对接财务→主管酌情"+(adj.ratio*100).toFixed(0)+"%";
-        return (pr.school||pr.name)+" 未对接财务→保底30%";
+        if (adj && isFinite(adj.ratio)) return (pr.school||pr.name)+" 未对接财务→主管酌情"+(adj.ratio*100).toFixed(0)+"%完成率（等效结算率"+(0.85*adj.ratio*100).toFixed(1)+"%）";
+        return (pr.school||pr.name)+" 未对接财务→保底30%完成率（等效结算率25.5%）";
       }).filter(function(x){ return x !== null; }).join("、");
       details.push({name:"结算率", projCount:srValsM.length,
         ratio:stResultM.ratio, score:stResultM.score, max:15, target:"85%",
@@ -2292,15 +2292,15 @@ function calcObjectiveScore(p, role) {
       var avgSSr = sSrVals.reduce(function(a,b){return a+b;},0)/sSrVals.length;
       var seResult = calcItemScore(avgSSr, 0.85, 10);
       s += seResult.score;
-      var stMainS = "项目均值 "+(avgSSr*100).toFixed(1)+"%（"+sSrVals.length+"项目" + (unlinkedS > 0 ? "，含未对接" + unlinkedS + "项按30%/酌情计" : "") + "）｜ 完成率="+(avgSSr*100).toFixed(1)+"%÷85%="+_fpct(avgSSr/0.85);
+      var stMainS = "项目均值 "+(avgSSr*100).toFixed(1)+"%（"+sSrVals.length+"项目" + (unlinkedS > 0 ? "，含未对接" + unlinkedS + "项按30%完成率/酌情计（等效结算率=85%×完成率，保底项=25.5%）" : "") + "）｜ 完成率="+(avgSSr*100).toFixed(1)+"%÷85%="+_fpct(avgSSr/0.85);
       if(avgSSr/0.85 < 0.3) stMainS += "（保底30%）";
       else if(avgSSr/0.85 > 1.2) stMainS += "（封顶120%）";
       var stPerS = projsS.map(function(pr){
         var raw = parseFloat(pr.settle_rate);
         if(!isNaN(raw)) { if (raw > 0) return (pr.school||pr.name)+" "+(raw*100).toFixed(0)+"%"; return null; }
         var adj = getSettleAdj(perfMonth, pr.name, pr.school);
-        if (adj && isFinite(adj.ratio)) return (pr.school||pr.name)+" 未对接财务→主管酌情"+(adj.ratio*100).toFixed(0)+"%";
-        return (pr.school||pr.name)+" 未对接财务→保底30%";
+        if (adj && isFinite(adj.ratio)) return (pr.school||pr.name)+" 未对接财务→主管酌情"+(adj.ratio*100).toFixed(0)+"%完成率（等效结算率"+(0.85*adj.ratio*100).toFixed(1)+"%）";
+        return (pr.school||pr.name)+" 未对接财务→保底30%完成率（等效结算率25.5%）";
       }).filter(function(x){ return x !== null; }).join("、");
       details.push({name:"结算率", projCount:sSrVals.length,
         ratio:seResult.ratio, score:seResult.score, max:10, target:"85%",
