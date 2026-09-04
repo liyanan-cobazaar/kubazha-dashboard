@@ -893,12 +893,13 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
               <thead><tr><th>环节</th><th>说明</th><th>时限</th></tr></thead>
               <tbody>
                 <tr><td>① 结果确认</td><td>被考评人（区域主管 / 营销负责人 / 运营专员）在本人绩效页阅读结果及评分依据（含计算过程）后，勾选确认声明并提交。<b>前置条件：评分须先完成</b>——管理员给区域主管评完主观分、区域主管给本区域运营专员/营销负责人评完主观分后，被评分本人的确认与申诉入口才会开放；评分未完成前无法确认或申诉</td><td>评分送达后 3 个工作日内</td></tr>
-                <tr><td>② 提出申诉</td><td>对结果有异议的，勾选异议指标、填写理由及依据后提交申诉（在确认区点「对结果有异议」）</td><td>同上，3 个工作日内</td></tr>
-                <tr><td>③ 区域主管初审</td><td>对申诉内容回应采纳或维持，写明理由</td><td>2 个工作日内</td></tr>
-                <tr><td>④ 管理员复核</td><td>最终裁决：维持原结果 或 调整结果，裁决意见全程留痕、全员可查</td><td>3 个工作日内</td></tr>
+                <tr><td>② 提出申诉</td><td>对结果有异议的，勾选异议指标、填写理由及依据后提交申诉（在确认区点「对结果有异议」）。<b>管理员裁决前，申诉人可随时撤销申诉</b>：撤销后回到「待确认」状态，可重新确认或再次申诉，撤销操作及原申诉内容全程留痕</td><td>同上，3 个工作日内</td></tr>
+                <tr><td>③ 区域主管初审</td><td>主管在「确认与申诉」页顶部的<b>申诉待办处理区</b>（或员工绩效卡内）选择「审核通过（转管理员复核）」或「驳回申诉」，并填写理由。<b>主管驳回不直接终结申诉</b>——员工申诉权不由主管单方面终结，驳回后连同理由转管理员终裁</td><td>2 个工作日内</td></tr>
+                <tr><td>④ 管理员复核</td><td>最终裁决：维持原结果 或 调整结果，裁决意见全程留痕、全员可查。裁决有误需补充材料时，管理员可在「确认与申诉」页展开记录，<b>撤销裁决</b>退回「待管理员复核」重新裁决（原裁决留痕）；如需整个流程作废重来，可执行<b>彻底回滚</b>（超级权限）回到「待确认」状态，全部历史留痕、员工可见流程曾被回滚</td><td>3 个工作日内</td></tr>
               </tbody>
             </table>
             <div class="rule-note">
+              <strong>状态查看：</strong>申诉处理进度全程可查——员工绩效卡与「我的历史确认记录」中实时显示「申诉中 · 待××初审 / 待管理员复核 / 已裁决·维持（或调整）」；区域主管、管理员在「确认与申诉」页集中查看待办与全部历史档案。<br>
               <strong>确认与申诉效力：</strong>逾期未确认且未提出申诉的，视为对当月考核结果无异议。申诉期间当月考核结果暂按原结果执行；裁决后如需调整，差额随最近一次工资发放补足或核减。确认记录（姓名、时间、当月考核版本）由系统自动留存。<br>
               <strong>评分顺序与确认门槛：</strong>先由管理员完成区域主管的主观评分，再由区域主管完成本区域运营专员/营销负责人的主观评分；两级评分均完成后，被评分本人方可确认结果或提出申诉，3 个工作日确认期自本人评分送达后起算。<br>
               <strong>跨区域人员双评（仅郭旺）：</strong>郭旺项目横跨东北西北、天津两个区域，其主观分由两位区域负责人（高欢庆、刘金玲）各自填写，<b>二人均提交后按平均值计分</b>；任一人未填写视为评分未完成，郭旺暂不能确认或申诉（自2026年8月起执行，此前月份按原单人评分口径）。
@@ -3200,7 +3201,7 @@ function initPerformance() {
     updatePerformanceContent();
     return;
   }
-  var tabs = [{"id":"all","name":"全部"},{"id":"leaders","name":"区域主管"},{"id":"managers","name":"营销负责人"},{"id":"staff","name":"运营专员"},{"id":"ranking","name":"绩效排名"},{"id":"evalChart","name":"绩效评估"},{"id":"confirmArchive","name":"确认台账"}];
+  var tabs = [{"id":"all","name":"全部"},{"id":"leaders","name":"区域主管"},{"id":"managers","name":"营销负责人"},{"id":"staff","name":"运营专员"},{"id":"ranking","name":"绩效排名"},{"id":"evalChart","name":"绩效评估"},{"id":"confirmArchive","name":"确认与申诉"}];
   $("perfTabs").innerHTML = tabs.map(function(t){
     return '<button class="tab-btn'+(t.id===currentViewMode?' active':'')+'" data-tab="'+t.id+'" onclick="switchPerfTab(this.dataset.tab)">'+t.name+'</button>';
   }).join("");
@@ -3372,6 +3373,24 @@ function updateScore(person, fieldKey, value, prole, pleader, evaluator) {
 var CONFIRM_LABEL = { pending: '待确认', confirmed: '已确认', appealing: '申诉中', ruled: '已裁决' };
 var CONFIRM_BADGE = { pending: '🟠', confirmed: '🟢', appealing: '🔴', ruled: '🟣' };
 
+// 细化状态文案（2026-09-05 用户要求：申诉中要能看出「待谁审核」）
+function confirmStatusText(rec) {
+  if (!rec) return '待确认';
+  if (rec.status === 'appealing') {
+    if (rec.finalRulingWithdrawnNote && !rec.appeal) return '申诉中'; // 兜底
+    if (rec.appeal && rec.appeal.firstReview) {
+      return rec.appeal.firstReview.conclusion === 'reject'
+        ? '申诉中 · 主管已驳回 · 待管理员复核'
+        : '申诉中 · 待管理员复核';
+    }
+    return '申诉中 · 待' + (rec.leader || '区域主管') + '初审';
+  }
+  if (rec.status === 'ruled' && rec.finalRuling) {
+    return rec.finalRuling.adjust ? '已裁决 · 调整原结果' : '已裁决 · 维持原结果';
+  }
+  return CONFIRM_LABEL[rec.status];
+}
+
 function escConfirmHtml(s) {
   return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
@@ -3461,30 +3480,34 @@ function submitPerfAppeal(name, btn) {
   saveConfirmRec(rec);
   alert('申诉已提交。流转：区域主管初审（2个工作日内）→ 管理员复核（3个工作日内），结果将在本页显示。\n申诉期间当月绩效暂按原结果执行；裁决后如需调整，差额随最近一次工资补足或核减。');
 }
-// 区域主管：填写初审意见（仅本区域成员、申诉中）
-function saveFirstReview(name, btn) {
-  if (!isLeader()) { alert('仅区域主管可填写初审意见'); return; }
+// 区域主管：初审（仅本区域成员、申诉中）。conclusion: 'pass' 审核通过转管理员复核 / 'reject' 驳回申诉（仍转管理员终裁，主管不单方面终结员工申诉权）
+function saveFirstReview(name, btn, conclusion, month) {
+  if (!isLeader() && !isAdmin()) { alert('仅区域主管/管理员可填写初审意见'); return; }
+  var m = month || perfMonth;
   var form = btn.parentNode;
   var comment = '';
   var ta = form.querySelector('textarea');
+  if (!ta && form.parentNode) ta = form.parentNode.querySelector('textarea'); // 按钮在 .confirm-actions 内层时往外层找
   if (ta) comment = ta.value.trim();
-  if (!comment) { alert('请填写初审意见（写明采纳或维持，及理由）'); return; }
-  var rec = getConfirmRec(perfMonth, name);
+  if (!comment) { alert('请填写初审意见（' + (conclusion === 'reject' ? '驳回理由' : '写明采纳或维持，及理由') + '）'); return; }
+  var rec = getConfirmRec(m, name);
   if (!rec || rec.status !== 'appealing') { alert('该成员当前没有申诉中的记录'); return; }
   if (!rec.appeal) rec.appeal = {};
-  rec.appeal.firstReview = { by: CURRENT_USER.name, time: nowConfirmStr(), comment: comment };
+  if (conclusion === 'reject' && !confirm('确认驳回该申诉？\n驳回后申诉将连同驳回理由一起转管理员终裁（员工申诉不由主管单方面终结），管理员最终裁决维持或调整。')) return;
+  rec.appeal.firstReview = { by: CURRENT_USER.name, time: nowConfirmStr(), comment: comment, conclusion: conclusion === 'reject' ? 'reject' : 'pass' };
   rec.updatedAt = new Date().toISOString();
   saveConfirmRec(rec);
 }
 // 管理员：最终裁决（维持 / 调整）
-function submitPerfRuling(name, btn, adjust) {
+function submitPerfRuling(name, btn, adjust, month) {
   if (!isAdmin()) { alert('仅管理员可裁决'); return; }
+  var m = month || perfMonth;
   var form = btn.parentNode.parentNode;
   var comment = '';
   var ta = form.querySelector('textarea');
   if (ta) comment = ta.value.trim();
   if (!comment) { alert('请填写裁决意见'); return; }
-  var rec = getConfirmRec(perfMonth, name);
+  var rec = getConfirmRec(m, name);
   if (!rec || rec.status !== 'appealing') { alert('该人员当前没有申诉中的记录'); return; }
   if (!confirm(adjust ? '确认「调整原结果」？请同步修正相应评分（主观分可直接修改，客观分需修正月度数据后自动重算）。' : '确认「维持原结果」？')) return;
   rec.status = 'ruled';
@@ -3493,24 +3516,91 @@ function submitPerfRuling(name, btn, adjust) {
   saveConfirmRec(rec);
 }
 
+// 员工本人：撤销申诉（复核流程未结束前可撤，全程留痕，2026-09-05 用户要求）
+function withdrawPerfAppeal(name, month) {
+  if (!CURRENT_USER || CURRENT_USER.name !== name || isAdmin()) { alert('仅申诉人本人可撤销申诉'); return; }
+  var m = month || perfMonth;
+  var rec = getConfirmRec(m, name);
+  if (!rec) { alert('当前没有申诉记录'); return; }
+  if (rec.status === 'ruled' || rec.finalRuling) { alert('管理员已完成裁决，申诉流程已结束，无法撤销。'); return; }
+  if (rec.status !== 'appealing') { alert('当前没有申诉中的记录'); return; }
+  var reason = prompt('确认撤销本次申诉？\n撤销后回到「待确认」状态，您可重新确认结果或再次发起申诉。\n可填写撤销原因（选填，将留痕）：', '');
+  if (reason === null) return; // 取消
+  if (!rec.appeal) rec.appeal = {};
+  if (!rec.history) rec.history = [];
+  rec.history.push({ type: 'appeal_withdrawn', time: nowConfirmStr(), by: name,
+    note: '申诉人本人撤销申诉' + (reason ? '：' + reason : '（未填原因）'),
+    items: rec.appeal.items || '', reason: rec.appeal.reason || '', submitTime: rec.appeal.submitTime || '',
+    firstReview: rec.appeal.firstReview || null });
+  rec.appeal = null;
+  rec.status = 'pending';
+  rec.updatedAt = new Date().toISOString();
+  saveConfirmRec(rec);
+  alert('申诉已撤销，回到「待确认」状态。撤销操作已留痕（原申诉内容与初审意见存入历史，管理员可在台账中查看）。');
+}
+
+// 管理员：撤销裁决（裁决意见有误/需补充材料时，撤回本次裁决，回到「申诉中·待管理员复核」重新裁决）
+function revokePerfRuling(month, name) {
+  if (!isAdmin()) { alert('仅管理员可撤销裁决'); return; }
+  var rec = getConfirmRec(month, name);
+  if (!rec || rec.status !== 'ruled' || !rec.finalRuling) { alert('该人员当前没有已裁决的记录'); return; }
+  if (!confirm('确认撤销本次裁决？\n撤销后申诉回到「申诉中 · 待管理员复核」，您可补充材料后重新裁决。\n（原裁决意见将留痕保存，员工可见「裁决已被撤销、待重新裁决」）')) return;
+  if (!rec.history) rec.history = [];
+  rec.history.push({ type: 'ruling_revoked', time: nowConfirmStr(), by: CURRENT_USER.name,
+    note: '管理员撤销裁决，申诉退回复核', ruling: rec.finalRuling });
+  rec.finalRuling = null;
+  rec.status = 'appealing';
+  rec.updatedAt = new Date().toISOString();
+  saveConfirmRec(rec);
+  alert('已撤销裁决，申诉回到「申诉中 · 待管理员复核」。（本次撤销已留痕）');
+}
+
+// 管理员：彻底回滚（超级权限：整个确认/申诉流程作废，回到「待确认」，历史全留痕）
+function resetPerfFlow(month, name) {
+  if (!isAdmin()) { alert('仅管理员可执行彻底回滚'); return; }
+  var rec = getConfirmRec(month, name);
+  if (!rec) { alert('未找到该人员的确认记录'); return; }
+  if (rec.status === 'pending' && !rec.appeal && !rec.confirmTime && !(rec.history || []).length) { alert('该记录已是初始「待确认」状态，无需回滚'); return; }
+  var what = [];
+  if (rec.confirmTime) what.push('本人确认');
+  if (rec.appeal && rec.appeal.submitTime) what.push('申诉');
+  if (rec.finalRuling) what.push('裁决');
+  if (!confirm('⚠ 彻底回滚（超级权限）\n\n将把 ' + formatMonthLabel(month) + ' ' + name + ' 的「' + (what.join('、') || '流程状态') + '」全部作废，回到「待确认」状态，由员工重新确认或重新申诉。\n所有历史（确认、申诉、初审、裁决、撤销）将完整留痕，员工可见流程曾被回滚。\n\n确认执行？')) return;
+  if (!rec.history) rec.history = [];
+  rec.history.push({ type: 'flow_reset', time: nowConfirmStr(), by: CURRENT_USER.name,
+    note: '管理员彻底回滚，流程作废回到待确认', fromStatus: rec.status,
+    confirmTime: rec.confirmTime || null, appeal: rec.appeal || null, finalRuling: rec.finalRuling || null });
+  rec.confirmTime = null;
+  rec.appeal = null;
+  rec.finalRuling = null;
+  rec.status = 'pending';
+  rec.updatedAt = new Date().toISOString();
+  saveConfirmRec(rec);
+  alert('已彻底回滚到「待确认」状态。（回滚前的全部记录已留痕）');
+}
+
 // 确认状态汇总条（admin/leader 可见）
 function renderConfirmSummaryBar(list) {
   if (!list || !list.length) return '';
   var cnt = { pending: 0, confirmed: 0, appealing: 0, ruled: 0 };
-  var unscored = 0;
+  var unscored = 0, waitLeader = 0, waitAdmin = 0;
   list.forEach(function (p) {
     var rec = getConfirmRec(perfMonth, p.name);
     cnt[rec && cnt[rec.status] !== undefined ? rec.status : 'pending']++;
     if (!subjScoreComplete(p.name, p.role)) unscored++;
+    if (rec && rec.status === 'appealing') {
+      if (rec.appeal && rec.appeal.firstReview) waitAdmin++; else waitLeader++;
+    }
   });
   return '<div class="confirm-sumbar">📋 <b>' + formatMonthLabel(perfMonth) + ' 绩效确认进度</b>' +
     '<span>共 ' + list.length + ' 人</span>' +
     '<span class="cs-confirmed">已确认 ' + cnt.confirmed + '</span>' +
     '<span class="cs-pending">待确认 ' + cnt.pending + '</span>' +
-    '<span class="cs-appealing">申诉中 ' + cnt.appealing + '</span>' +
+    '<span class="cs-appealing">申诉中 ' + cnt.appealing + (cnt.appealing ? '（待初审 ' + waitLeader + ' · 待复核 ' + waitAdmin + '）' : '') + '</span>' +
     '<span class="cs-ruled">已裁决 ' + cnt.ruled + '</span>' +
     (unscored > 0 ? '<span style="color:#e08a00;font-weight:600">✍ 主观分未评完 ' + unscored + ' 人（未评完者暂不能确认/申诉）</span>' : '') +
-    (isAdmin() && cnt.appealing > 0 ? '<span style="color:#d93025;font-weight:600">⚠ 有 ' + cnt.appealing + ' 人申诉待复核</span>' : '') +
+    (isLeader() && waitLeader > 0 ? '<span style="color:#d93025;font-weight:600">⚠ 有 ' + waitLeader + ' 人申诉待您初审</span>' : '') +
+    (isAdmin() && (waitLeader + waitAdmin) > 0 ? '<span style="color:#d93025;font-weight:600">⚠ 申诉待处理：待初审 ' + waitLeader + ' · 待复核 ' + waitAdmin + '</span>' : '') +
     '</div>';
 }
 
@@ -3543,7 +3633,7 @@ function renderConfirmArea(p) {
   var nm = escConfirmJs(p.name);
 
   var html = '<div class="confirm-box">';
-  html += '<div class="confirm-status cs-' + st + '">' + CONFIRM_BADGE[st] + ' 绩效确认状态：' + CONFIRM_LABEL[st] +
+  html += '<div class="confirm-status cs-' + st + '">' + CONFIRM_BADGE[st] + ' 绩效确认状态：' + confirmStatusText(rec) +
     (st === 'confirmed' && rec.confirmTime ? '（' + escConfirmHtml(rec.confirmTime) + '）' : '') + '</div>';
 
   // 本人未确认：勾选声明 + 确认/申诉按钮 + 隐藏申诉表单
@@ -3571,14 +3661,23 @@ function renderConfirmArea(p) {
   if (rec && rec.appeal && canSeeDetail) {
     html += '<div class="confirm-appeal-block"><b>申诉内容</b>（' + escConfirmHtml(rec.appeal.submitTime || '') + ' 提交）<br>' +
       '异议指标：' + escConfirmHtml(rec.appeal.items || '') + '<br>理由：' + escConfirmHtml(rec.appeal.reason || '') + '</div>';
+    // 本人可撤销（管理员裁决前）
+    if (isSelf && rec.status === 'appealing' && !rec.finalRuling) {
+      html += '<div class="confirm-actions" style="margin:2px 0"><button class="btn-minor" onclick="withdrawPerfAppeal(\'' + nm + '\')">↩ 撤销申诉</button>' +
+        '<span style="font-size:11px;color:#64748b">复核流程结束前可撤销，撤销后回到「待确认」，操作全程留痕</span></div>';
+    }
     if (rec.appeal.firstReview) {
-      html += '<div class="confirm-review-block"><b>区域主管初审</b>（' + escConfirmHtml(rec.appeal.firstReview.by || '') + '，' + escConfirmHtml(rec.appeal.firstReview.time || '') + '）：<br>' + escConfirmHtml(rec.appeal.firstReview.comment || '') + '</div>';
+      var fr = rec.appeal.firstReview;
+      html += '<div class="confirm-review-block"><b>区域主管初审：' + (fr.conclusion === 'reject' ? '<span style="color:#d93025">驳回申诉</span>' : '<span style="color:#1a8a3a">审核通过</span>') + '</b>（' + escConfirmHtml(fr.by || '') + '，' + escConfirmHtml(fr.time || '') + '）：<br>' + escConfirmHtml(fr.comment || '') +
+        (fr.conclusion === 'reject' ? '<div style="font-size:11px;color:#64748b;margin-top:3px">主管驳回后申诉仍转管理员终裁（员工申诉不由主管单方面终结），由管理员最终裁决维持或调整。</div>' : '') + '</div>';
     } else if (isMyMember && rec.status === 'appealing') {
       html += '<div class="confirm-review-block"><b>区域主管初审</b>（请于 2 个工作日内回应）' +
-        '<textarea class="confirm-textarea" placeholder="请写明采纳或维持，及理由…"></textarea>' +
-        '<button class="btn-minor" onclick="saveFirstReview(\'' + nm + '\',this)">提交初审意见</button></div>';
+        '<textarea class="confirm-textarea" placeholder="初审意见：请写明采纳或维持的理由…（驳回时填写驳回理由）"></textarea>' +
+        '<div class="confirm-actions">' +
+        '<button class="btn-confirm" onclick="saveFirstReview(\'' + nm + '\',this,\'pass\')">✓ 审核通过（转管理员复核）</button>' +
+        '<button class="btn-appeal" onclick="saveFirstReview(\'' + nm + '\',this,\'reject\')">✗ 驳回申诉</button></div></div>';
     } else if (rec.status === 'appealing' && !isSelf) {
-      html += '<div class="confirm-meta">⏳ 等待区域主管初审（2 个工作日内）…</div>';
+      html += '<div class="confirm-meta">⏳ 等待 ' + escConfirmHtml(rec.leader || '区域主管') + ' 初审（2 个工作日内）…</div>';
     }
     if (rec.finalRuling) {
       html += '<div class="confirm-review-block" style="border-color:#ddd6fe;background:#faf5ff"><b>管理员裁决</b>（' + escConfirmHtml(rec.finalRuling.time || '') + '）：' +
@@ -3621,6 +3720,48 @@ function archiveVisibleRecs() {
 }
 function setArchiveFilter() { renderConfirmArchive(); }
 
+// 申诉待办处理区：所有申诉中的记录集中列出，主管初审（通过/驳回）与管理员裁决可直接在此操作（2026-09-05 用户要求）
+function pendingAppealPanelHtml() {
+  var recs = PERF_CONFIRM.filter(function (r) {
+    return r && r.status === 'appealing' && r.month && r.name &&
+      (isAdmin() || (CURRENT_USER && r.leader === CURRENT_USER.name));
+  });
+  if (!recs.length) return '';
+  recs.sort(function (a, b) { var c = b.month.localeCompare(a.month); return c !== 0 ? c : a.name.localeCompare(b.name); });
+  var waitLeader = 0, waitAdmin = 0;
+  recs.forEach(function (r) { if (r.appeal && r.appeal.firstReview) waitAdmin++; else waitLeader++; });
+  var h = '<div class="confirm-sumbar" style="border-color:#fecaca;background:#fff7f7">🚨 <b>申诉待办处理</b>' +
+    '<span>共 ' + recs.length + ' 件（待初审 ' + waitLeader + ' · 待管理员复核 ' + waitAdmin + '）</span>' +
+    '<span style="color:#64748b">主管初审（2 个工作日）→ 管理员裁决（3 个工作日）</span></div>';
+  h += '<table class="arch-table" style="margin-bottom:10px"><tr><th style="width:56px">月份</th><th style="width:64px">姓名</th><th style="width:80px">异议指标</th><th style="width:110px">提交时间</th><th style="width:150px">当前节点</th><th>处理操作（填写意见后点击按钮）</th></tr>';
+  recs.forEach(function (r) {
+    var nm = escConfirmJs(r.name), mn = escConfirmJs(r.month);
+    var reviewed = !!(r.appeal && r.appeal.firstReview);
+    var node = reviewed
+      ? '<span style="color:#d93025">待管理员复核</span>' + (r.appeal.firstReview.conclusion === 'reject' ? '<br><span style="font-size:10px;color:#d93025">主管已驳回</span>' : '')
+      : '待 <b>' + escConfirmHtml(r.leader || '区域主管') + '</b> 初审';
+    h += '<tr><td>' + r.month + '</td><td style="font-weight:600">' + escConfirmHtml(r.name) + '</td>' +
+      '<td style="color:#64748b">' + escConfirmHtml((r.appeal && r.appeal.items) || '') + '</td>' +
+      '<td style="color:#64748b">' + escConfirmHtml((r.appeal && r.appeal.submitTime) || '') + '</td>' +
+      '<td>' + node + '</td><td>';
+    if (!reviewed && isLeader() && r.leader === CURRENT_USER.name) {
+      h += '<textarea class="confirm-textarea" style="min-height:44px" placeholder="初审意见：采纳或维持的理由（驳回时填驳回理由）…"></textarea>' +
+        '<button class="btn-confirm" style="margin-top:4px" onclick="saveFirstReview(\'' + nm + '\',this,\'pass\',\'' + mn + '\')">✓ 审核通过（转管理员复核）</button> ' +
+        '<button class="btn-appeal" style="margin-top:4px" onclick="saveFirstReview(\'' + nm + '\',this,\'reject\',\'' + mn + '\')">✗ 驳回申诉</button>';
+    } else if (isAdmin()) {
+      h += '<textarea class="confirm-textarea" style="min-height:44px" placeholder="裁决意见（必填）…"></textarea>' +
+        '<button class="btn-appeal" style="margin-top:4px" onclick="submitPerfRuling(\'' + nm + '\',this,true,\'' + mn + '\')">⚖ 调整原结果</button> ' +
+        '<button class="btn-confirm" style="margin-top:4px" onclick="submitPerfRuling(\'' + nm + '\',this,false,\'' + mn + '\')">✓ 维持原结果</button>' +
+        (!reviewed ? '<div style="font-size:10px;color:#94a3b8;margin-top:3px">注：区域主管尚未初审，管理员可直接裁决</div>' : '');
+    } else {
+      h += '<span style="color:#94a3b8">等待 ' + escConfirmHtml(reviewed ? '管理员复核' : (r.leader || '区域主管') + ' 初审') + '…</span>';
+    }
+    h += '</td></tr>';
+  });
+  h += '</table>';
+  return h;
+}
+
 function renderConfirmArchive() {
   var sM = $("archiveMonthSel"); if (sM) ARCHIVE_MONTH = sM.value;
   var sS = $("archiveStatusSel"); if (sS) ARCHIVE_STATUS = sS.value;
@@ -3635,8 +3776,11 @@ function renderConfirmArchive() {
   recs.forEach(function (r) { if (cnt[r.status] !== undefined) cnt[r.status]++; });
 
   var html = '';
+  // === 申诉待办处理区（复核工作台）：区域主管初审 / 管理员裁决，两按钮直接操作（2026-09-05） ===
+  var pendHtml = pendingAppealPanelHtml();
+  if (pendHtml) html += pendHtml;
   html += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 2px">';
-  html += '<div style="font-size:14px;font-weight:600;color:#1e293b">📋 绩效确认与申诉台账（历史归档）</div>';
+  html += '<div style="font-size:14px;font-weight:600;color:#1e293b">🗂 绩效确认与申诉档案（历史归档）</div>';
   html += '<span style="font-size:11px;color:#64748b">全部月份累积记录 · 按「月份+姓名」唯一归档 · 不随月份切换丢失</span>';
   if (isAdmin()) html += '<span style="margin-left:auto"><button class="btn-minor" onclick="exportConfirmArchive()">⬇ 导出存档 JSON</button></span>';
   html += '</div>';
@@ -3665,7 +3809,7 @@ function renderConfirmArchive() {
       '<td>' + r.month + '</td><td style="font-weight:600">' + escConfirmHtml(r.name) + '</td>' +
       '<td style="color:#64748b">' + escConfirmHtml(r.role || '') + '</td>' +
       '<td style="color:#64748b">' + escConfirmHtml(r.region || '') + '</td>' +
-      '<td><span class="cs-' + r.status + '" style="font-weight:600">' + CONFIRM_LABEL[r.status] + '</span></td>' +
+      '<td><span class="cs-' + r.status + '" style="font-weight:600">' + confirmStatusText(r) + '</span></td>' +
       '<td>' + archiveKeyNode(r) + '</td></tr>';
     html += '<tr class="arch-detail" style="display:none"><td colspan="6">' + archiveDetailHtml(r) + '</td></tr>';
   });
@@ -3678,7 +3822,9 @@ function renderConfirmArchive() {
 function archiveKeyNode(r) {
   if (r.status === 'confirmed') return '✓ 确认提交 ' + escConfirmHtml(r.confirmTime || '');
   if (r.status === 'appealing' && r.appeal) {
-    var s = '申诉中 · ' + escConfirmHtml(r.appeal.items || '') + '（' + escConfirmHtml(r.appeal.submitTime || '') + '）';
+    var reviewed = !!(r.appeal.firstReview);
+    var s = (reviewed ? '申诉中 · 待管理员复核' : '申诉中 · 待' + escConfirmHtml(r.leader || '区域主管') + '初审') +
+      ' · ' + escConfirmHtml(r.appeal.items || '') + '（' + escConfirmHtml(r.appeal.submitTime || '') + '）';
     return '<span style="color:#d93025">' + s + '</span>';
   }
   if (r.status === 'ruled' && r.finalRuling) {
@@ -3701,6 +3847,30 @@ function archiveDetailHtml(r) {
   }
   if (r.finalRuling) {
     h += '<div class="arch-tl"><span class="arch-dot" style="background:#6b4fd8"></span><div><b>管理员裁决：' + (r.finalRuling.adjust ? '调整原结果' : '维持原结果') + '</b><div style="color:#64748b">' + escConfirmHtml(r.finalRuling.time || '') + ' · 申诉期间暂按原结果执行，裁决后差额随最近一次工资补足或核减</div><div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:6px 8px;margin-top:4px">裁决意见原文：' + escConfirmHtml(r.finalRuling.comment || '') + '</div></div></div>';
+  }
+  // 历史留痕：撤销申诉 / 撤销裁决 / 彻底回滚 全程可见
+  (r.history || []).forEach(function (his) {
+    var bgc = '#fffbeb', bc = '#fde68a', t = '';
+    if (his.type === 'appeal_withdrawn') { t = '申诉人撤销申诉'; bgc = '#fef2f2'; bc = '#fecaca'; }
+    if (his.type === 'ruling_revoked') { t = '管理员撤销裁决（退回复核）'; }
+    if (his.type === 'flow_reset') { t = '管理员彻底回滚（流程作废回到待确认）'; }
+    h += '<div class="arch-tl"><span class="arch-dot" style="background:#f59e0b"></span><div><b style="color:#b45309">' + t + '</b>' +
+      '<div style="color:#64748b">' + escConfirmHtml(his.time || '') + ' · ' + escConfirmHtml(his.by || '') + '</div>' +
+      '<div style="background:' + bgc + ';border:1px solid ' + bc + ';border-radius:6px;padding:6px 8px;margin-top:4px">' + escConfirmHtml(his.note || '') + '</div></div></div>';
+  });
+  // 管理员操作区：撤销裁决（已裁决时）/ 彻底回滚（超级权限）
+  if (isAdmin()) {
+    var nmA = escConfirmJs(r.name), mnA = escConfirmJs(r.month);
+    var canRevoke = (r.status === 'ruled' && r.finalRuling);
+    var canReset = !(r.status === 'pending' && !r.appeal && !r.confirmTime && !(r.history || []).length);
+    if (canRevoke || canReset) {
+      h += '<div style="margin-top:8px;padding:8px 10px;border:1px dashed #fca5a5;border-radius:8px;background:#fffafa">' +
+        '<b style="font-size:12px;color:#b91c1c">管理员回滚操作</b>' +
+        '<div style="font-size:11px;color:#64748b;margin:3px 0 6px">「撤销裁决」= 撤回本次裁决、退回「待管理员复核」重新裁决（原裁决留痕）；「彻底回滚」= 超级权限，整个确认/申诉流程作废回到「待确认」，全部历史留痕。</div>' +
+        (canRevoke ? '<button class="btn-minor" onclick="revokePerfRuling(\'' + mnA + '\',\'' + nmA + '\')">↩ 撤销裁决</button> ' : '') +
+        (canReset ? '<button class="btn-minor" style="color:#b91c1c" onclick="resetPerfFlow(\'' + mnA + '\',\'' + nmA + '\')">⟲ 彻底回滚到待确认</button>' : '') +
+        '</div>';
+    }
   }
   return h;
 }
@@ -3745,7 +3915,7 @@ function renderMyConfirmHistory() {
     h += '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed #e2e8f0;align-items:flex-start">';
     h += '<div style="width:72px;flex:none;font-weight:600;color:#1e293b;padding-top:2px">' + r.month + '</div>';
     h += '<div style="flex:1;min-width:0">';
-    h += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + stColor + ';margin-right:6px"></span><b>' + CONFIRM_LABEL[r.status] + '</b>' +
+    h += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + stColor + ';margin-right:6px"></span><b>' + confirmStatusText(r) + '</b>' +
       (r.status === 'confirmed' && r.confirmTime ? ' <span style="color:#94a3b8;font-size:11px">' + escConfirmHtml(r.confirmTime) + ' 确认</span>' : '') +
       (r.status === 'ruled' && r.finalRuling ? ' <span style="color:#94a3b8;font-size:11px">裁决：' + (r.finalRuling.adjust ? '调整' : '维持') + '（' + escConfirmHtml(r.finalRuling.time || '') + '）</span>' : '') +
       '</div>';
@@ -3758,6 +3928,10 @@ function renderMyConfirmHistory() {
     if (r.finalRuling) {
       h += '<div style="color:#6b4fd8;font-size:11px;margin-top:3px">管理员裁决（' + escConfirmHtml(r.finalRuling.time || '') + '）：' + escConfirmHtml(r.finalRuling.comment || '') + '</div>';
     }
+    (r.history || []).forEach(function (his) {
+      var t2 = his.type === 'appeal_withdrawn' ? '申诉已撤销' : (his.type === 'ruling_revoked' ? '裁决已被撤销，待重新裁决' : '流程被管理员回滚，回到待确认');
+      h += '<div style="color:#b45309;font-size:11px;margin-top:3px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:4px 8px">' + t2 + '（' + escConfirmHtml(his.time || '') + '）：' + escConfirmHtml(his.note || '') + '</div>';
+    });
     h += '</div></div>';
   });
   h += '<div style="color:#94a3b8;font-size:11px;margin-top:6px">本列表为只读归档记录。如需对某月结果发起确认或申诉，请在绩效模块顶部切换到对应月份后操作。</div>';
