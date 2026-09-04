@@ -811,6 +811,9 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
             <div class="rule-note">
               <strong>注意：</strong>区域主管主观项中的「培训场次」特指「团队培训 / 内部会议」（③，8分），与客观项「培训」（按区域总量完成率，7分）口径不同。
             </div>
+            <div class="rule-note">
+              <strong>人员名单口径：</strong>王春光、张亚娟是两个人，不存在「王春光/张亚娟」此人。两人共同负责清华大学项目——<strong>王春光的绩效按清华大学项目数据计算；张亚娟的绩效中清华大学为其项目之一</strong>（连同本人其他项目合并计算）。导入表格中再出现「王春光/张亚娟」写法的，系统自动按「王春光」归一处理。
+            </div>
           </div>
           <div class="rule-section">
             <h5>四、主观打分项说明</h5>
@@ -897,7 +900,8 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
             </table>
             <div class="rule-note">
               <strong>确认与申诉效力：</strong>逾期未确认且未提出申诉的，视为对当月考核结果无异议。申诉期间当月考核结果暂按原结果执行；裁决后如需调整，差额随最近一次工资发放补足或核减。确认记录（姓名、时间、当月考核版本）由系统自动留存。<br>
-              <strong>评分顺序与确认门槛：</strong>先由管理员完成区域主管的主观评分，再由区域主管完成本区域运营专员/营销负责人的主观评分；两级评分均完成后，被评分本人方可确认结果或提出申诉，3 个工作日确认期自本人评分送达后起算。
+              <strong>评分顺序与确认门槛：</strong>先由管理员完成区域主管的主观评分，再由区域主管完成本区域运营专员/营销负责人的主观评分；两级评分均完成后，被评分本人方可确认结果或提出申诉，3 个工作日确认期自本人评分送达后起算。<br>
+              <strong>跨区域人员双评（仅郭旺）：</strong>郭旺项目横跨东北西北、天津两个区域，其主观分由两位区域负责人（高欢庆、刘金玲）各自填写，<b>二人均提交后按平均值计分</b>；任一人未填写视为评分未完成，郭旺暂不能确认或申诉（自2026年8月起执行，此前月份按原单人评分口径）。
             </div>
           </div>
           <div class="rule-section">
@@ -1500,14 +1504,18 @@ if (typeof window !== 'undefined') {
 }
 
 // 谁能填谁的主观分：admin 全部；leader 仅本区域 运营专员/项目营销负责人；区域主管本人由总部填
+// 双评员工（如郭旺，横跨两区域）：两位区域负责人均可填（各填自己的槽位，2026-09-05）
 function canEditSubjective(p) {
   if (!CURRENT_USER) return false;
   if (isAdmin()) return true;
   if (isLeader()) {
     if (p.role === '区域主管' && p.name === CURRENT_USER.name) return false; // 自己由总部填
+    if (p.role !== '运营专员' && p.role !== '项目营销负责人') return false;
+    var evs = dualEvalLeaders(p.name);
+    if (evs) return evs.indexOf(CURRENT_USER.name) >= 0; // 双评员工：任一所属区域负责人可填
     var rawLead = p.leader;
     var lead = (rawLead && rawLead !== 'undefined' && String(rawLead).trim() !== '') ? rawLead : leaderOfPerson(p.name);
-    return lead === CURRENT_USER.name && (p.role === '运营专员' || p.role === '项目营销负责人');
+    return lead === CURRENT_USER.name;
   }
   return false;
 }
@@ -1640,6 +1648,14 @@ function mergeArraysByKey(local, cloud, keyOf) {
   (cloud || []).forEach(function (r) { var k = keyOf(r); if (k && !byKey[k]) byKey[k] = r; });
   return Object.keys(byKey).map(function (k) { return byKey[k]; });
 }
+// 人名归一（2026-09-05 用户确认）：「王春光/张亚娟」「王春光/亚娟」是两人共同负责清华项目的拼接写法，不是一个人。
+// 统一归一为「王春光」——王春光绩效按清华数据计算；张亚娟绩效含清华项目（由 getPersonLevelPeople 既有拆分逻辑计入）。
+// 用于三处：云端合并(mergeMonthly 自愈本地脏记录)、Excel 导入/数据维护(normRecord)、按人聚合(getPersonLevelPeople 兜底)。
+function normalizePersonName(n) {
+  var s = String(n == null ? '' : n).trim();
+  if (s === '王春光/张亚娟' || s === '王春光/亚娟' || s === '张亚娟/王春光' || s === '亚娟/王春光') return '王春光';
+  return s;
+}
 function mergeMonthly(local, cloud) {
   var out = { available_months: [], monthly_data: {} };
   var months = {};
@@ -1650,8 +1666,8 @@ function mergeMonthly(local, cloud) {
     var lm = L[m], cm = C[m];
     if (lm && cm) {
       var byName = {};
-      (cm.people || []).forEach(function (p) { byName[p.name + '|' + (p.school || '')] = p; });
-      (lm.people || []).forEach(function (p) { byName[p.name + '|' + (p.school || '')] = p; }); // 本地优先
+      (cm.people || []).forEach(function (p) { p.name = normalizePersonName(p.name); byName[p.name + '|' + (p.school || '')] = p; });
+      (lm.people || []).forEach(function (p) { p.name = normalizePersonName(p.name); byName[p.name + '|' + (p.school || '')] = p; }); // 本地优先
       out.monthly_data[m] = {
         regions: lm.regions || cm.regions,
         totals: lm.totals || cm.totals,
@@ -1672,6 +1688,7 @@ function applyModuleCloud(modKey, cloudVal) {
   else { try { localStorage.setItem(cfg.lsKey, JSON.stringify(merged)); } catch (e) {} }
   if (typeof currentModule !== 'undefined') {
     if (modKey === 'monthly' && typeof renderMonthBtns === 'function') renderMonthBtns();
+    if (modKey === 'monthly' && typeof currentModule !== 'undefined' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') updatePerformanceContent(); // 月度数据云端合并后（如拼接名自愈）即时刷新绩效页
     if (modKey === 'userpool' && currentModule === 'modUserPool' && typeof renderUpSchoolList === 'function') renderUpSchoolList();
     if (modKey === 'marketing' && currentModule === 'modMarketing' && typeof renderMarketing === 'function') renderMarketing();
     if (modKey === 'campus' && currentModule === 'modCampus' && typeof renderCampus === 'function') renderCampus();
@@ -1999,7 +2016,12 @@ function removeDualRoleStaff(list) {
 function getPersonLevelPeople(md) {
   var people = md.people || [];
   var map = {};
+  var seenProj = {}; // 同人同校的重复记录（如「王春光/亚娟」归一后与干净记录重复）只计一次，防流量翻倍
   people.forEach(function(p){
+    p.name = normalizePersonName(p.name); // 「王春光/亚娟」式拼接名兜底归一（正常数据在导入/合并时已归一）
+    var pkey = (p.role || '') + "|" + p.name + "|" + (p.school || p.name);
+    if (seenProj[pkey]) return;
+    seenProj[pkey] = 1;
     var key = p.role + "|" + p.name;
     if(!map[key]) {
       map[key] = {
@@ -3289,17 +3311,35 @@ function renderPerfCardsHtml(filtered) {
 
     // 主观分字段
     var editable = canEditSubjective(p);
+    var dualEvs = dualEvalLeaders(p.name); // 双评员工（郭旺）：两位区域负责人各一行，均值计分
     roleFields.forEach(function(f) {
-      var val = subjectiveScores[p.name+"_"+f.key+"_"+perfMonth] || "";
-      out += '<div class="score-item">';
-      out += '<span>'+f.name+' ('+f.weight+')</span>';
-      if (editable) {
-        out += '<input class="score-input" type="number" min="0" max="'+parseInt(f.weight)*10+'" value="'+val+'" data-pname="'+p.name+'" data-fkey="'+f.key+'" data-prole="'+p.role+'" data-pleader="'+p.leader+'" onchange="updateScore(this.dataset.pname,this.dataset.fkey,this.value,this.dataset.prole,this.dataset.pleader)">';
+      if (dualEvs) {
+        dualEvs.forEach(function(ev) {
+          var val = subjectiveScores[subjFieldKey(p.name, f.key, ev)] || "";
+          var slotEditable = canEditSubjSlot(p, ev);
+          out += '<div class="score-item">';
+          out += '<span>'+f.name+'·'+ev+' ('+f.weight+')</span>';
+          if (slotEditable) {
+            out += '<input class="score-input" type="number" min="0" max="'+parseInt(f.weight)*10+'" value="'+val+'" data-pname="'+p.name+'" data-fkey="'+f.key+'" data-prole="'+p.role+'" data-pleader="'+p.leader+'" data-pev="'+ev+'" onchange="updateScore(this.dataset.pname,this.dataset.fkey,this.value,this.dataset.prole,this.dataset.pleader,this.dataset.pev)">';
+          } else {
+            out += '<span style="color:#999;font-size:13px">'+ (val !== "" ? val : "—") +' <span style="font-size:10px">（由'+ev+'填写）</span></span>';
+          }
+          out += '</div>';
+        });
+        var avg = subjFieldValue(p.name, f.key);
+        out += '<div class="score-item" style="background:#fff8e1;border-radius:6px;padding:6px 8px"><span><strong>'+f.name+' 计分值（二人平均）</strong></span><span style="font-weight:600;color:#e08a00">'+ (avg === null ? '待二人评完' : (Math.round(avg*10)/10)) +'</span></div>';
       } else {
-        var tip = (isLeader() && p.name === CURRENT_USER.name) ? '由总部填写' : '仅总部/本区域主管可填';
-        out += '<span style="color:#999;font-size:13px">'+ (val !== "" ? val : "—") +' <span style="font-size:10px">（'+tip+'）</span></span>';
+        var val = subjectiveScores[subjFieldKey(p.name, f.key)] || "";
+        out += '<div class="score-item">';
+        out += '<span>'+f.name+' ('+f.weight+')</span>';
+        if (editable) {
+          out += '<input class="score-input" type="number" min="0" max="'+parseInt(f.weight)*10+'" value="'+val+'" data-pname="'+p.name+'" data-fkey="'+f.key+'" data-prole="'+p.role+'" data-pleader="'+p.leader+'" onchange="updateScore(this.dataset.pname,this.dataset.fkey,this.value,this.dataset.prole,this.dataset.pleader)">';
+        } else {
+          var tip = (isLeader() && p.name === CURRENT_USER.name) ? '由总部填写' : '仅总部/本区域主管可填';
+          out += '<span style="color:#999;font-size:13px">'+ (val !== "" ? val : "—") +' <span style="font-size:10px">（'+tip+'）</span></span>';
+        }
+        out += '</div>';
       }
-      out += '</div>';
       if(f.hint) out += '<div class="hint-text">评分标准: '+f.hint+'</div>';
     });
 
@@ -3315,10 +3355,11 @@ function renderPerfCardsHtml(filtered) {
   return out;
 }
 
-function updateScore(person, fieldKey, value, prole, pleader) {
+function updateScore(person, fieldKey, value, prole, pleader, evaluator) {
   var p = { name: person, role: prole, leader: pleader };
-  if (!canEditSubjective(p)) { alert('无权修改该人员的主观分（仅总部或本区域主管可填）'); return; }
-  subjectiveScores[person + "_" + fieldKey + "_" + perfMonth] = value;
+  var ok = evaluator ? canEditSubjSlot(p, evaluator) : canEditSubjective(p); // 双评员工按槽位鉴权
+  if (!ok) { alert('无权修改该人员的主观分（仅总部或本区域主管可填）'); return; }
+  subjectiveScores[subjFieldKey(person, fieldKey, evaluator)] = value;
   // 立即固化到本地，作为云端推送失败时的兜底，避免刷新即丢
   try { localStorage.setItem(SUBJECTIVE_STORAGE_KEY, JSON.stringify(subjectiveScores)); } catch (e) {}
   updatePerformanceContent();
@@ -3787,8 +3828,8 @@ function calcSubjectiveTotal(person, role) {
   var fields = SUBJECTIVE_FIELDS[role] || [];
   var total = 0;
   fields.forEach(function(f) {
-    var v = parseFloat(subjectiveScores[person+"_"+f.key+"_"+perfMonth]) || 0;
-    total += v;
+    var v = subjFieldValue(person, f.key);
+    total += (v === null ? 0 : v);
   });
   return total;
 }
@@ -3801,10 +3842,54 @@ function subjScoreComplete(name, role) {
   var fields = SUBJECTIVE_FIELDS[role] || [];
   if (!fields.length) return true; // 无主观分维度的角色不设门槛
   for (var i = 0; i < fields.length; i++) {
-    var v = subjectiveScores[name + "_" + fields[i].key + "_" + perfMonth];
-    if (v === undefined || v === null || String(v).trim() === '' || isNaN(parseFloat(v))) return false;
+    if (subjFieldValue(name, fields[i].key) === null) return false;
   }
   return true;
+}
+
+// ===== 双区域负责人联合评分（2026-09-05 用户确认，仅此一例）：郭旺 =====
+// 郭旺项目横跨东北西北(高欢庆)与天津(刘金玲)两个区域，自 2026-08 起主观分由两位区域负责人各自填写，
+// 二人均填写提交后按两人平均值计分；任一人未填 = 未评完（按"评分尚在评定中"处理，不能确认/申诉）。
+// 历史月份（2026-08 之前）保持原有单人评分口径，不追溯。
+// 存储：普通员工键 "姓名_字段_月份"；双评员工每人一槽 "姓名_字段_月份@评价人"。
+var DUAL_EVAL_STAFF = { "郭旺": true };
+var DUAL_EVAL_FROM = "2026-08";
+function dualEvalLeaders(name) {
+  if (!DUAL_EVAL_STAFF.hasOwnProperty(name)) return null;
+  if (String(perfMonth) < DUAL_EVAL_FROM) return null; // 历史月份不启用
+  var md = WORKBENCH_DATA.monthly_data[perfMonth];
+  if (!md) return null;
+  var evs = [];
+  (md.people || []).forEach(function (p) {
+    if (p.name === name && !p._synthetic && p.leader && evs.indexOf(p.leader) < 0) evs.push(p.leader);
+  });
+  return evs.length >= 2 ? evs : null; // 当月只挂单一区域时按普通单人评分
+}
+function subjFieldKey(name, fieldKey, evaluator) {
+  return name + "_" + fieldKey + "_" + perfMonth + (evaluator ? "@" + evaluator : "");
+}
+// 主观分字段有效值：普通员工直接读单键；双评员工 = 两位负责人平均值（都填了才有效，缺任一人 = 未评完）
+function subjFieldValue(name, fieldKey) {
+  var evs = dualEvalLeaders(name);
+  function read(k) {
+    var v = subjectiveScores[k];
+    return (v === undefined || v === null || String(v).trim() === "" || isNaN(parseFloat(v))) ? null : parseFloat(v);
+  }
+  if (!evs) return read(subjFieldKey(name, fieldKey));
+  var sum = 0, n = 0;
+  for (var i = 0; i < evs.length; i++) {
+    var v = read(subjFieldKey(name, fieldKey, evs[i]));
+    if (v === null) return null;
+    sum += v; n++;
+  }
+  return n ? sum / n : null;
+}
+// 双评员工某个评价人槽位当前用户能否填写：admin 可代填任一槽位；区域负责人只能填自己的槽位
+function canEditSubjSlot(p, evaluator) {
+  if (!CURRENT_USER) return false;
+  if (isAdmin()) return true;
+  if (isLeader()) return evaluator === CURRENT_USER.name && canEditSubjective(p);
+  return false;
 }
 
 // 绩效排名视图（排行榜）
@@ -6650,8 +6735,18 @@ function rebuildMonthAggregates(month) {
   var md = WORKBENCH_DATA.monthly_data[month];
   if (!md) return;
   var people = md.people || [];
-  var regions = {};
+  // 人名归一 + 同人同校重复记录去重（「王春光/亚娟」归一后与干净记录重复时只计一次，防流量翻倍）
+  var seenRec = {}, agg = [];
   people.forEach(function(p) {
+    if (p._synthetic) { agg.push(p); return; }
+    p.name = normalizePersonName(p.name);
+    var rk = (p.leader || '') + '|' + p.name + '|' + (p.school || p.name);
+    if (seenRec[rk]) return;
+    seenRec[rk] = 1;
+    agg.push(p);
+  });
+  var regions = {};
+  agg.forEach(function(p) {
     if (p._synthetic) return;
     var leader = p.leader; if (!leader) return;
     if (!regions[leader]) regions[leader] = { region: p.region || '', user_pool: 0, touch: 0, train: 0, campus: 0, flow: 0, actual_order: 0, projects: 0, members: [] };
@@ -6662,7 +6757,7 @@ function rebuildMonthAggregates(month) {
   });
   var totals = { operators: 0, schools: 0, user_pool: 0, touch: 0, train: 0, campus: 0, flow: 0, actual_order: 0 };
   var seenSchools = {}, seenOps = {};
-  people.forEach(function(p) {
+  agg.forEach(function(p) {
     if (p._synthetic) return;
     totals.user_pool += (p.user_pool || 0); totals.touch += (p.touch || 0); totals.train += (p.train || 0); totals.campus += (p.campus || 0);
     totals.flow += (p.actual_order || 0); totals.actual_order += (p.actual_order || 0);
@@ -6983,6 +7078,7 @@ function normRecord(p) {
     out[f] = (p[f] === undefined || p[f] === null) ? '' : String(p[f]).trim();
   });
   if (!out.name) out.name = '未填写';
+  out.name = normalizePersonName(out.name); // 「王春光/张亚娟」式拼接名归一为王春光（2026-09-05 用户确认）
   if (!out.role) out.role = '运营专员';
   DM_NUM_FIELDS.forEach(function(f) {
     var v = p[f];
