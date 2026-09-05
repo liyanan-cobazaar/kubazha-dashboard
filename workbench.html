@@ -1541,6 +1541,136 @@ function pushSubjectiveScores() {
     showSyncStatus('err', err.message);
   });
 }
+// ===== 账号密码体系（2026-09-05 升级：云端共享·加盐哈希，绝不存明文） =====
+// 背景：旧版密码只存在各人自己浏览器的 localStorage（明文），管理员无法重置他人密码、自己也无自救途径。
+// 新版：密码记录存云端 account_passwords.json（仅存「随机盐 + SHA-256 哈希」，公开仓库里也看不到任何明文），
+//       管理员可重置任意账号密码；管理员忘记密码可用「恢复码」在登录页自助重置。
+// 记录结构：{ account: '角色|姓名'（管理员为 'admin|admin'，恢复码为 '__recovery__'）, salt, hash, updatedAt, updatedBy }
+var PWD_STORE = []; // 密码哈希记录（本地副本 = 云端合并结果）
+var PWD_STORE_KEY = 'wb_pwd_hash_v1';
+try {
+  var _psRaw = JSON.parse(localStorage.getItem(PWD_STORE_KEY) || '[]');
+  if (Array.isArray(_psRaw)) _psRaw.forEach(function (r) { if (r && r.account && r.salt && r.hash) PWD_STORE.push(r); });
+} catch (e) { /* 坏数据忽略 */ }
+
+function _utf8bytesToChars(str) {
+  try { return unescape(encodeURIComponent(str)); } catch (e) { return str; }
+}
+function _sha256hex(ascii) {
+  function rightRotate(v, a) { return (v >>> a) | (v << (32 - a)); }
+  var mathPow = Math.pow, maxWord = mathPow(2, 32);
+  var result = '';
+  var words = [], asciiBitLength = ascii.length * 8;
+  var hash = [], k = [], primeCounter = 0;
+  var isComposite = {};
+  for (var candidate = 2; primeCounter < 64; candidate++) {
+    if (!isComposite[candidate]) {
+      for (var i = 0; i < 313; i += candidate) isComposite[i] = candidate;
+      hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+      k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+    }
+  }
+  ascii += '\x80';
+  while (ascii.length % 64 - 56) ascii += '\x00';
+  for (i = 0; i < ascii.length; i++) {
+    var j = ascii.charCodeAt(i);
+    if (j >> 8) return '';
+    words[i >> 2] |= j << ((3 - i) % 4) * 8;
+  }
+  words[words.length] = ((asciiBitLength / maxWord) | 0);
+  words[words.length] = (asciiBitLength);
+  for (j = 0; j < words.length;) {
+    var w = words.slice(j, j += 16);
+    var oldHash = hash;
+    hash = hash.slice(0, 8);
+    for (i = 0; i < 64; i++) {
+      var w15 = w[i - 15], w2 = w[i - 2];
+      var a = hash[0], e = hash[4];
+      var temp1 = hash[7]
+        + (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25))
+        + ((e & hash[5]) ^ ((~e) & hash[6]))
+        + k[i]
+        + (w[i] = (i < 16) ? w[i] : (
+            w[i - 16]
+            + (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3))
+            + w[i - 7]
+            + (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))
+          ) | 0
+        );
+      var temp2 = (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22))
+        + ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+      hash = [(temp1 + temp2) | 0].concat(hash);
+      hash[4] = (hash[4] + temp1) | 0;
+    }
+    for (i = 0; i < 8; i++) hash[i] = (hash[i] + oldHash[i]) | 0;
+  }
+  for (i = 0; i < 8; i++) {
+    for (j = 3; j + 1; j--) {
+      var b = (hash[i] >> (j * 8)) & 255;
+      result += ((b < 16) ? 0 : '') + b.toString(16);
+    }
+  }
+  return result;
+}
+// 密码哈希：sha256(盐 + '::' + 密码)，兼容任意字符（含中文）密码
+function pwdHash(pwd, salt) { return _sha256hex(_utf8bytesToChars(salt + '::' + String(pwd == null ? '' : pwd))); }
+function genPwdSalt() {
+  var s = '';
+  try {
+    if (window.crypto && crypto.getRandomValues) {
+      var arr = new Uint8Array(8); crypto.getRandomValues(arr);
+      for (var i = 0; i < 8; i++) s += ('0' + arr[i].toString(16)).slice(-2);
+      return s;
+    }
+  } catch (e) {}
+  for (var n = 0; n < 16; n++) s += '0123456789abcdef'.charAt(Math.floor(Math.random() * 16));
+  return s;
+}
+// 恢复码字符集：去掉易混淆的 I O 0 1
+function genRecoveryCode() {
+  var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', code = '';
+  for (var g = 0; g < 4; g++) {
+    for (var i = 0; i < 4; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+    if (g < 3) code += '-';
+  }
+  return code;
+}
+var PWD_RECOVERY_KEY = '__recovery__';
+function getPwdRecordByKey(key) {
+  for (var i = 0; i < PWD_STORE.length; i++) if (PWD_STORE[i].account === key) return PWD_STORE[i];
+  return null;
+}
+function getPwdRecord(role, name) { return getPwdRecordByKey(role + '|' + name); }
+// 写入/更新一条密码记录（同时更新本地与云端；谁改的留痕）
+function setPwdRecordByKey(key, pwd, by) {
+  var rec = getPwdRecordByKey(key);
+  if (!rec) { rec = { account: key }; PWD_STORE.push(rec); }
+  rec.salt = genPwdSalt();
+  rec.hash = pwdHash(pwd, rec.salt);
+  rec.updatedAt = new Date().toISOString();
+  rec.updatedBy = by || '';
+  try { localStorage.setItem(PWD_STORE_KEY, JSON.stringify(PWD_STORE)); } catch (e) {}
+  scheduleModulePush('passwords');
+  return rec;
+}
+function setPwdRecord(role, name, pwd, by) { return setPwdRecordByKey(role + '|' + name, pwd, by); }
+// 登录校验：有哈希记录只认哈希；无记录兼容旧版（本浏览器明文密码 / 初始密码 123456）
+function checkPwd(name, role, input) {
+  var rec = getPwdRecord(role, name);
+  if (rec && rec.salt && rec.hash) return pwdHash(input, rec.salt) === rec.hash;
+  return String(input) === getPwd(name, role);
+}
+// 密码记录合并：同账号以 updatedAt 新者胜（保证管理员重置后所有设备都生效）
+function mergePwdStore(local, cloud) {
+  var byKey = {};
+  (local || []).forEach(function (r) { if (r && r.account) byKey[r.account] = r; });
+  (cloud || []).forEach(function (r) {
+    if (!r || !r.account) return;
+    var cur = byKey[r.account];
+    if (!cur || String(r.updatedAt || '') > String(cur.updatedAt || '')) byKey[r.account] = r;
+  });
+  return Object.keys(byKey).map(function (k) { return byKey[k]; });
+}
 // ===== 多模块云端共享（复用主观分模式：GET 静态+API，本地优先合并，PUT 乐观合并） =====
 // 让 用户池/营销活动/校园行/月度数据 在不同设备、不同人之间看到同一份、改动即同步（等同共享文档）。
 var MODULE_SYNC = {
@@ -1594,6 +1724,14 @@ var MODULE_SYNC = {
     get: function () { return PERF_CONFIRM; },
     set: function (v) { PERF_CONFIRM.length = 0; (v || []).forEach(function (x) { if (x && x.month && x.name) PERF_CONFIRM.push(x); }); },
     keyOf: function (r) { return (r.month || '') + '|' + (r.name || ''); }
+  },
+  passwords: {
+    file: 'account_passwords.json',
+    lsKey: 'wb_pwd_hash_v1',
+    mergeFn: mergePwdStore,
+    get: function () { return PWD_STORE; },
+    set: function (v) { PWD_STORE.length = 0; (v || []).forEach(function (x) { if (x && x.account && x.salt && x.hash) PWD_STORE.push(x); }); },
+    keyOf: function (r) { return r.account || ''; }
   }
   // settleadj（结算率酌情调整）模块已于 2026-09-05 废弃：未对接财务固定按30%保底计分，不再读写云端
 };
@@ -1638,7 +1776,7 @@ function mergeMonthly(local, cloud) {
 function applyModuleCloud(modKey, cloudVal) {
   var cfg = MODULE_SYNC[modKey]; if (!cfg || !cloudVal) return;
   var localVal = cfg.get();
-  var merged = cfg.customMerge ? mergeMonthly(localVal, cloudVal) : mergeArraysByKey(localVal, cloudVal, cfg.keyOf);
+  var merged = cfg.mergeFn ? cfg.mergeFn(localVal, cloudVal) : (cfg.customMerge ? mergeMonthly(localVal, cloudVal) : mergeArraysByKey(localVal, cloudVal, cfg.keyOf));
   cfg.set(merged);
   if (modKey === 'monthly') { try { localStorage.setItem(WB_DATA_STORAGE_KEY, JSON.stringify(WORKBENCH_DATA)); } catch (e) {} }
   else { try { localStorage.setItem(cfg.lsKey, JSON.stringify(merged)); } catch (e) {} }
@@ -1683,7 +1821,7 @@ function pushModule(modKey, opts) {
     });
   }).then(function (cur) {
     if (cur.sha) _moduleSha[modKey] = cur.sha;
-    var merged = cfg.customMerge ? mergeMonthly(cur.obj, localVal) : mergeArraysByKey(cur.obj, localVal, cfg.keyOf);
+    var merged = cfg.mergeFn ? cfg.mergeFn(localVal, cur.obj) : (cfg.customMerge ? mergeMonthly(cur.obj, localVal) : mergeArraysByKey(cur.obj, localVal, cfg.keyOf));
     var body = { message: '[sync] 合并模块数据 ' + modKey, content: utf8ToBase64(JSON.stringify(merged)) };
     if (cur.sha) body.sha = cur.sha;
     return fetch(api, {
@@ -2348,7 +2486,7 @@ function doLogin() {
   var name = $('loginAccount').value;
   var pwd = $('loginPwd').value || '';
   if (!name) { alert('请选择账号'); return; }
-  if (pwd !== getPwd(name, role)) { alert('密码错误（演示初始密码 123456）'); return; }
+  if (!checkPwd(name, role, pwd)) { alert('密码错误（初始密码 123456；忘记密码请联系管理员重置）'); return; }
   CURRENT_USER = { name: name, role: role };
   try { localStorage.setItem('wb_session_v1', JSON.stringify(CURRENT_USER)); } catch (e) {}
   enterApp();
@@ -2360,7 +2498,7 @@ function logout() {
   showLogin();
 }
 
-// ===== 修改密码（本地版：保存在当前浏览器 localStorage） =====
+// ===== 修改密码（云端版：加盐哈希存云端，所有设备生效） =====
 function openChangePwd() {
   if (!CURRENT_USER) return;
   $('cpRole').textContent = ROLE_LABEL[CURRENT_USER.role];
@@ -2368,6 +2506,8 @@ function openChangePwd() {
   $('cpOldPwd').value = '';
   $('cpNewPwd').value = '';
   $('cpNewPwd2').value = '';
+  var ab = $('cpAdminBox'); if (ab) ab.style.display = isAdmin() ? '' : 'none';
+  if (isAdmin() && typeof renderResetAccounts === 'function') renderResetAccounts();
   $('changePwdModal').classList.add('active');
 }
 function closeChangePwd() {
@@ -2378,14 +2518,81 @@ function saveChangePwd() {
   var oldPwd = $('cpOldPwd').value || '';
   var newPwd = $('cpNewPwd').value || '';
   var newPwd2 = $('cpNewPwd2').value || '';
-  if (oldPwd !== getPwd(CURRENT_USER.name, CURRENT_USER.role)) { alert('原密码不正确'); return; }
+  if (!checkPwd(CURRENT_USER.name, CURRENT_USER.role, oldPwd)) { alert('原密码不正确'); return; }
   if (newPwd.length < 4) { alert('新密码至少 4 位'); return; }
   if (newPwd !== newPwd2) { alert('两次输入的新密码不一致'); return; }
-  try {
-    localStorage.setItem('wb_pwd_' + CURRENT_USER.role + '_' + CURRENT_USER.name, newPwd);
-  } catch (e) { alert('保存失败，请重试'); return; }
-  alert('✅ 密码修改成功，下次登录请使用新密码');
+  setPwdRecord(CURRENT_USER.role, CURRENT_USER.name, newPwd, CURRENT_USER.name);
+  // 双保险：同时更新本浏览器旧版明文副本（极端情况下旧校验路径也能用新密码）
+  try { localStorage.setItem('wb_pwd_' + CURRENT_USER.role + '_' + CURRENT_USER.name, newPwd); } catch (e) {}
+  // 保存后立即自检：确保新密码一定可以登录（用户拍板要求，绝不出现改完登不进）
+  if (!checkPwd(CURRENT_USER.name, CURRENT_USER.role, newPwd)) {
+    alert('⚠ 密码已保存但自检未通过，请勿退出当前登录，立即联系管理员处理');
+    return;
+  }
+  alert('✅ 密码修改成功，下次登录请使用新密码（所有设备生效）');
   closeChangePwd();
+}
+// ===== 管理员重置他人密码（2026-09-05：员工忘记密码由管理员直接处理） =====
+function renderResetAccounts() {
+  var role = $('rpRole').value;
+  var sel = $('rpAccount');
+  if (!sel) return;
+  var prev = sel.value;
+  sel.innerHTML = '';
+  ensureAccounts()[role].forEach(function (n) {
+    var opt = document.createElement('option');
+    opt.value = n; opt.textContent = n;
+    sel.appendChild(opt);
+  });
+  if (ensureAccounts()[role].indexOf(prev) >= 0) sel.value = prev;
+}
+function adminResetPwd() {
+  if (!isAdmin()) { alert('仅管理员可重置他人密码'); return; }
+  var role = $('rpRole').value;
+  var name = $('rpAccount').value;
+  var pwd = ($('rpNewPwd').value || '').trim();
+  if (!pwd) pwd = '123456'; // 留空 = 重置为初始密码
+  if (!name) { alert('请选择要重置的账号'); return; }
+  if (pwd.length < 4) { alert('密码至少 4 位'); return; }
+  if (CURRENT_USER.role === role && CURRENT_USER.name === name) { alert('重置自己的密码请用上方「修改密码」'); return; }
+  if (!confirm('确认将 ' + ROLE_LABEL[role] + '「' + name + '」的密码重置为所填新密码？\n\n· 对方原密码立即失效（所有设备）\n· 新密码即刻生效，请线下告知对方')) return;
+  setPwdRecord(role, name, pwd, '管理员' + CURRENT_USER.name);
+  if (!checkPwd(name, role, pwd)) { alert('⚠ 重置已保存但自检未通过，请重试或检查网络'); return; }
+  alert('✅ 已重置 ' + name + ' 的密码。\n\n请将新密码告知对方（建议对方首次登录后自行修改）。');
+  $('rpNewPwd').value = '';
+}
+// ===== 管理员恢复码（忘记密码自救；仅显示一次，可重新生成） =====
+function adminRegenRecoveryCode() {
+  if (!isAdmin()) { alert('仅管理员可操作'); return; }
+  if (!confirm('重新生成恢复码？\n\n· 旧恢复码立即作废\n· 新恢复码只显示这一次，请当场抄写到安全的地方')) return;
+  var code = genRecoveryCode();
+  setPwdRecordByKey(PWD_RECOVERY_KEY, code, '管理员' + CURRENT_USER.name + '重新生成');
+  alert('新恢复码：\n\n  ' + code + '\n\n请抄写在安全的地方（仅显示这一次）。\n管理员忘记密码时：登录页点「忘记密码」，输入恢复码即可设置新密码。\n恢复码也丢失时，联系技术人员从云端直接重置。');
+}
+// ===== 登录页「忘记密码」：管理员用恢复码自助重置（仅管理员账号） =====
+function openRecoverPwd() {
+  $('rcCode').value = '';
+  $('rcNewPwd').value = '';
+  $('rcNewPwd2').value = '';
+  $('recoverPwdModal').classList.add('active');
+}
+function closeRecoverPwd() {
+  $('recoverPwdModal').classList.remove('active');
+}
+function doRecoverPwd() {
+  var code = ($('rcCode').value || '').trim();
+  var pwd = $('rcNewPwd').value || '';
+  var pwd2 = $('rcNewPwd2').value || '';
+  var rec = getPwdRecordByKey(PWD_RECOVERY_KEY);
+  if (!rec || !rec.salt || !rec.hash) { alert('恢复码尚未初始化：请管理员正常登录后，在「修改密码」弹窗中生成恢复码'); return; }
+  if (!code) { alert('请输入恢复码'); return; }
+  if (pwdHash(code, rec.salt) !== rec.hash) { alert('恢复码不正确'); return; }
+  if (pwd.length < 4) { alert('新密码至少 4 位'); return; }
+  if (pwd !== pwd2) { alert('两次输入的新密码不一致'); return; }
+  setPwdRecord('admin', 'admin', pwd, '恢复码重置');
+  if (!checkPwd('admin', 'admin', pwd)) { alert('⚠ 密码已保存但自检未通过，请重试'); return; }
+  alert('✅ 管理员密码已重置，请使用新密码登录。\n（如本页未自动登录，请手动选择管理员账号登录）');
+  closeRecoverPwd();
 }
 
 function showLogin() {
@@ -6655,6 +6862,7 @@ document.addEventListener("DOMContentLoaded", function() {
   pullModule('marketing');
   pullModule('campus');
   pullModule('perfconfirm'); // 绩效确认/申诉记录：打开即拉最新，多人多设备同步
+  pullModule('passwords'); // 账号密码（加盐哈希）：打开即拉最新，管理员重置后所有设备生效
   renderMonthBtns();
   // 三角色登录：恢复上次会话，未登录则显示登录页
   var saved = null;
@@ -9269,7 +9477,37 @@ function initTaskDispatch() {
       <input type="password" id="loginPwd" placeholder="初始密码 123456">
     </div>
     <button class="login-btn" onclick="doLogin()">登 录</button>
-    <div class="login-tip">💡 演示版说明：本版为「本地演示版」，登录与权限过滤完整可用，数据保存在当前浏览器（localStorage），用于体验三角色各自可见的数据范围；多人实时共享数据需后续接入云数据库。</div>
+    <div style="text-align:right;margin-top:6px"><a href="javascript:void(0)" onclick="openRecoverPwd()" style="font-size:12px;color:#1a73e8;text-decoration:none">忘记密码？</a></div>
+    <div class="login-tip">💡 登录说明：账号由月度数据自动生成（角色+姓名）；初始密码 123456，修改后所有设备生效。员工忘记密码请联系管理员在「修改密码」中重置。</div>
+  </div>
+</div>
+
+<!-- 管理员恢复码重置密码弹窗（登录页「忘记密码」入口） -->
+<div id="recoverPwdModal" class="mkt-modal-overlay" onclick="if(event.target===this)closeRecoverPwd()">
+  <div class="mkt-modal" style="width:420px">
+    <div class="mkt-modal-header">
+      <span class="mkt-modal-title">🔑 管理员找回密码</span>
+      <button class="mkt-modal-close" onclick="closeRecoverPwd()">×</button>
+    </div>
+    <div class="mkt-modal-body">
+      <div class="confirm-meta">此入口仅用于<b>管理员</b>忘记密码时自救：输入恢复码即可设置新的管理员密码。其他角色忘记密码，请联系管理员登录后在「修改密码」中重置。</div>
+      <div class="login-field">
+        <label>恢复码</label>
+        <input type="text" id="rcCode" placeholder="形如 XXXX-XXXX-XXXX-XXXX（管理员生成）" autocomplete="off">
+      </div>
+      <div class="login-field">
+        <label>新密码</label>
+        <input type="password" id="rcNewPwd" placeholder="至少 4 位">
+      </div>
+      <div class="login-field">
+        <label>确认新密码</label>
+        <input type="password" id="rcNewPwd2" placeholder="再次输入新密码">
+      </div>
+    </div>
+    <div class="mkt-modal-footer">
+      <button class="btn-minor" onclick="closeRecoverPwd()">取消</button>
+      <button class="login-btn" style="flex:1;margin:0" onclick="doRecoverPwd()">重置管理员密码</button>
+    </div>
   </div>
 </div>
 
@@ -9296,6 +9534,30 @@ function initTaskDispatch() {
       <div class="login-field">
         <label>确认新密码</label>
         <input type="password" id="cpNewPwd2" placeholder="再次输入新密码">
+      </div>
+      <div id="cpAdminBox" style="display:none;margin-top:14px;padding-top:12px;border-top:1px dashed #e2e8f0">
+        <div style="font-size:13px;font-weight:600;color:#334155;margin-bottom:8px">👤 重置他人密码（仅管理员）</div>
+        <div class="login-field">
+          <label>角色</label>
+          <select id="rpRole" onchange="renderResetAccounts()">
+            <option value="leader">区域主管</option>
+            <option value="staff">运营人员</option>
+            <option value="admin">管理员</option>
+          </select>
+        </div>
+        <div class="login-field">
+          <label>账号</label>
+          <select id="rpAccount"></select>
+        </div>
+        <div class="login-field">
+          <label>新密码（留空 = 重置为初始密码 123456）</label>
+          <input type="text" id="rpNewPwd" placeholder="留空则重置为 123456" autocomplete="off">
+        </div>
+        <button class="mkt-btn-primary" style="width:100%" onclick="adminResetPwd()">重置该账号密码</button>
+        <div style="margin-top:12px;padding:8px 10px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:11px;color:#78350f">
+          🔑 <b>管理员恢复码</b>：忘记密码时在登录页点「忘记密码」自助重置。
+          <button class="btn-minor" style="margin-left:6px" onclick="adminRegenRecoveryCode()">重新生成恢复码</button>
+        </div>
       </div>
     </div>
     <div class="mkt-modal-footer">
