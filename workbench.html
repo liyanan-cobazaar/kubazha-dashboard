@@ -159,10 +159,6 @@ tr:hover td{background:#f8fafc}
 .arch-tl{display:flex;gap:8px;padding:3px 0;line-height:1.6;font-size:12px}
 .arch-dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:5px}
 .arch-sum{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px;color:#475569}
-/* ===== 结算率未对接财务·保底计分说明（2026-09-05 固定30%，取消酌情） ===== */
-.settle-unlinked-box{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:12px;color:#78350f}
-.settle-unlinked-box b{font-size:12px}
-.settle-unlinked-row{margin-top:4px;color:#92400e}
 .rule-highlight{color:#dc2626;font-weight:600}
 @media(max-width:900px){.sidebar{width:160px}.kpi-row{grid-template-columns:repeat(2,1fr)}.chart-row{grid-template-columns:1fr}}
 
@@ -3461,12 +3457,6 @@ function renderPerfCardsHtml(filtered) {
     });
     out += '<div class="score-item" style="background:#f0f7ff;border-radius:6px;padding:8px;margin-top:6px"><span><strong>客观小计</strong></span><span style="font-weight:600;color:#1a73e8"><strong>'+objScore+'</strong></span><span style="color:#999;font-size:10px">/'+objMax+'</span></div>';
 
-    // 未对接财务项目·保底计分说明（2026-09-05 定稿：固定30%保底，无酌情调整入口，全员可见只读提示）
-    if (p.role === '运营专员' || p.role === '项目营销负责人') {
-      var _adjProjs = (p._projects && p._projects.length ? p._projects : [p]).filter(function (pr) { return isNaN(parseFloat(pr.settle_rate)); });
-      if (_adjProjs.length) out += renderSettleUnlinkedNote(p, _adjProjs);
-    }
-
     // 主观分字段
     var editable = canEditSubjective(p);
     var dualEvs = dualEvalLeaders(p.name); // 双评员工（郭旺）：两位区域负责人各一行，均值计分
@@ -3768,19 +3758,6 @@ function renderConfirmSummaryBar(list) {
     (isLeader() && waitLeader > 0 ? '<span style="color:#d93025;font-weight:600">⚠ 有 ' + waitLeader + ' 人申诉待您初审</span>' : '') +
     (isAdmin() && (waitLeader + waitAdmin) > 0 ? '<span style="color:#d93025;font-weight:600">⚠ 申诉待处理：待初审 ' + waitLeader + ' · 待复核 ' + waitAdmin + '</span>' : '') +
     '</div>';
-}
-
-// 未对接财务项目·保底计分只读说明（2026-09-05 用户定稿：固定按权重30%计分，取消酌情调整）
-function renderSettleUnlinkedNote(p, unlinkedProjs) {
-  var weight = p.role === '项目营销负责人' ? 15 : 10;
-  var perScore = weight * 0.3;
-  var html = '<div class="settle-unlinked-box"><b>⚙ 未对接财务项目 · 按保底分计</b>' +
-    '<div style="color:#64748b;font-size:11px;margin:3px 0 4px">以下项目当月未对接财务，统一按结算率权重 30% 计分（' + (p.role === '项目营销负责人' ? '项目营销负责人 15 分制' : '运营专员 10 分制') + ' → 每项目 ' + perScore + ' 分），不做酌情调整（2026-09-05 定稿）。项目财务对接落地后，结算率恢复正常数值计算。</div>';
-  unlinkedProjs.forEach(function (pr) {
-    html += '<div class="settle-unlinked-row">· ' + escConfirmHtml(pr.school || pr.name) + '：未对接财务 → 按保底分计 ' + perScore + ' 分</div>';
-  });
-  html += '</div>';
-  return html;
 }
 
 // 卡片底部确认/申诉区
