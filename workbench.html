@@ -3517,7 +3517,7 @@ function resetPerfFlow(month, name) {
   if (!isAdmin()) { alert('仅管理员可执行重置确认流程'); return; }
   var rec = getConfirmRec(month, name);
   if (!rec) { alert('未找到该人员的确认记录'); return; }
-  if (rec.status === 'pending' && !rec.appeal && !rec.confirmTime && !(rec.history || []).length) { alert('该记录已是初始「待确认」状态，无需重置'); return; }
+  if (rec.status === 'pending' && !rec.appeal && !rec.confirmTime) { alert('该记录已是「待确认」初始状态，无需重置'); return; }
   var what = [];
   if (rec.confirmTime) what.push('本人确认');
   if (rec.appeal && rec.appeal.submitTime) what.push('申诉');
@@ -3828,7 +3828,7 @@ function archiveDetailHtml(r) {
   if (isAdmin()) {
     var nmA = escConfirmJs(r.name), mnA = escConfirmJs(r.month);
     var canRevoke = (r.status === 'ruled' && r.finalRuling);
-    var canReset = !(r.status === 'pending' && !r.appeal && !r.confirmTime && !(r.history || []).length);
+    var canReset = r.status !== 'pending' || !!r.appeal || !!r.confirmTime;
     if (canRevoke || canReset) {
       h += '<div style="margin-top:8px;padding:8px 10px;border:1px dashed #fca5a5;border-radius:8px;background:#fffafa">' +
         '<b style="font-size:12px;color:#b91c1c">管理员流程操作</b>' +
