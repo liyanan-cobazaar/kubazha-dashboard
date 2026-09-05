@@ -120,7 +120,7 @@ tr:hover td{background:#f8fafc}
 /* ===== 绩效确认与申诉闭环 ===== */
 .confirm-box{margin-top:10px;border-top:1px dashed #cbd5e1;padding-top:8px;font-size:12px}
 .confirm-status{font-weight:600;font-size:12px;margin-bottom:4px}
-.cs-pending{color:#e08a00}.cs-confirmed{color:#1a8a3a}.cs-appealing{color:#d93025}.cs-ruled{color:#6b4fd8}
+.cs-scoring{color:#64748b}.cs-pending{color:#e08a00}.cs-confirmed{color:#1a8a3a}.cs-appealing{color:#d93025}.cs-ruled{color:#6b4fd8}
 .confirm-declare{background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px;margin:6px 0;line-height:1.6;color:#475569;display:flex;gap:6px;align-items:flex-start;cursor:pointer}
 .confirm-declare input{margin-top:3px;flex:none}
 .confirm-actions{display:flex;gap:8px;margin:6px 0;flex-wrap:wrap}
@@ -159,13 +159,10 @@ tr:hover td{background:#f8fafc}
 .arch-tl{display:flex;gap:8px;padding:3px 0;line-height:1.6;font-size:12px}
 .arch-dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:5px}
 .arch-sum{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px;color:#475569}
-/* ===== 结算率未对接酌情评分（2026-09-04） ===== */
-.settle-adj-box{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:12px;color:#78350f}
-.settle-adj-box b{font-size:12px}
-.settle-adj-row{display:flex;gap:6px;align-items:center;margin-top:5px;flex-wrap:wrap}
-.settle-adj-school{min-width:110px;font-weight:600;color:#92400e}
-.settle-adj-row input[data-role="pct"]{width:64px;padding:4px 6px;border:1px solid #f59e0b;border-radius:5px;font-size:12px}
-.settle-adj-row input[data-role="reason"]{flex:1;min-width:160px;padding:4px 8px;border:1px solid #e2e8f0;border-radius:5px;font-size:12px}
+/* ===== 结算率未对接财务·保底计分说明（2026-09-05 固定30%，取消酌情） ===== */
+.settle-unlinked-box{background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:8px 10px;margin:8px 0;font-size:12px;color:#78350f}
+.settle-unlinked-box b{font-size:12px}
+.settle-unlinked-row{margin-top:4px;color:#92400e}
 .rule-highlight{color:#dc2626;font-weight:600}
 @media(max-width:900px){.sidebar{width:160px}.kpi-row{grid-template-columns:repeat(2,1fr)}.chart-row{grid-template-columns:1fr}}
 
@@ -768,7 +765,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
                 <tr><td>封顶机制</td><td>单项得分 ≤ 权重 × 120%</td><td>权重10 → 上限12</td></tr>
                 <tr><td>单项得分</td><td>单项得分 = 完成率 × 权重</td><td>104% × 权重10 → 10.4</td></tr>
                 <tr><td>结算完成率</td><td>以上月结算率 85% 为目标，完成率 = 结算率 ÷ 85%</td><td>结算率90% → 106%</td></tr>
-                <tr><td>未对接财务结算率</td><td>结算率标注「未对接财务」的项目按保底完成率 30% 计入平均（客观原因分数）；区域主管可酌情调至 30%~120%</td><td>专员单项目未对接 → 10分×30% = 3分</td></tr>
+                <tr><td>未对接财务结算率</td><td>结算率标注「未对接财务」的项目统一按保底完成率 30% 计入平均，不做酌情调整（2026-09-05 定稿）</td><td>专员单项目未对接 → 10分×30% = 3分；营销负责人 → 15分×30% = 4.5分</td></tr>
               </tbody>
             </table>
           </div>
@@ -806,7 +803,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
               <strong>区域主管「结算率」口径：</strong>区域内所有项目的算术平均结算率 ÷ 85%，先算出完成率，再做保底30%/封顶120%。<strong>「未对接财务」项目同样计入平均</strong>：按保底完成率 30%（等效结算率 85%×30%=25.5%）计算（2026-09-04 调整，此前未对接项目不计入）。
             </div>
             <div class="rule-note">
-              <strong>「未对接财务」结算率酌情规则（2026-09-04）：</strong>项目尚未对接财务属客观原因，相关员工的结算率项按<strong>保底 30%</strong> 计分（运营专员10分制→3分、营销负责人15分制→4.5分）。若员工对<strong>推动结算速度/财务对接有实质性动作</strong>（如干预订单结算流程、推动开票对账等），区域主管可在本人绩效卡中对该项目<strong>酌情调高至 30%~120%</strong>（填写理由留痕，保存后自动同步）；项目财务对接落地后，结算率恢复正常数值计算。
+              <strong>「未对接财务」结算率保底计分规则（2026-09-05 定稿）：</strong>项目尚未对接财务的，当月统一按结算率权重的 <strong>30% 保底计分</strong>（运营专员 10 分制 → 每个未对接项目 3 分、营销负责人 15 分制 → 4.5 分），<strong>不再提供酌情调整</strong>，规则统一透明、避免人为争议。项目财务对接落地后，结算率恢复正常数值计算。
             </div>
             <div class="rule-note">
               <strong>注意：</strong>区域主管主观项中的「培训场次」特指「团队培训 / 内部会议」（③，8分），与客观项「培训」（按区域总量完成率，7分）口径不同。
@@ -894,12 +891,12 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
               <tbody>
                 <tr><td>① 结果确认</td><td>被考评人（区域主管 / 营销负责人 / 运营专员）在本人绩效页阅读结果及评分依据（含计算过程）后，勾选确认声明并提交。<b>前置条件：评分须先完成</b>——管理员给区域主管评完主观分、区域主管给本区域运营专员/营销负责人评完主观分后，被评分本人的确认与申诉入口才会开放；评分未完成前无法确认或申诉</td><td>评分送达后 3 个工作日内</td></tr>
                 <tr><td>② 提出申诉</td><td>对结果有异议的，勾选异议指标、填写理由及依据后提交申诉（在确认区点「对结果有异议」）。<b>管理员裁决前，申诉人可随时撤销申诉</b>：撤销后回到「待确认」状态，可重新确认或再次申诉，撤销操作及原申诉内容全程留痕</td><td>同上，3 个工作日内</td></tr>
-                <tr><td>③ 区域主管初审</td><td>主管在「确认与申诉」页顶部的<b>申诉待办处理区</b>（或员工绩效卡内）选择「审核通过（转管理员复核）」或「驳回申诉」，并填写理由。<b>主管驳回不直接终结申诉</b>——员工申诉权不由主管单方面终结，驳回后连同理由转管理员终裁</td><td>2 个工作日内</td></tr>
-                <tr><td>④ 管理员复核</td><td>最终裁决：维持原结果 或 调整结果，裁决意见全程留痕、全员可查。裁决有误需补充材料时，管理员可在「确认与申诉」页展开记录，<b>撤销裁决</b>退回「待管理员复核」重新裁决（原裁决留痕）；如需整个流程作废重来，可执行<b>彻底回滚</b>（超级权限）回到「待确认」状态，全部历史留痕、员工可见流程曾被回滚</td><td>3 个工作日内</td></tr>
+                <tr><td>③ 区域负责人初审</td><td>区域负责人在「确认与申诉」页顶部的<b>申诉待办处理区</b>（或员工绩效卡内）选择「审核通过（转管理员复核）」或「驳回申诉」，并填写理由。<b>区域负责人驳回不直接终结申诉</b>——员工申诉权不由区域负责人单方面终结，驳回后连同理由转管理员终裁</td><td>2 个工作日内</td></tr>
+                <tr><td>④ 管理员（运营总监）复核</td><td>最终裁决：维持原结果 或 调整结果，裁决意见全程留痕、全员可查。裁决有误需补充材料时，管理员可在「确认与申诉」页展开记录，<b>撤销裁决</b>退回「待管理员复核」重新裁决（原裁决留痕）；如需整个流程作废重来，可执行<b>重置确认流程</b>（超级权限）回到「待确认」状态，全部历史留痕、员工可见流程曾被重置</td><td>3 个工作日内</td></tr>
               </tbody>
             </table>
             <div class="rule-note">
-              <strong>状态查看：</strong>申诉处理进度全程可查——员工绩效卡与「我的历史确认记录」中实时显示「申诉中 · 待××初审 / 待管理员复核 / 已裁决·维持（或调整）」；区域主管、管理员在「确认与申诉」页集中查看待办与全部历史档案。<br>
+              <strong>状态查看：</strong>申诉处理进度全程可查——员工绩效卡与「我的历史确认记录」中实时显示「待主观评分 / 待本人确认 / 申诉中 · 待××初审 / 待管理员复核 / 已裁决·维持（或调整）」；区域负责人、管理员在「确认与申诉」页集中查看待办与全部历史档案。<br>
               <strong>确认与申诉效力：</strong>逾期未确认且未提出申诉的，视为对当月考核结果无异议。申诉期间当月考核结果暂按原结果执行；裁决后如需调整，差额随最近一次工资发放补足或核减。确认记录（姓名、时间、当月考核版本）由系统自动留存。<br>
               <strong>评分顺序与确认门槛：</strong>先由管理员完成区域主管的主观评分，再由区域主管完成本区域运营专员/营销负责人的主观评分；两级评分均完成后，被评分本人方可确认结果或提出申诉，3 个工作日确认期自本人评分送达后起算。<br>
               <strong>跨区域人员双评（仅郭旺）：</strong>郭旺项目横跨东北西北、天津两个区域，其主观分由两位区域负责人（高欢庆、刘金玲）各自填写，<b>二人均提交后按平均值计分</b>；任一人未填写视为评分未完成，郭旺暂不能确认或申诉（自2026年8月起执行，此前月份按原单人评分口径）。
@@ -1380,51 +1377,15 @@ try {
   if (Array.isArray(_pcRaw)) _pcRaw.forEach(function (r) { if (r && r.month && r.name) PERF_CONFIRM.push(r); });
 } catch (e) { /* 坏数据忽略 */ }
 
-// ===== 结算率"未对接财务"酌情调整记录（2026-09-04 用户拍板，云端共享，模块同步模式） =====
-// 规则：项目结算率为"未对接财务"等文本时，按保底30%完成率（等效结算率 0.85×30%=0.255）计入平均；
-//       员工对推动结算/财务对接有实质性动作的，区域主管可直接酌情提高至 30%~120%（留痕：谁/何时/理由）。
-//       区域主管本人的「②区域项目结算率」同样把未对接项目按 30% 计入平均，但不适用个人酌情。
-var SETTLE_ADJ = []; // 每条：{month,name,school,ratio(0.3~1.2 完成率),reason,by,updatedAt}
-var SETTLE_ADJ_KEY = 'wb_settle_adj_v1'; // 本地永久副本
-try {
-  var _saRaw = JSON.parse(localStorage.getItem(SETTLE_ADJ_KEY) || '[]');
-  if (Array.isArray(_saRaw)) _saRaw.forEach(function (r) { if (r && r.month && r.name && r.school) SETTLE_ADJ.push(r); });
-} catch (e) { /* 坏数据忽略 */ }
-function getSettleAdj(month, name, school) {
-  for (var i = 0; i < SETTLE_ADJ.length; i++) {
-    var a = SETTLE_ADJ[i];
-    if (a.month === month && a.name === name && a.school === school) return a;
-  }
-  return null;
-}
-// 主管/管理员保存酌情值：pct=百分比数值(30~120)，reason=理由
-function saveSettleAdj(name, school, btn) {
-  var row = btn.parentNode;
-  var pctInput = row.querySelector('input[data-role="pct"]');
-  var reasonInput = row.querySelector('input[data-role="reason"]');
-  var pct = parseFloat(pctInput && pctInput.value);
-  if (isNaN(pct)) { alert('请填写 30~120 之间的完成率百分比'); return; }
-  if (pct < 30 || pct > 120) { alert('酌情完成率需在 30~120 之间（30%=保底，120%=封顶）'); return; }
-  var reason = (reasonInput && reasonInput.value || '').trim();
-  var rec = getSettleAdj(perfMonth, name, school);
-  if (!rec) { rec = { month: perfMonth, name: name, school: school }; SETTLE_ADJ.push(rec); }
-  rec.ratio = Math.round(pct) / 100;
-  rec.reason = reason;
-  rec.by = CURRENT_USER ? CURRENT_USER.name : '';
-  rec.updatedAt = new Date().toISOString();
-  try { localStorage.setItem(SETTLE_ADJ_KEY, JSON.stringify(SETTLE_ADJ)); } catch (e) {}
-  scheduleModulePush('settleadj');
-  if (typeof updatePerformanceContent === 'function') updatePerformanceContent();
-}
-// 一个项目的结算率有效值：数值型(>0)原样；数值0维持现状不计入；文本型"未对接财务"按保底30%或主管酌情值
-// 返回 {v:等效结算率, kind:'num'|'unlinked'|'adj', ratio:完成率(仅文本型有意义)}
-function effSettleOf(pr, useAdj) {
+// ===== 结算率"未对接财务"保底计分（2026-09-05 定稿：固定30%，取消酌情调整） =====
+// 规则（2026-09-05 用户定稿）：项目结算率为"未对接财务"等文本时，统一按保底30%完成率（等效结算率 0.85×30%=0.255）计入平均，
+//       不再提供主管酌情调整入口（原 wb_settle_adj_v1 / settle_adjustments.json 酌情机制已废弃，分数不再受其影响）。
+//       区域主管本人的「②区域项目结算率」同样把未对接项目按 30% 计入平均。
+// 一个项目的结算率有效值：数值型(>0)原样；数值0维持现状不计入；文本型"未对接财务"按保底30%
+// 返回 {v:等效结算率, kind:'num'|'unlinked', ratio:完成率(仅文本型有意义)}
+function effSettleOf(pr) {
   var raw = parseFloat(pr.settle_rate);
   if (!isNaN(raw)) return raw > 0 ? { v: raw, kind: 'num' } : null;
-  if (useAdj) {
-    var adj = getSettleAdj(perfMonth, pr.name, pr.school);
-    if (adj && isFinite(adj.ratio)) return { v: 0.85 * adj.ratio, kind: 'adj', ratio: adj.ratio };
-  }
   return { v: 0.85 * 0.3, kind: 'unlinked', ratio: 0.3 };
 }
 // ===== 主观分云端共享（方案④：存 WORKBENCH_DATA.subjective_scores，经 GitHub API 合并写入，全员可见） =====
@@ -1633,14 +1594,8 @@ var MODULE_SYNC = {
     get: function () { return PERF_CONFIRM; },
     set: function (v) { PERF_CONFIRM.length = 0; (v || []).forEach(function (x) { if (x && x.month && x.name) PERF_CONFIRM.push(x); }); },
     keyOf: function (r) { return (r.month || '') + '|' + (r.name || ''); }
-  },
-  settleadj: {
-    file: 'settle_adjustments.json',
-    lsKey: 'wb_settle_adj_v1',
-    get: function () { return SETTLE_ADJ; },
-    set: function (v) { SETTLE_ADJ.length = 0; (v || []).forEach(function (x) { if (x && x.month && x.name && x.school) SETTLE_ADJ.push(x); }); },
-    keyOf: function (r) { return (r.month || '') + '|' + (r.name || '') + '|' + (r.school || ''); }
   }
+  // settleadj（结算率酌情调整）模块已于 2026-09-05 废弃：未对接财务固定按30%保底计分，不再读写云端
 };
 
 function mergeArraysByKey(local, cloud, keyOf) {
@@ -1694,7 +1649,6 @@ function applyModuleCloud(modKey, cloudVal) {
     if (modKey === 'marketing' && currentModule === 'modMarketing' && typeof renderMarketing === 'function') renderMarketing();
     if (modKey === 'campus' && currentModule === 'modCampus' && typeof renderCampus === 'function') renderCampus();
     if (modKey === 'perfconfirm' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') updatePerformanceContent();
-    if (modKey === 'settleadj' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') updatePerformanceContent();
   }
 }
 function pullModule(modKey) {
@@ -2113,10 +2067,10 @@ function calcObjectiveScore(p, role) {
     // ---- ② 区域重点项目结算率(15分): 完成率=各项目结算率均值/85% ----
     // 口径(2026-09-02 用户确认): 先算完成率(均值÷85%),再做保底30%/封顶120%; 展示透明化列出各项目结算率
     // 口径(2026-09-04 用户确认): "未对接财务"等文本结算率项目按保底30%完成率(等效0.85×30%=0.255)计入平均；
-    //   数值型(含0)照旧计入。主管②不适用个人酌情（酌情仅针对员工的个人结算率项）。
+    //   数值型(含0)照旧计入。2026-09-05 定稿：未对接项目统一固定30%，无酌情。
     var srNums = [], unlinkedCntR = 0;
     regionPeople.forEach(function (pp) {
-      var eff = effSettleOf(pp, false);
+      var eff = effSettleOf(pp);
       if (!eff) { var raw0 = parseFloat(pp.settle_rate); if (!isNaN(raw0)) srNums.push(raw0); return; } // 数值0：照旧计入
       if (eff.kind !== 'num') unlinkedCntR++;
       srNums.push(eff.v);
@@ -2132,7 +2086,7 @@ function calcObjectiveScore(p, role) {
       var srPerLine = regionPeople.map(function(pp){
         var raw = parseFloat(pp.settle_rate);
         if(!isNaN(raw)) return (pp.school||pp.name)+" "+(raw*100).toFixed(0)+"%";
-        return (pp.school||pp.name)+" 未对接财务→按30%完成率计（等效结算率25.5%）";
+        return (pp.school||pp.name)+" 未对接财务 · 按保底分计（完成率30%，等效结算率25.5%）";
       }).join("、");
       details.push({name:"②区域项目结算率", projCount:srNums.length,
         ratio:settleResult.ratio, score:settleResult.score, max:15, target:"85%",
@@ -2198,11 +2152,11 @@ function calcObjectiveScore(p, role) {
     s += fDetailM.score;
     details.push(fDetailM.detail);
 
-    // ---- 结算率(15分): 数值型(>0)算术平均；"未对接财务"按保底30%计入(等效0.255)，主管可酌情30%~120% ----
+    // ---- 结算率(15分): 数值型(>0)算术平均；"未对接财务"按保底30%计入(等效0.255)，固定无酌情 ----
     // 口径(2026-09-04 用户确认): 未对接项目作为客观原因分数给到员工；全部未对接时=权重×30%（15分→4.5分）
     var srValsM = [], unlinkedM = 0;
     projsM.forEach(function (pr) {
-      var eff = effSettleOf(pr, true);
+      var eff = effSettleOf(pr);
       if (!eff) return; // 数值0：照旧不计入
       if (eff.kind !== 'num') unlinkedM++;
       srValsM.push(eff.v);
@@ -2211,15 +2165,13 @@ function calcObjectiveScore(p, role) {
       var avgSrM = srValsM.reduce(function(a,b){return a+b;},0)/srValsM.length;
       var stResultM = calcItemScore(avgSrM, 0.85, 15);
       s += stResultM.score;
-      var stMainM = "项目均值 "+(avgSrM*100).toFixed(1)+"%（"+srValsM.length+"项目" + (unlinkedM > 0 ? "，含未对接" + unlinkedM + "项按30%完成率/酌情计（等效结算率=85%×完成率，保底项=25.5%）" : "") + "）｜ 完成率="+(avgSrM*100).toFixed(1)+"%÷85%="+_fpct(avgSrM/0.85);
+      var stMainM = "项目均值 "+(avgSrM*100).toFixed(1)+"%（"+srValsM.length+"项目" + (unlinkedM > 0 ? "，含未对接" + unlinkedM + "项按30%完成率计（等效结算率=85%×30%=25.5%）" : "") + "）｜ 完成率="+(avgSrM*100).toFixed(1)+"%÷85%="+_fpct(avgSrM/0.85);
       if(avgSrM/0.85 < 0.3) stMainM += "（保底30%）";
       else if(avgSrM/0.85 > 1.2) stMainM += "（封顶120%）";
       var stPerM = projsM.map(function(pr){
         var raw = parseFloat(pr.settle_rate);
         if(!isNaN(raw)) { if (raw > 0) return (pr.school||pr.name)+" "+(raw*100).toFixed(0)+"%"; return null; }
-        var adj = getSettleAdj(perfMonth, pr.name, pr.school);
-        if (adj && isFinite(adj.ratio)) return (pr.school||pr.name)+" 未对接财务→主管酌情"+(adj.ratio*100).toFixed(0)+"%完成率（等效结算率"+(0.85*adj.ratio*100).toFixed(1)+"%）";
-        return (pr.school||pr.name)+" 未对接财务→保底30%完成率（等效结算率25.5%）";
+        return (pr.school||pr.name)+" 未对接财务 · 按保底分计（完成率30%，等效结算率25.5%）";
       }).filter(function(x){ return x !== null; }).join("、");
       details.push({name:"结算率", projCount:srValsM.length,
         ratio:stResultM.ratio, score:stResultM.score, max:15, target:"85%",
@@ -2279,11 +2231,11 @@ function calcObjectiveScore(p, role) {
     s += fDetailS.score;
     details.push(fDetailS.detail);
 
-    // ---- 结算率(10分): 数值型(>0)算术平均；"未对接财务"按保底30%计入(等效0.255)，主管可酌情30%~120% ----
+    // ---- 结算率(10分): 数值型(>0)算术平均；"未对接财务"按保底30%计入(等效0.255)，固定无酌情 ----
     // 口径(2026-09-04 用户确认): 未对接项目作为客观原因分数给到员工；全部未对接时=权重×30%（10分→3分）
     var sSrVals = [], unlinkedS = 0;
     projsS.forEach(function (pr) {
-      var eff = effSettleOf(pr, true);
+      var eff = effSettleOf(pr);
       if (!eff) return; // 数值0：照旧不计入
       if (eff.kind !== 'num') unlinkedS++;
       sSrVals.push(eff.v);
@@ -2292,15 +2244,13 @@ function calcObjectiveScore(p, role) {
       var avgSSr = sSrVals.reduce(function(a,b){return a+b;},0)/sSrVals.length;
       var seResult = calcItemScore(avgSSr, 0.85, 10);
       s += seResult.score;
-      var stMainS = "项目均值 "+(avgSSr*100).toFixed(1)+"%（"+sSrVals.length+"项目" + (unlinkedS > 0 ? "，含未对接" + unlinkedS + "项按30%完成率/酌情计（等效结算率=85%×完成率，保底项=25.5%）" : "") + "）｜ 完成率="+(avgSSr*100).toFixed(1)+"%÷85%="+_fpct(avgSSr/0.85);
+      var stMainS = "项目均值 "+(avgSSr*100).toFixed(1)+"%（"+sSrVals.length+"项目" + (unlinkedS > 0 ? "，含未对接" + unlinkedS + "项按30%完成率计（等效结算率=85%×30%=25.5%）" : "") + "）｜ 完成率="+(avgSSr*100).toFixed(1)+"%÷85%="+_fpct(avgSSr/0.85);
       if(avgSSr/0.85 < 0.3) stMainS += "（保底30%）";
       else if(avgSSr/0.85 > 1.2) stMainS += "（封顶120%）";
       var stPerS = projsS.map(function(pr){
         var raw = parseFloat(pr.settle_rate);
         if(!isNaN(raw)) { if (raw > 0) return (pr.school||pr.name)+" "+(raw*100).toFixed(0)+"%"; return null; }
-        var adj = getSettleAdj(perfMonth, pr.name, pr.school);
-        if (adj && isFinite(adj.ratio)) return (pr.school||pr.name)+" 未对接财务→主管酌情"+(adj.ratio*100).toFixed(0)+"%完成率（等效结算率"+(0.85*adj.ratio*100).toFixed(1)+"%）";
-        return (pr.school||pr.name)+" 未对接财务→保底30%完成率（等效结算率25.5%）";
+        return (pr.school||pr.name)+" 未对接财务 · 按保底分计（完成率30%，等效结算率25.5%）";
       }).filter(function(x){ return x !== null; }).join("、");
       details.push({name:"结算率", projCount:sSrVals.length,
         ratio:seResult.ratio, score:seResult.score, max:10, target:"85%",
@@ -3304,10 +3254,10 @@ function renderPerfCardsHtml(filtered) {
     });
     out += '<div class="score-item" style="background:#f0f7ff;border-radius:6px;padding:8px;margin-top:6px"><span><strong>客观小计</strong></span><span style="font-weight:600;color:#1a73e8"><strong>'+objScore+'</strong></span><span style="color:#999;font-size:10px">/'+objMax+'</span></div>';
 
-    // 未对接财务项目酌情评分入口（2026-09-04）：本区域主管/管理员可见，针对员工名下未对接项目直接定 30%~120%
+    // 未对接财务项目·保底计分说明（2026-09-05 定稿：固定30%保底，无酌情调整入口，全员可见只读提示）
     if (p.role === '运营专员' || p.role === '项目营销负责人') {
       var _adjProjs = (p._projects && p._projects.length ? p._projects : [p]).filter(function (pr) { return isNaN(parseFloat(pr.settle_rate)); });
-      if (_adjProjs.length && canEditSubjective(p)) out += renderSettleAdjBox(p, _adjProjs);
+      if (_adjProjs.length) out += renderSettleUnlinkedNote(p, _adjProjs);
     }
 
     // 主观分字段
@@ -3368,22 +3318,29 @@ function updateScore(person, fieldKey, value, prole, pleader, evaluator) {
 }
 
 // ===== 绩效确认与申诉闭环（2026-09-02 上线） =====
-// 状态机：pending 待确认 → confirmed 已确认 / appealing 申诉中 → ruled 已裁决
-// 时限（用户拍板）：申诉期 3 个工作日、区域主管初审 2 天、管理员复核 3 天；申诉不停止执行，裁决后多退少补。
-var CONFIRM_LABEL = { pending: '待确认', confirmed: '已确认', appealing: '申诉中', ruled: '已裁决' };
-var CONFIRM_BADGE = { pending: '🟠', confirmed: '🟢', appealing: '🔴', ruled: '🟣' };
+// 状态机：pending 待确认（主观分未评完=「待主观评分」，评完=「待本人确认」）→ confirmed 已确认 / appealing 申诉中 → ruled 已裁决
+// 时限（用户拍板）：申诉期 3 个工作日、区域负责人初审 2 天、管理员（运营总监）复核 3 天；申诉不停止执行，裁决后多退少补。
+var CONFIRM_LABEL = { pending: '待本人确认', confirmed: '已确认', appealing: '申诉中', ruled: '已裁决' };
+var CONFIRM_BADGE = { pending: '🟠', confirmed: '🟢', appealing: '🔴', ruled: '🟣', scoring: '⚪' };
 
-// 细化状态文案（2026-09-05 用户要求：申诉中要能看出「待谁审核」）
-function confirmStatusText(rec) {
-  if (!rec) return '待确认';
+// 细化状态文案（2026-09-05 用户要求：运营人员状态拆分为「待主观评分 / 待本人确认 / 申诉中…」）
+function confirmStatusText(rec, p) {
+  if (!rec) {
+    if (p && !subjScoreComplete(p.name, p.role)) return '待主观评分';
+    return '待本人确认';
+  }
+  if (rec.status === 'pending') {
+    // 主观分未评完 = 待主观评分；评完 = 待本人确认
+    if (!subjScoreComplete(rec.name, rec.role)) return '待主观评分';
+  }
   if (rec.status === 'appealing') {
     if (rec.finalRulingWithdrawnNote && !rec.appeal) return '申诉中'; // 兜底
     if (rec.appeal && rec.appeal.firstReview) {
       return rec.appeal.firstReview.conclusion === 'reject'
-        ? '申诉中 · 主管已驳回 · 待管理员复核'
+        ? '申诉中 · 区域负责人已驳回 · 待管理员复核'
         : '申诉中 · 待管理员复核';
     }
-    return '申诉中 · 待' + (rec.leader || '区域主管') + '初审';
+    return '申诉中 · 待' + (rec.leader || '区域负责人') + '初审';
   }
   if (rec.status === 'ruled' && rec.finalRuling) {
     return rec.finalRuling.adjust ? '已裁决 · 调整原结果' : '已裁决 · 维持原结果';
@@ -3478,7 +3435,7 @@ function submitPerfAppeal(name, btn) {
   rec.appeal = { items: items.join('、'), reason: reason, submitTime: nowConfirmStr(), firstReview: null };
   rec.updatedAt = new Date().toISOString();
   saveConfirmRec(rec);
-  alert('申诉已提交。流转：区域主管初审（2个工作日内）→ 管理员复核（3个工作日内），结果将在本页显示。\n申诉期间当月绩效暂按原结果执行；裁决后如需调整，差额随最近一次工资补足或核减。');
+  alert('申诉已提交。流转：区域负责人初审（2个工作日内）→ 管理员复核（3个工作日内），结果将在本页显示。\n申诉期间当月绩效暂按原结果执行；裁决后如需调整，差额随最近一次工资补足或核减。');
 }
 // 区域主管：初审（仅本区域成员、申诉中）。conclusion: 'pass' 审核通过转管理员复核 / 'reject' 驳回申诉（仍转管理员终裁，主管不单方面终结员工申诉权）
 function saveFirstReview(name, btn, conclusion, month) {
@@ -3493,7 +3450,7 @@ function saveFirstReview(name, btn, conclusion, month) {
   var rec = getConfirmRec(m, name);
   if (!rec || rec.status !== 'appealing') { alert('该成员当前没有申诉中的记录'); return; }
   if (!rec.appeal) rec.appeal = {};
-  if (conclusion === 'reject' && !confirm('确认驳回该申诉？\n驳回后申诉将连同驳回理由一起转管理员终裁（员工申诉不由主管单方面终结），管理员最终裁决维持或调整。')) return;
+  if (conclusion === 'reject' && !confirm('确认驳回该申诉？\n驳回后申诉将连同驳回理由一起转管理员终裁（员工申诉不由区域负责人单方面终结），管理员最终裁决维持或调整。')) return;
   rec.appeal.firstReview = { by: CURRENT_USER.name, time: nowConfirmStr(), comment: comment, conclusion: conclusion === 'reject' ? 'reject' : 'pass' };
   rec.updatedAt = new Date().toISOString();
   saveConfirmRec(rec);
@@ -3555,20 +3512,20 @@ function revokePerfRuling(month, name) {
   alert('已撤销裁决，申诉回到「申诉中 · 待管理员复核」。（本次撤销已留痕）');
 }
 
-// 管理员：彻底回滚（超级权限：整个确认/申诉流程作废，回到「待确认」，历史全留痕）
+// 管理员：重置确认流程（超级权限：整个确认/申诉流程作废，回到「待确认」，历史全留痕）
 function resetPerfFlow(month, name) {
-  if (!isAdmin()) { alert('仅管理员可执行彻底回滚'); return; }
+  if (!isAdmin()) { alert('仅管理员可执行重置确认流程'); return; }
   var rec = getConfirmRec(month, name);
   if (!rec) { alert('未找到该人员的确认记录'); return; }
-  if (rec.status === 'pending' && !rec.appeal && !rec.confirmTime && !(rec.history || []).length) { alert('该记录已是初始「待确认」状态，无需回滚'); return; }
+  if (rec.status === 'pending' && !rec.appeal && !rec.confirmTime && !(rec.history || []).length) { alert('该记录已是初始「待确认」状态，无需重置'); return; }
   var what = [];
   if (rec.confirmTime) what.push('本人确认');
   if (rec.appeal && rec.appeal.submitTime) what.push('申诉');
   if (rec.finalRuling) what.push('裁决');
-  if (!confirm('⚠ 彻底回滚（超级权限）\n\n将把 ' + formatMonthLabel(month) + ' ' + name + ' 的「' + (what.join('、') || '流程状态') + '」全部作废，回到「待确认」状态，由员工重新确认或重新申诉。\n所有历史（确认、申诉、初审、裁决、撤销）将完整留痕，员工可见流程曾被回滚。\n\n确认执行？')) return;
+  if (!confirm('⚠ 重置确认流程（超级权限）\n\n将把 ' + formatMonthLabel(month) + ' ' + name + ' 的「' + (what.join('、') || '流程状态') + '」全部作废，回到「待确认」状态，由员工重新确认或重新申诉。\n所有历史（确认、申诉、初审、裁决、撤销）将完整留痕，员工可见流程曾被重置。\n\n确认执行？')) return;
   if (!rec.history) rec.history = [];
   rec.history.push({ type: 'flow_reset', time: nowConfirmStr(), by: CURRENT_USER.name,
-    note: '管理员彻底回滚，流程作废回到待确认', fromStatus: rec.status,
+    note: '管理员重置确认流程，作废本次流程回到待确认', fromStatus: rec.status,
     confirmTime: rec.confirmTime || null, appeal: rec.appeal || null, finalRuling: rec.finalRuling || null });
   rec.confirmTime = null;
   rec.appeal = null;
@@ -3576,47 +3533,44 @@ function resetPerfFlow(month, name) {
   rec.status = 'pending';
   rec.updatedAt = new Date().toISOString();
   saveConfirmRec(rec);
-  alert('已彻底回滚到「待确认」状态。（回滚前的全部记录已留痕）');
+  alert('已重置确认流程，回到「待确认」状态。（重置前的全部记录已留痕）');
 }
 
 // 确认状态汇总条（admin/leader 可见）
 function renderConfirmSummaryBar(list) {
   if (!list || !list.length) return '';
-  var cnt = { pending: 0, confirmed: 0, appealing: 0, ruled: 0 };
-  var unscored = 0, waitLeader = 0, waitAdmin = 0;
+  var cnt = { pending: 0, confirmed: 0, appealing: 0, ruled: 0, scoring: 0 };
+  var waitLeader = 0, waitAdmin = 0;
   list.forEach(function (p) {
     var rec = getConfirmRec(perfMonth, p.name);
-    cnt[rec && cnt[rec.status] !== undefined ? rec.status : 'pending']++;
-    if (!subjScoreComplete(p.name, p.role)) unscored++;
+    var st = rec && cnt[rec.status] !== undefined ? rec.status : 'pending';
+    var scoring = st === 'pending' && !subjScoreComplete(p.name, p.role);
+    if (scoring) cnt.scoring++;
+    else cnt[st]++;
     if (rec && rec.status === 'appealing') {
       if (rec.appeal && rec.appeal.firstReview) waitAdmin++; else waitLeader++;
     }
   });
   return '<div class="confirm-sumbar">📋 <b>' + formatMonthLabel(perfMonth) + ' 绩效确认进度</b>' +
     '<span>共 ' + list.length + ' 人</span>' +
+    '<span class="cs-scoring">待主观评分 ' + cnt.scoring + '</span>' +
+    '<span class="cs-pending">待本人确认 ' + cnt.pending + '</span>' +
     '<span class="cs-confirmed">已确认 ' + cnt.confirmed + '</span>' +
-    '<span class="cs-pending">待确认 ' + cnt.pending + '</span>' +
     '<span class="cs-appealing">申诉中 ' + cnt.appealing + (cnt.appealing ? '（待初审 ' + waitLeader + ' · 待复核 ' + waitAdmin + '）' : '') + '</span>' +
     '<span class="cs-ruled">已裁决 ' + cnt.ruled + '</span>' +
-    (unscored > 0 ? '<span style="color:#e08a00;font-weight:600">✍ 主观分未评完 ' + unscored + ' 人（未评完者暂不能确认/申诉）</span>' : '') +
     (isLeader() && waitLeader > 0 ? '<span style="color:#d93025;font-weight:600">⚠ 有 ' + waitLeader + ' 人申诉待您初审</span>' : '') +
     (isAdmin() && (waitLeader + waitAdmin) > 0 ? '<span style="color:#d93025;font-weight:600">⚠ 申诉待处理：待初审 ' + waitLeader + ' · 待复核 ' + waitAdmin + '</span>' : '') +
     '</div>';
 }
 
-// 未对接财务项目·主管酌情评分箱（2026-09-04 用户拍板：区域主管直接定，30%~120%，留痕）
-function renderSettleAdjBox(p, unlinkedProjs) {
-  var html = '<div class="settle-adj-box"><b>⚙ 未对接财务项目 · 酌情评分</b>' +
-    '<div style="color:#64748b;font-size:11px;margin:3px 0 6px">未对接项目默认按保底30%计分（客观原因分数）；员工对推动结算速度/财务对接有实质性动作的，可酌情提高至30~120。保存后自动同步云端并即时重算。</div>';
+// 未对接财务项目·保底计分只读说明（2026-09-05 用户定稿：固定按权重30%计分，取消酌情调整）
+function renderSettleUnlinkedNote(p, unlinkedProjs) {
+  var weight = p.role === '项目营销负责人' ? 15 : 10;
+  var perScore = weight * 0.3;
+  var html = '<div class="settle-unlinked-box"><b>⚙ 未对接财务项目 · 按保底分计</b>' +
+    '<div style="color:#64748b;font-size:11px;margin:3px 0 4px">以下项目当月未对接财务，统一按结算率权重 30% 计分（' + (p.role === '项目营销负责人' ? '项目营销负责人 15 分制' : '运营专员 10 分制') + ' → 每项目 ' + perScore + ' 分），不做酌情调整（2026-09-05 定稿）。项目财务对接落地后，结算率恢复正常数值计算。</div>';
   unlinkedProjs.forEach(function (pr) {
-    var adj = getSettleAdj(perfMonth, pr.name, pr.school);
-    var nm = escConfirmJs(pr.name), sc = escConfirmJs(pr.school || pr.name);
-    html += '<div class="settle-adj-row">' +
-      '<span class="settle-adj-school">' + escConfirmHtml(pr.school || pr.name) + '</span>' +
-      '<input type="number" min="30" max="120" step="1" data-role="pct" value="' + (adj && isFinite(adj.ratio) ? Math.round(adj.ratio * 100) : 30) + '">%' +
-      '<input type="text" data-role="reason" placeholder="酌情理由（如推动开票/对账/对接落地，建议填写）" value="' + escConfirmHtml(adj ? (adj.reason || '') : '') + '">' +
-      '<button class="dm-op-btn" onclick="saveSettleAdj(\'' + nm + '\',\'' + sc + '\',this)">保存</button>' +
-      '</div>';
+    html += '<div class="settle-unlinked-row">· ' + escConfirmHtml(pr.school || pr.name) + '：未对接财务 → 按保底分计 ' + perScore + ' 分</div>';
   });
   html += '</div>';
   return html;
@@ -3633,14 +3587,16 @@ function renderConfirmArea(p) {
   var nm = escConfirmJs(p.name);
 
   var html = '<div class="confirm-box">';
-  html += '<div class="confirm-status cs-' + st + '">' + CONFIRM_BADGE[st] + ' 绩效确认状态：' + confirmStatusText(rec) +
+  var scoringNow = st === 'pending' && (rec ? !subjScoreComplete(rec.name, rec.role) : (p && !subjScoreComplete(p.name, p.role)));
+  var stBadge = scoringNow ? 'scoring' : st;
+  html += '<div class="confirm-status cs-' + stBadge + '">' + CONFIRM_BADGE[stBadge] + ' 绩效确认状态：' + confirmStatusText(rec, p) +
     (st === 'confirmed' && rec.confirmTime ? '（' + escConfirmHtml(rec.confirmTime) + '）' : '') + '</div>';
 
   // 本人未确认：勾选声明 + 确认/申诉按钮 + 隐藏申诉表单
   if (st === 'pending' && isSelf) {
     if (!subjScoreComplete(p.name, p.role)) {
       // 评分未完成（管理员未评完区域主管 / 区域主管未评完运营人员）：确认与申诉入口暂不开放
-      html += '<div class="confirm-meta">⏳ ' + formatMonthLabel(perfMonth) + ' 绩效评分尚在评定中（主观分未填写完毕）。评分完成后即可在本页确认结果或提出申诉，3 个工作日期限自评分送达后起算。</div>';
+      html += '<div class="confirm-meta">⏳ ' + formatMonthLabel(perfMonth) + ' 主观评分尚未完成，完成前不能确认结果或提出申诉。全部主观分填写完毕后将自动转为「待本人确认」状态。</div>';
     } else {
     html += '<label class="confirm-declare"><input type="checkbox" id="perfConfirmAgree">' +
       '<span>本人已完整阅读并知悉本人 <b>' + formatMonthLabel(perfMonth) + '</b> 绩效考核结果及各项评分依据（含计算过程）。如对考核结果有异议，可在收到结果之日起 <b>3个工作日内</b> 按申诉流程提出；逾期未提出的，视为对本考核结果无异议。申诉期间考核结果暂按原结果执行，裁决后如有调整，差额随最近一次工资发放补足或核减。</span></label>';
@@ -3668,10 +3624,10 @@ function renderConfirmArea(p) {
     }
     if (rec.appeal.firstReview) {
       var fr = rec.appeal.firstReview;
-      html += '<div class="confirm-review-block"><b>区域主管初审：' + (fr.conclusion === 'reject' ? '<span style="color:#d93025">驳回申诉</span>' : '<span style="color:#1a8a3a">审核通过</span>') + '</b>（' + escConfirmHtml(fr.by || '') + '，' + escConfirmHtml(fr.time || '') + '）：<br>' + escConfirmHtml(fr.comment || '') +
-        (fr.conclusion === 'reject' ? '<div style="font-size:11px;color:#64748b;margin-top:3px">主管驳回后申诉仍转管理员终裁（员工申诉不由主管单方面终结），由管理员最终裁决维持或调整。</div>' : '') + '</div>';
+      html += '<div class="confirm-review-block"><b>区域负责人初审：' + (fr.conclusion === 'reject' ? '<span style="color:#d93025">驳回申诉</span>' : '<span style="color:#1a8a3a">审核通过</span>') + '</b>（' + escConfirmHtml(fr.by || '') + '，' + escConfirmHtml(fr.time || '') + '）：<br>' + escConfirmHtml(fr.comment || '') +
+        (fr.conclusion === 'reject' ? '<div style="font-size:11px;color:#64748b;margin-top:3px">区域负责人驳回后申诉仍转管理员终裁（员工申诉不由区域负责人单方面终结），由管理员最终裁决维持或调整。</div>' : '') + '</div>';
     } else if (isMyMember && rec.status === 'appealing') {
-      html += '<div class="confirm-review-block"><b>区域主管初审</b>（请于 2 个工作日内回应）' +
+      html += '<div class="confirm-review-block"><b>区域负责人初审</b>（请于 2 个工作日内回应）' +
         '<textarea class="confirm-textarea" placeholder="初审意见：请写明采纳或维持的理由…（驳回时填写驳回理由）"></textarea>' +
         '<div class="confirm-actions">' +
         '<button class="btn-confirm" onclick="saveFirstReview(\'' + nm + '\',this,\'pass\')">✓ 审核通过（转管理员复核）</button>' +
@@ -3709,7 +3665,11 @@ function archiveVisibleRecs() {
   PERF_CONFIRM.forEach(function (r) {
     if (!r || !r.month || !r.name) return;
     if (ARCHIVE_MONTH !== 'all' && r.month !== ARCHIVE_MONTH) return;
-    if (ARCHIVE_STATUS !== 'all' && r.status !== ARCHIVE_STATUS) return;
+    if (ARCHIVE_STATUS !== 'all') {
+      if (ARCHIVE_STATUS === 'scoring') {
+        if (r.status !== 'pending' || subjScoreComplete(r.name, r.role)) return;
+      } else if (r.status !== ARCHIVE_STATUS) return;
+    }
     if (!isAdmin()) {
       if (r.leader !== CURRENT_USER.name) return; // 主管仅见自己负责的记录
     }
@@ -3720,7 +3680,7 @@ function archiveVisibleRecs() {
 }
 function setArchiveFilter() { renderConfirmArchive(); }
 
-// 申诉待办处理区：所有申诉中的记录集中列出，主管初审（通过/驳回）与管理员裁决可直接在此操作（2026-09-05 用户要求）
+// 申诉待办处理区：所有申诉中的记录集中列出，区域负责人初审（通过/驳回）与管理员裁决可直接在此操作（2026-09-05 用户要求）
 function pendingAppealPanelHtml() {
   var recs = PERF_CONFIRM.filter(function (r) {
     return r && r.status === 'appealing' && r.month && r.name &&
@@ -3732,14 +3692,14 @@ function pendingAppealPanelHtml() {
   recs.forEach(function (r) { if (r.appeal && r.appeal.firstReview) waitAdmin++; else waitLeader++; });
   var h = '<div class="confirm-sumbar" style="border-color:#fecaca;background:#fff7f7">🚨 <b>申诉待办处理</b>' +
     '<span>共 ' + recs.length + ' 件（待初审 ' + waitLeader + ' · 待管理员复核 ' + waitAdmin + '）</span>' +
-    '<span style="color:#64748b">主管初审（2 个工作日）→ 管理员裁决（3 个工作日）</span></div>';
+    '<span style="color:#64748b">区域负责人初审（2 个工作日）→ 管理员裁决（3 个工作日）</span></div>';
   h += '<table class="arch-table" style="margin-bottom:10px"><tr><th style="width:56px">月份</th><th style="width:64px">姓名</th><th style="width:80px">异议指标</th><th style="width:110px">提交时间</th><th style="width:150px">当前节点</th><th>处理操作（填写意见后点击按钮）</th></tr>';
   recs.forEach(function (r) {
     var nm = escConfirmJs(r.name), mn = escConfirmJs(r.month);
     var reviewed = !!(r.appeal && r.appeal.firstReview);
     var node = reviewed
-      ? '<span style="color:#d93025">待管理员复核</span>' + (r.appeal.firstReview.conclusion === 'reject' ? '<br><span style="font-size:10px;color:#d93025">主管已驳回</span>' : '')
-      : '待 <b>' + escConfirmHtml(r.leader || '区域主管') + '</b> 初审';
+      ? '<span style="color:#d93025">待管理员复核</span>' + (r.appeal.firstReview.conclusion === 'reject' ? '<br><span style="font-size:10px;color:#d93025">区域负责人已驳回</span>' : '')
+      : '待 <b>' + escConfirmHtml(r.leader || '区域负责人') + '</b> 初审';
     h += '<tr><td>' + r.month + '</td><td style="font-weight:600">' + escConfirmHtml(r.name) + '</td>' +
       '<td style="color:#64748b">' + escConfirmHtml((r.appeal && r.appeal.items) || '') + '</td>' +
       '<td style="color:#64748b">' + escConfirmHtml((r.appeal && r.appeal.submitTime) || '') + '</td>' +
@@ -3752,9 +3712,9 @@ function pendingAppealPanelHtml() {
       h += '<textarea class="confirm-textarea" style="min-height:44px" placeholder="裁决意见（必填）…"></textarea>' +
         '<button class="btn-appeal" style="margin-top:4px" onclick="submitPerfRuling(\'' + nm + '\',this,true,\'' + mn + '\')">⚖ 调整原结果</button> ' +
         '<button class="btn-confirm" style="margin-top:4px" onclick="submitPerfRuling(\'' + nm + '\',this,false,\'' + mn + '\')">✓ 维持原结果</button>' +
-        (!reviewed ? '<div style="font-size:10px;color:#94a3b8;margin-top:3px">注：区域主管尚未初审，管理员可直接裁决</div>' : '');
+        (!reviewed ? '<div style="font-size:10px;color:#94a3b8;margin-top:3px">注：区域负责人尚未初审，管理员可直接裁决</div>' : '');
     } else {
-      h += '<span style="color:#94a3b8">等待 ' + escConfirmHtml(reviewed ? '管理员复核' : (r.leader || '区域主管') + ' 初审') + '…</span>';
+      h += '<span style="color:#94a3b8">等待 ' + escConfirmHtml(reviewed ? '管理员复核' : (r.leader || '区域负责人') + ' 初审') + '…</span>';
     }
     h += '</td></tr>';
   });
@@ -3772,11 +3732,14 @@ function renderConfirmArchive() {
   var monthOpts = Object.keys(monthSet).sort().reverse().map(function (m) {
     return '<option value="' + m + '"' + (m === ARCHIVE_MONTH ? ' selected' : '') + '>' + formatMonthLabel(m) + '</option>';
   }).join('');
-  var cnt = { pending: 0, confirmed: 0, appealing: 0, ruled: 0 };
-  recs.forEach(function (r) { if (cnt[r.status] !== undefined) cnt[r.status]++; });
+  var cnt = { pending: 0, confirmed: 0, appealing: 0, ruled: 0, scoring: 0 };
+  recs.forEach(function (r) {
+    if (r.status === 'pending' && !subjScoreComplete(r.name, r.role)) cnt.scoring++;
+    else if (cnt[r.status] !== undefined) cnt[r.status]++;
+  });
 
   var html = '';
-  // === 申诉待办处理区（复核工作台）：区域主管初审 / 管理员裁决，两按钮直接操作（2026-09-05） ===
+  // === 申诉待办处理区（复核工作台）：区域负责人初审 / 管理员裁决，两按钮直接操作（2026-09-05） ===
   var pendHtml = pendingAppealPanelHtml();
   if (pendHtml) html += pendHtml;
   html += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 2px">';
@@ -3785,14 +3748,16 @@ function renderConfirmArchive() {
   if (isAdmin()) html += '<span style="margin-left:auto"><button class="btn-minor" onclick="exportConfirmArchive()">⬇ 导出存档 JSON</button></span>';
   html += '</div>';
   html += '<div class="arch-sum">共 ' + recs.length + ' 条　' +
+    '<span class="cs-scoring">待主观评分 ' + (cnt.scoring || 0) + '</span>' +
+    '<span class="cs-pending">待本人确认 ' + (cnt.pending || 0) + '</span>' +
     '<span class="cs-confirmed">已确认 ' + (cnt.confirmed || 0) + '</span>' +
-    '<span class="cs-pending">待确认 ' + (cnt.pending || 0) + '</span>' +
     '<span class="cs-appealing">申诉中 ' + (cnt.appealing || 0) + '</span>' +
     '<span class="cs-ruled">已裁决 ' + (cnt.ruled || 0) + '</span></div>';
   html += '<div class="arch-toolbar">' +
     '月份 <select id="archiveMonthSel" onchange="setArchiveFilter()"><option value="all">全部月份</option>' + monthOpts + '</select>' +
     '状态 <select id="archiveStatusSel" onchange="setArchiveFilter()"><option value="all"' + (ARCHIVE_STATUS === 'all' ? ' selected' : '') + '>全部状态</option>' +
-    '<option value="pending"' + (ARCHIVE_STATUS === 'pending' ? ' selected' : '') + '>待确认</option>' +
+    '<option value="scoring"' + (ARCHIVE_STATUS === 'scoring' ? ' selected' : '') + '>待主观评分</option>' +
+    '<option value="pending"' + (ARCHIVE_STATUS === 'pending' ? ' selected' : '') + '>待本人确认</option>' +
     '<option value="confirmed"' + (ARCHIVE_STATUS === 'confirmed' ? ' selected' : '') + '>已确认</option>' +
     '<option value="appealing"' + (ARCHIVE_STATUS === 'appealing' ? ' selected' : '') + '>申诉中</option>' +
     '<option value="ruled"' + (ARCHIVE_STATUS === 'ruled' ? ' selected' : '') + '>已裁决</option></select>' +
@@ -3830,6 +3795,7 @@ function archiveKeyNode(r) {
   if (r.status === 'ruled' && r.finalRuling) {
     return (r.finalRuling.adjust ? '<span style="color:#d93025;font-weight:600">裁决：调整原结果</span>' : '<span style="color:#1a8a3a;font-weight:600">裁决：维持原结果</span>') + '（' + escConfirmHtml(r.finalRuling.time || '') + '）';
   }
+  if (r.status === 'pending' && !subjScoreComplete(r.name, r.role)) return '<span style="color:#64748b">主观评分尚未完成</span>';
   return '<span style="color:#e08a00">等待本人确认</span>';
 }
 
@@ -3843,32 +3809,32 @@ function archiveDetailHtml(r) {
     h += '<div class="arch-tl"><span class="arch-dot" style="background:#d93025"></span><div><b>本人发起申诉</b><div style="color:#64748b">' + escConfirmHtml(r.appeal.submitTime) + ' · 异议指标：' + escConfirmHtml(r.appeal.items || '') + '</div><div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:6px 8px;margin-top:4px">申诉理由原文：' + escConfirmHtml(r.appeal.reason || '') + '</div></div></div>';
   }
   if (r.appeal && r.appeal.firstReview) {
-    h += '<div class="arch-tl"><span class="arch-dot" style="background:#1a73e8"></span><div><b>区域主管初审</b><div style="color:#64748b">' + escConfirmHtml(r.appeal.firstReview.by || '') + ' · ' + escConfirmHtml(r.appeal.firstReview.time || '') + '</div><div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:6px 8px;margin-top:4px">初审意见原文：' + escConfirmHtml(r.appeal.firstReview.comment || '') + '</div></div></div>';
+    h += '<div class="arch-tl"><span class="arch-dot" style="background:#1a73e8"></span><div><b>区域负责人初审</b><div style="color:#64748b">' + escConfirmHtml(r.appeal.firstReview.by || '') + ' · ' + escConfirmHtml(r.appeal.firstReview.time || '') + '</div><div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:6px 8px;margin-top:4px">初审意见原文：' + escConfirmHtml(r.appeal.firstReview.comment || '') + '</div></div></div>';
   }
   if (r.finalRuling) {
     h += '<div class="arch-tl"><span class="arch-dot" style="background:#6b4fd8"></span><div><b>管理员裁决：' + (r.finalRuling.adjust ? '调整原结果' : '维持原结果') + '</b><div style="color:#64748b">' + escConfirmHtml(r.finalRuling.time || '') + ' · 申诉期间暂按原结果执行，裁决后差额随最近一次工资补足或核减</div><div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:6px 8px;margin-top:4px">裁决意见原文：' + escConfirmHtml(r.finalRuling.comment || '') + '</div></div></div>';
   }
-  // 历史留痕：撤销申诉 / 撤销裁决 / 彻底回滚 全程可见
+  // 历史留痕：撤销申诉 / 撤销裁决 / 重置确认流程 全程可见
   (r.history || []).forEach(function (his) {
     var bgc = '#fffbeb', bc = '#fde68a', t = '';
     if (his.type === 'appeal_withdrawn') { t = '申诉人撤销申诉'; bgc = '#fef2f2'; bc = '#fecaca'; }
     if (his.type === 'ruling_revoked') { t = '管理员撤销裁决（退回复核）'; }
-    if (his.type === 'flow_reset') { t = '管理员彻底回滚（流程作废回到待确认）'; }
+    if (his.type === 'flow_reset') { t = '管理员重置确认流程（作废回到待确认）'; }
     h += '<div class="arch-tl"><span class="arch-dot" style="background:#f59e0b"></span><div><b style="color:#b45309">' + t + '</b>' +
       '<div style="color:#64748b">' + escConfirmHtml(his.time || '') + ' · ' + escConfirmHtml(his.by || '') + '</div>' +
       '<div style="background:' + bgc + ';border:1px solid ' + bc + ';border-radius:6px;padding:6px 8px;margin-top:4px">' + escConfirmHtml(his.note || '') + '</div></div></div>';
   });
-  // 管理员操作区：撤销裁决（已裁决时）/ 彻底回滚（超级权限）
+  // 管理员操作区：撤销裁决（已裁决时）/ 重置确认流程（超级权限）
   if (isAdmin()) {
     var nmA = escConfirmJs(r.name), mnA = escConfirmJs(r.month);
     var canRevoke = (r.status === 'ruled' && r.finalRuling);
     var canReset = !(r.status === 'pending' && !r.appeal && !r.confirmTime && !(r.history || []).length);
     if (canRevoke || canReset) {
       h += '<div style="margin-top:8px;padding:8px 10px;border:1px dashed #fca5a5;border-radius:8px;background:#fffafa">' +
-        '<b style="font-size:12px;color:#b91c1c">管理员回滚操作</b>' +
-        '<div style="font-size:11px;color:#64748b;margin:3px 0 6px">「撤销裁决」= 撤回本次裁决、退回「待管理员复核」重新裁决（原裁决留痕）；「彻底回滚」= 超级权限，整个确认/申诉流程作废回到「待确认」，全部历史留痕。</div>' +
+        '<b style="font-size:12px;color:#b91c1c">管理员流程操作</b>' +
+        '<div style="font-size:11px;color:#64748b;margin:3px 0 6px">「撤销裁决」= 撤回本次裁决、退回「待管理员复核」重新裁决（原裁决留痕）；「重置确认流程」= 超级权限，整个确认/申诉流程作废回到「待确认」，全部历史留痕。</div>' +
         (canRevoke ? '<button class="btn-minor" onclick="revokePerfRuling(\'' + mnA + '\',\'' + nmA + '\')">↩ 撤销裁决</button> ' : '') +
-        (canReset ? '<button class="btn-minor" style="color:#b91c1c" onclick="resetPerfFlow(\'' + mnA + '\',\'' + nmA + '\')">⟲ 彻底回滚到待确认</button>' : '') +
+        (canReset ? '<button class="btn-minor" style="color:#b91c1c" onclick="resetPerfFlow(\'' + mnA + '\',\'' + nmA + '\')">⟲ 重置确认流程（回到待确认）</button>' : '') +
         '</div>';
     }
   }
@@ -3912,6 +3878,7 @@ function renderMyConfirmHistory() {
   h += '<div class="my-h-body" style="display:none;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;padding:2px 12px 10px">';
   mine.forEach(function (r) {
     var stColor = { pending: '#e08a00', confirmed: '#1a8a3a', appealing: '#d93025', ruled: '#6b4fd8' }[r.status] || '#94a3b8';
+    if (r.status === 'pending' && !subjScoreComplete(r.name, r.role)) stColor = '#64748b';
     h += '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px dashed #e2e8f0;align-items:flex-start">';
     h += '<div style="width:72px;flex:none;font-weight:600;color:#1e293b;padding-top:2px">' + r.month + '</div>';
     h += '<div style="flex:1;min-width:0">';
@@ -3923,13 +3890,13 @@ function renderMyConfirmHistory() {
       h += '<div style="background:#fef2f2;border-radius:6px;padding:5px 8px;margin-top:4px;font-size:11px;color:#7f1d1d">申诉（' + escConfirmHtml(r.appeal.items || '') + ' · ' + escConfirmHtml(r.appeal.submitTime) + '）：' + escConfirmHtml(r.appeal.reason || '') + '</div>';
     }
     if (r.appeal && r.appeal.firstReview) {
-      h += '<div style="color:#475569;font-size:11px;margin-top:3px">主管初审（' + escConfirmHtml(r.appeal.firstReview.by || '') + ' · ' + escConfirmHtml(r.appeal.firstReview.time || '') + '）：' + escConfirmHtml(r.appeal.firstReview.comment || '') + '</div>';
+      h += '<div style="color:#475569;font-size:11px;margin-top:3px">区域负责人初审（' + escConfirmHtml(r.appeal.firstReview.by || '') + ' · ' + escConfirmHtml(r.appeal.firstReview.time || '') + '）：' + escConfirmHtml(r.appeal.firstReview.comment || '') + '</div>';
     }
     if (r.finalRuling) {
       h += '<div style="color:#6b4fd8;font-size:11px;margin-top:3px">管理员裁决（' + escConfirmHtml(r.finalRuling.time || '') + '）：' + escConfirmHtml(r.finalRuling.comment || '') + '</div>';
     }
     (r.history || []).forEach(function (his) {
-      var t2 = his.type === 'appeal_withdrawn' ? '申诉已撤销' : (his.type === 'ruling_revoked' ? '裁决已被撤销，待重新裁决' : '流程被管理员回滚，回到待确认');
+      var t2 = his.type === 'appeal_withdrawn' ? '申诉已撤销' : (his.type === 'ruling_revoked' ? '裁决已被撤销，待重新裁决' : '流程被管理员重置，回到待确认');
       h += '<div style="color:#b45309;font-size:11px;margin-top:3px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:4px 8px">' + t2 + '（' + escConfirmHtml(his.time || '') + '）：' + escConfirmHtml(his.note || '') + '</div>';
     });
     h += '</div></div>';
@@ -6688,7 +6655,6 @@ document.addEventListener("DOMContentLoaded", function() {
   pullModule('marketing');
   pullModule('campus');
   pullModule('perfconfirm'); // 绩效确认/申诉记录：打开即拉最新，多人多设备同步
-  pullModule('settleadj'); // 结算率酌情调整记录：同上
   renderMonthBtns();
   // 三角色登录：恢复上次会话，未登录则显示登录页
   var saved = null;
