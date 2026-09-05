@@ -109,7 +109,16 @@ tr:hover td{background:#f8fafc}
 .rule-toggle{font-size:10px;color:#666;transition:transform .2s}
 .rule-section{margin-bottom:12px}
 .rule-section:last-child{margin-bottom:0}
-.rule-section h5{font-size:11px;color:#1a73e8;margin-bottom:6px;font-weight:600}
+.rule-section h5{font-size:11px;color:#1a73e8;margin-bottom:6px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+/* ===== 绩效规则六部分·管理员在线编辑（2026-09-05：所见即所得，仅管理员可见按钮，其他角色只读） ===== */
+.rule-edit-btnwrap{margin-left:auto;display:inline-flex;gap:6px;align-items:center;font-weight:400}
+.rule-edit-btn{font-size:10px;padding:2px 10px;border:1px solid #1a73e8;color:#1a73e8;background:#fff;border-radius:10px;cursor:pointer;white-space:nowrap}
+.rule-edit-btn:hover{background:#e8f0fe}
+.rule-edit-btn.save{border-color:#1a8a3a;color:#1a8a3a}
+.rule-edit-btn.save:hover{background:#e6f4ea}
+.rule-edit-btn.cancel{border-color:#94a3b8;color:#64748b}
+.rule-edit-btn.cancel:hover{background:#f1f5f9}
+.rule-edit-zone[contenteditable="true"]{outline:2px dashed #1a73e8;outline-offset:6px;border-radius:4px}
 .rule-section ol,.rule-section ul{margin-left:16px}
 .rule-section li{margin-bottom:3px}
 .rule-table{width:100%;border-collapse:collapse;font-size:10px;margin-top:6px}
@@ -1667,6 +1676,31 @@ function mergePwdStore(local, cloud) {
   });
   return Object.keys(byKey).map(function (k) { return byKey[k]; });
 }
+// ===== 绩效规则·管理员在线编辑数据（2026-09-05 用户拍板：六部分各自可改、所见即所得、不留痕、其他角色只读） =====
+// PERF_RULES 结构：{ part1: {html:'该部分正文HTML', updatedAt:'ISO时间'}, ... part6 }
+// 合并策略与密码库相同：同一部分按 updatedAt 新者胜——管理员改过的新版会覆盖各设备上的旧版
+var PERF_RULES = {};
+function loadPerfRules() {
+  PERF_RULES = {};
+  try {
+    var v = JSON.parse(localStorage.getItem('wb_perf_rules_v1') || '{}');
+    Object.keys(v || {}).forEach(function (k) { if (v[k] && v[k].html) PERF_RULES[k] = v[k]; });
+  } catch (e) {}
+}
+function persistPerfRules() {
+  try { localStorage.setItem('wb_perf_rules_v1', JSON.stringify(PERF_RULES)); } catch (e) {}
+}
+function mergeRuleStore(local, cloud) {
+  var out = {}, keys = {};
+  Object.keys(local || {}).forEach(function (k) { keys[k] = true; });
+  Object.keys(cloud || {}).forEach(function (k) { keys[k] = true; });
+  Object.keys(keys).forEach(function (k) {
+    var l = local[k], c = cloud[k];
+    if (l && c) out[k] = String(c.updatedAt || '') > String(l.updatedAt || '') ? c : l;
+    else out[k] = l || c;
+  });
+  return out;
+}
 // ===== 多模块云端共享（复用主观分模式：GET 静态+API，本地优先合并，PUT 乐观合并） =====
 // 让 用户池/营销活动/校园行/月度数据 在不同设备、不同人之间看到同一份、改动即同步（等同共享文档）。
 var MODULE_SYNC = {
@@ -1728,6 +1762,18 @@ var MODULE_SYNC = {
     get: function () { return PWD_STORE; },
     set: function (v) { PWD_STORE.length = 0; (v || []).forEach(function (x) { if (x && x.account && x.salt && x.hash) PWD_STORE.push(x); }); },
     keyOf: function (r) { return r.account || ''; }
+  },
+  perfrules: {
+    // 绩效规则六部分（管理员在线编辑，2026-09-05）：逐部分 updatedAt 新者胜，保证管理员最新修订覆盖所有设备
+    file: 'perf_rules.json',
+    lsKey: 'wb_perf_rules_v1',
+    mergeFn: mergeRuleStore,
+    get: function () { return PERF_RULES; },
+    set: function (v) {
+      PERF_RULES = {};
+      Object.keys(v || {}).forEach(function (k) { if (v[k] && v[k].html) PERF_RULES[k] = v[k]; });
+    },
+    keyOf: function (r) { return r; }
   }
   // settleadj（结算率酌情调整）模块已于 2026-09-05 废弃：未对接财务固定按30%保底计分，不再读写云端
 };
@@ -1784,6 +1830,7 @@ function applyModuleCloud(modKey, cloudVal) {
     if (modKey === 'campus' && currentModule === 'modCampus' && typeof renderCampus === 'function') renderCampus();
     if (modKey === 'perfconfirm' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') updatePerformanceContent();
   }
+  if (modKey === 'perfrules' && typeof applySavedRules === 'function') applySavedRules(); // 管理员改过的规则版本拉取后立即套用到页面
 }
 function pullModule(modKey) {
   var cfg = MODULE_SYNC[modKey]; if (!cfg) return Promise.resolve();
@@ -2603,6 +2650,8 @@ function enterApp() {
   var mb = $('mainBody'); if (mb) mb.style.display = 'flex';
   refreshUserBadge();
   applyNavByRole();
+  // 绩效规则六部分：管理员登录后显示修改按钮（其他角色只读），并套用已保存的规则版本
+  initPerfRuleEditing();
   // 导入按钮与下载模板按钮仅管理员可见，且只在总体概况/绩效评估模块显示
   updateGlobalImportButtonsVisibility();
   refreshCurrentModule();
@@ -4135,6 +4184,111 @@ function importSubjectiveBackup(file) {
   reader.onerror = function () { alert('读取文件失败'); };
   reader.readAsText(file);
   try { file.value = ''; } catch (e) {} // 允许重复选择同一文件
+}
+
+// ===== 绩效规则六部分·管理员在线编辑（2026-09-05 用户拍板） =====
+// 交互：每个大点标题右侧「✏ 修改」按钮（仅管理员可见）→ 直接在原表格/文字上点着改（所见即所得）→「💾 保存」写本地+推云端 / 「取消」还原。
+// 其他角色（区域负责人/运营专员/营销负责人）与未登录状态：只读展示，不出现任何按钮。
+// 不留痕（用户拍板）：只保留每个部分的最新版本，无修改历史。
+var _ruleEditInited = false;
+var _ruleEditBackup = {}; // partN -> 编辑前 HTML，取消时还原
+
+function ruleZoneOf(part) {
+  var body = $('perfRuleBody'); if (!body) return null;
+  var zones = body.querySelectorAll('.rule-edit-zone');
+  for (var i = 0; i < zones.length; i++) if (zones[i].getAttribute('data-rule-part') === part) return zones[i];
+  return null;
+}
+function initPerfRuleEditing() {
+  var body = $('perfRuleBody'); if (!body) return;
+  if (_ruleEditInited) { applySavedRules(); updateRuleEditButtons(); return; }
+  var sections = body.querySelectorAll('.rule-section');
+  for (var i = 0; i < sections.length; i++) {
+    var sec = sections[i];
+    var part = 'part' + (i + 1);
+    var h5 = sec.querySelector('h5');
+    // 把标题之后的全部内容包进编辑区容器（标题本身不可编辑）
+    var zone = document.createElement('div');
+    zone.className = 'rule-edit-zone';
+    zone.setAttribute('data-rule-part', part);
+    var kids = [];
+    for (var j = 0; j < sec.childNodes.length; j++) kids.push(sec.childNodes[j]);
+    var pastTitle = false;
+    kids.forEach(function (n) {
+      if (n === h5) { pastTitle = true; return; }
+      if (pastTitle) zone.appendChild(n);
+    });
+    sec.appendChild(zone);
+    if (h5) {
+      var wrap = document.createElement('span');
+      wrap.className = 'rule-edit-btnwrap';
+      wrap.innerHTML = '<button class="rule-edit-btn" onclick="startRuleEdit(\'' + part + '\')">✏ 修改</button>';
+      h5.appendChild(wrap);
+    }
+  }
+  _ruleEditInited = true;
+  applySavedRules();
+  updateRuleEditButtons();
+}
+// 把管理员保存过的规则版本套用到页面（云端拉取后、页面初始化时都会调用）
+function applySavedRules() {
+  var body = $('perfRuleBody'); if (!body) return;
+  var zones = body.querySelectorAll('.rule-edit-zone');
+  for (var i = 0; i < zones.length; i++) {
+    var z = zones[i];
+    if (z.getAttribute('contenteditable') === 'true') continue; // 正在编辑中，不覆盖
+    var rec = PERF_RULES[z.getAttribute('data-rule-part')];
+    if (rec && rec.html && z.innerHTML !== rec.html) z.innerHTML = rec.html;
+  }
+}
+// 修改按钮只对管理员显示；登出/换账号时由 enterApp 重新调用
+function updateRuleEditButtons() {
+  var btns = document.querySelectorAll('.rule-edit-btnwrap');
+  for (var i = 0; i < btns.length; i++) btns[i].style.display = isAdmin() ? '' : 'none';
+}
+function startRuleEdit(part) {
+  if (!isAdmin()) { alert('仅管理员可修改绩效规则'); return; }
+  var zone = ruleZoneOf(part); if (!zone) return;
+  if (zone.getAttribute('contenteditable') === 'true') return; // 已在编辑中
+  _ruleEditBackup[part] = zone.innerHTML;
+  zone.setAttribute('contenteditable', 'true');
+  var h5 = zone.parentNode ? zone.parentNode.querySelector('h5') : null;
+  if (h5) {
+    var w = h5.querySelector('.rule-edit-btnwrap');
+    if (w) w.innerHTML = '<span style="font-size:10px;color:#1a73e8">编辑中：直接点击文字或表格修改</span>' +
+      '<button class="rule-edit-btn save" onclick="saveRuleEdit(\'' + part + '\')">💾 保存</button>' +
+      '<button class="rule-edit-btn cancel" onclick="cancelRuleEdit(\'' + part + '\')">取消</button>';
+  }
+  try { zone.focus(); } catch (e) {}
+}
+function saveRuleEdit(part) {
+  if (!isAdmin()) { alert('仅管理员可修改绩效规则'); return; }
+  var zone = ruleZoneOf(part);
+  if (!zone || zone.getAttribute('contenteditable') !== 'true') return;
+  var htmlStr = zone.innerHTML || '';
+  if (!htmlStr.replace(/<[^>]*>/g, '').trim()) { alert('该部分内容不能为空'); return; }
+  PERF_RULES[part] = { html: htmlStr, updatedAt: new Date().toISOString() };
+  persistPerfRules();
+  endRuleEdit(part);
+  scheduleModulePush('perfrules');
+  alert('已保存：全员打开页面将看到最新版规则（约1-2分钟内同步到云端）');
+}
+function cancelRuleEdit(part) {
+  var zone = ruleZoneOf(part);
+  if (zone && _ruleEditBackup[part] !== undefined) zone.innerHTML = _ruleEditBackup[part];
+  endRuleEdit(part);
+}
+function endRuleEdit(part) {
+  var zone = ruleZoneOf(part);
+  if (zone) {
+    zone.removeAttribute('contenteditable');
+    var h5 = zone.parentNode ? zone.parentNode.querySelector('h5') : null;
+    if (h5) {
+      var w = h5.querySelector('.rule-edit-btnwrap');
+      if (w) w.innerHTML = '<button class="rule-edit-btn" onclick="startRuleEdit(\'' + part + '\')">✏ 修改</button>';
+    }
+  }
+  delete _ruleEditBackup[part];
 }
 
 function toggleRulePanel(header) {
@@ -6840,6 +6994,9 @@ document.addEventListener("DOMContentLoaded", function() {
   pullModule('campus');
   pullModule('perfconfirm'); // 绩效确认/申诉记录：打开即拉最新，多人多设备同步
   pullModule('passwords'); // 账号密码（加盐哈希）：打开即拉最新，管理员重置后所有设备生效
+  loadPerfRules(); // 绩效规则（管理员在线编辑版本）：先套本地，再拉云端最新
+  initPerfRuleEditing();
+  pullModule('perfrules');
   renderMonthBtns();
   // 三角色登录：恢复上次会话，未登录则显示登录页
   var saved = null;
