@@ -1369,7 +1369,7 @@ var WORKBENCH_DATA = {"subjective_scores":{},"available_months":["2026-04","2026
 };
 
 var currentMonth = "2026-07";
-var perfMonth = "2026-07"; // 绩效模块独立月份
+var perfMonth = "2026-08"; // 绩效模块默认月份：每次刷新/登录进来默认最近已核算月（2026-09-07 用户要求从 7 改为 8）
 var selectedMonths = []; // 多选月份（用于总体概况），默认全部
 var currentOvTab = "dashboard"; // 总体概况当前子模块
 var currentViewMode = "all";
@@ -2650,6 +2650,8 @@ function enterApp() {
   var mb = $('mainBody'); if (mb) mb.style.display = 'flex';
   refreshUserBadge();
   applyNavByRole();
+  // 恢复上次浏览的页签（2026-09-07）：需要套用角色裁剪之后做，避免 staff 越权恢复
+  restoreLastPanel();
   // 绩效规则六部分：管理员登录后显示修改按钮（其他角色只读），并套用已保存的规则版本
   initPerfRuleEditing();
   // 导入按钮与下载模板按钮仅管理员可见，且只在总体概况/绩效评估模块显示
@@ -3044,8 +3046,27 @@ function switchModule(el) {
   document.querySelectorAll(".module-panel").forEach(function(p){ p.classList.remove("active"); });
   $(panelId).classList.add("active");
   currentModule = panelId;
+  // 记住当前页签，刷新/再次登录后自动回到这个模块（2026-09-07 用户要求）
+  try { localStorage.setItem('wb_active_panel_v1', panelId); } catch (e) {}
   updateGlobalImportButtonsVisibility();
   refreshCurrentModule();
+}
+
+// 恢复上次浏览的页签（2026-09-07 用户要求：刷新后留在当前页，不要回到总体概况）
+// 取值前会校验合法性 + 越权：staff 不能进入被隐藏的面板
+function restoreLastPanel() {
+  try {
+    var saved = localStorage.getItem('wb_active_panel_v1');
+    if (!saved) return;
+    var valid = ['modOverview', 'modPerformance', 'modUserPool', 'modMarketing', 'modCampus', 'modTaskDispatch'];
+    if (valid.indexOf(saved) < 0) return;
+    if (isStaff() && ['modUserPool', 'modCampus', 'modTaskDispatch'].indexOf(saved) >= 0) return;
+    if (saved === currentModule) return;
+    currentModule = saved;
+    document.querySelectorAll('.nav-item').forEach(function (i) { i.classList.toggle('active', i.dataset.panel === currentModule); });
+    document.querySelectorAll('.module-panel').forEach(function (p) { p.classList.remove('active'); });
+    $(currentModule).classList.add('active');
+  } catch (e) {}
 }
 
 function updateGlobalImportButtonsVisibility() {
