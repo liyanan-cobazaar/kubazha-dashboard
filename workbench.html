@@ -951,8 +951,8 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
       </div>
 
       <div class="tab-bar" id="perfTabs"></div>
-      <!-- 主观分云端同步/备份工具：仅管理员可见，避免普通用户/区域主管困惑 -->
-      <div id="subjAdminTools" style="margin:8px 0;display:flex;gap:12px;align-items:center;font-size:12px;flex-wrap:wrap">
+      <!-- 主观分云端同步/备份工具：已隐藏，仅保留功能代码供必要时内部调用，避免用户困惑 -->
+      <div id="subjAdminTools" style="margin:8px 0;display:none;gap:12px;align-items:center;font-size:12px;flex-wrap:wrap">
         <span id="subjSyncStatus"></span>
         <button onclick="pushSubjectiveScores()" style="padding:4px 12px;border:1px solid #1a73e8;border-radius:6px;background:#fff;color:#1a73e8;cursor:pointer;font-size:12px">立即同步到云端</button>
         <button onclick="exportSubjectiveBackup()" style="padding:4px 12px;border:1px solid #1a8a3a;border-radius:6px;background:#fff;color:#1a8a3a;cursor:pointer;font-size:12px;font-weight:600">⬇ 导出备份</button>
@@ -3388,8 +3388,8 @@ function initPerformance() {
   var noteHtml = scopeNoteHtml() ? '<span style="float:right;font-size:11px;color:#1a73e8">'+scopeNoteHtml()+'</span>' : '';
   var titleEl = document.querySelector('#modPerformance .module-title');
   if (titleEl) titleEl.innerHTML = '🎯 绩效评估' + noteHtml;
-  // 主观分同步/备份工具栏仅管理员可见（避免普通用户/区域主管困惑）
-  var _at = $('subjAdminTools'); if (_at) _at.style.display = isAdmin() ? 'flex' : 'none';
+  // 主观分同步/备份工具栏已隐藏（2026-09-07 用户要求）：功能代码保留供内部调用，任何角色都不再显示
+  var _at = $('subjAdminTools'); if (_at) _at.style.display = 'none';
   // 初始化绩效月份下拉
   var sel = $('perfMonthSelect');
   if (sel) {
