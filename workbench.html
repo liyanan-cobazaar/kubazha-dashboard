@@ -1382,15 +1382,17 @@ try {
   if (Array.isArray(_pcRaw)) _pcRaw.forEach(function (r) { if (r && r.month && r.name) PERF_CONFIRM.push(r); });
 } catch (e) { /* 坏数据忽略 */ }
 
-// ===== 结算率"未对接财务"保底计分（2026-09-05 定稿：固定30%，取消酌情调整） =====
-// 规则（2026-09-05 用户定稿）：项目结算率为"未对接财务"等文本时，统一按保底30%完成率（等效结算率 0.85×30%=0.255）计入平均，
+// ===== 结算率"未对接财务/结算率为0"保底计分（2026-09-08 定稿） =====
+// 规则（2026-09-05 用户定稿，2026-09-08 修订）：项目结算率为"未对接财务"等文本时，统一按保底30%完成率（等效结算率 0.85×30%=0.255）计入平均，
 //       不再提供主管酌情调整入口（原 wb_settle_adj_v1 / settle_adjustments.json 酌情机制已废弃，分数不再受其影响）。
 //       区域主管本人的「②区域项目结算率」同样把未对接项目按 30% 计入平均。
-// 一个项目的结算率有效值：数值型(>0)原样；数值0维持现状不计入；文本型"未对接财务"按保底30%
-// 返回 {v:等效结算率, kind:'num'|'unlinked', ratio:完成率(仅文本型有意义)}
+//       2026-09-08 修订：结算率为数值 0 的项目同样按保底30%计入（0 属于低于保底线的情形，直接按保底计分，
+//       不再把 0 排除在平均之外——此前排除会导致"全部为0"的员工结算率项直接得0分，保底不生效）。
+// 一个项目的结算率有效值：数值型(>0)原样；数值0与文本型"未对接财务"统一按保底30%
+// 返回 {v:等效结算率, kind:'num'|'unlinked', ratio:完成率(仅保底计分时有意义)}
 function effSettleOf(pr) {
   var raw = parseFloat(pr.settle_rate);
-  if (!isNaN(raw)) return raw > 0 ? { v: raw, kind: 'num' } : null;
+  if (!isNaN(raw) && raw > 0) return { v: raw, kind: 'num' };
   return { v: 0.85 * 0.3, kind: 'unlinked', ratio: 0.3 };
 }
 // ===== 主观分云端共享（方案④：存 WORKBENCH_DATA.subjective_scores，经 GitHub API 合并写入，全员可见） =====
@@ -2247,12 +2249,12 @@ function calcObjectiveScore(p, role) {
 
     // ---- ② 区域重点项目结算率(15分): 完成率=各项目结算率均值/85% ----
     // 口径(2026-09-02 用户确认): 先算完成率(均值÷85%),再做保底30%/封顶120%; 展示透明化列出各项目结算率
-    // 口径(2026-09-04 用户确认): "未对接财务"等文本结算率项目按保底30%完成率(等效0.85×30%=0.255)计入平均；
-    //   数值型(含0)照旧计入。2026-09-05 定稿：未对接项目统一固定30%，无酌情。
+    // 口径(2026-09-08 定稿): "未对接财务"文本与数值0的项目统一按保底30%完成率(等效0.85×30%=0.255)计入平均；
+    //   数值型(>0)照旧原样计入。无酌情。
     var srNums = [], unlinkedCntR = 0;
     regionPeople.forEach(function (pp) {
       var eff = effSettleOf(pp);
-      if (!eff) { var raw0 = parseFloat(pp.settle_rate); if (!isNaN(raw0)) srNums.push(raw0); return; } // 数值0：照旧计入
+      if (!eff) return; // 防御性保留（effSettleOf 现恒返回有效值）
       if (eff.kind !== 'num') unlinkedCntR++;
       srNums.push(eff.v);
     });
@@ -2266,7 +2268,7 @@ function calcObjectiveScore(p, role) {
       else if(srRawRatio > 1.2) srMain += "（封顶120%）";
       var srPerLine = regionPeople.map(function(pp){
         var raw = parseFloat(pp.settle_rate);
-        if(!isNaN(raw)) return (pp.school||pp.name)+" "+(raw*100).toFixed(0)+"%";
+        if(!isNaN(raw)) { if (raw > 0) return (pp.school||pp.name)+" "+(raw*100).toFixed(0)+"%"; return (pp.school||pp.name)+" 0%（按保底分计）"; }
         return (pp.school||pp.name)+" 未对接财务 · 按保底分计（完成率30%，等效结算率25.5%）";
       }).join("、");
       details.push({name:"②区域项目结算率", projCount:srNums.length,
@@ -2333,12 +2335,12 @@ function calcObjectiveScore(p, role) {
     s += fDetailM.score;
     details.push(fDetailM.detail);
 
-    // ---- 结算率(15分): 数值型(>0)算术平均；"未对接财务"按保底30%计入(等效0.255)，固定无酌情 ----
-    // 口径(2026-09-04 用户确认): 未对接项目作为客观原因分数给到员工；全部未对接时=权重×30%（15分→4.5分）
+    // ---- 结算率(15分): 数值型(>0)算术平均；"未对接财务"与数值0按保底30%计入(等效0.255)，固定无酌情 ----
+    // 口径(2026-09-08 定稿): 未对接/零结算项目统一按保底30%计分；全部为0或未对接时=权重×30%（15分→4.5分）
     var srValsM = [], unlinkedM = 0;
     projsM.forEach(function (pr) {
       var eff = effSettleOf(pr);
-      if (!eff) return; // 数值0：照旧不计入
+      if (!eff) return; // 防御性保留
       if (eff.kind !== 'num') unlinkedM++;
       srValsM.push(eff.v);
     });
@@ -2346,14 +2348,14 @@ function calcObjectiveScore(p, role) {
       var avgSrM = srValsM.reduce(function(a,b){return a+b;},0)/srValsM.length;
       var stResultM = calcItemScore(avgSrM, 0.85, 15);
       s += stResultM.score;
-      var stMainM = "项目均值 "+(avgSrM*100).toFixed(1)+"%（"+srValsM.length+"项目" + (unlinkedM > 0 ? "，含未对接" + unlinkedM + "项按30%完成率计（等效结算率=85%×30%=25.5%）" : "") + "）｜ 完成率="+(avgSrM*100).toFixed(1)+"%÷85%="+_fpct(avgSrM/0.85);
+      var stMainM = "项目均值 "+(avgSrM*100).toFixed(1)+"%（"+srValsM.length+"项目" + (unlinkedM > 0 ? "，含未对接/零结算" + unlinkedM + "项按30%完成率计（等效结算率=85%×30%=25.5%）" : "") + "）｜ 完成率="+(avgSrM*100).toFixed(1)+"%÷85%="+_fpct(avgSrM/0.85);
       if(avgSrM/0.85 < 0.3) stMainM += "（保底30%）";
       else if(avgSrM/0.85 > 1.2) stMainM += "（封顶120%）";
       var stPerM = projsM.map(function(pr){
         var raw = parseFloat(pr.settle_rate);
-        if(!isNaN(raw)) { if (raw > 0) return (pr.school||pr.name)+" "+(raw*100).toFixed(0)+"%"; return null; }
+        if(!isNaN(raw)) { if (raw > 0) return (pr.school||pr.name)+" "+(raw*100).toFixed(0)+"%"; return (pr.school||pr.name)+" 0%（按保底分计）"; }
         return (pr.school||pr.name)+" 未对接财务 · 按保底分计（完成率30%，等效结算率25.5%）";
-      }).filter(function(x){ return x !== null; }).join("、");
+      }).join("、");
       details.push({name:"结算率", projCount:srValsM.length,
         ratio:stResultM.ratio, score:stResultM.score, max:15, target:"85%",
         flowMain:stMainM, flowProjects:"各项目："+stPerM, flowBasis:""});
@@ -2412,12 +2414,12 @@ function calcObjectiveScore(p, role) {
     s += fDetailS.score;
     details.push(fDetailS.detail);
 
-    // ---- 结算率(10分): 数值型(>0)算术平均；"未对接财务"按保底30%计入(等效0.255)，固定无酌情 ----
-    // 口径(2026-09-04 用户确认): 未对接项目作为客观原因分数给到员工；全部未对接时=权重×30%（10分→3分）
+    // ---- 结算率(10分): 数值型(>0)算术平均；"未对接财务"与数值0按保底30%计入(等效0.255)，固定无酌情 ----
+    // 口径(2026-09-08 定稿): 未对接/零结算项目统一按保底30%计分；全部为0或未对接时=权重×30%（10分→3分）
     var sSrVals = [], unlinkedS = 0;
     projsS.forEach(function (pr) {
       var eff = effSettleOf(pr);
-      if (!eff) return; // 数值0：照旧不计入
+      if (!eff) return; // 防御性保留
       if (eff.kind !== 'num') unlinkedS++;
       sSrVals.push(eff.v);
     });
@@ -2425,14 +2427,14 @@ function calcObjectiveScore(p, role) {
       var avgSSr = sSrVals.reduce(function(a,b){return a+b;},0)/sSrVals.length;
       var seResult = calcItemScore(avgSSr, 0.85, 10);
       s += seResult.score;
-      var stMainS = "项目均值 "+(avgSSr*100).toFixed(1)+"%（"+sSrVals.length+"项目" + (unlinkedS > 0 ? "，含未对接" + unlinkedS + "项按30%完成率计（等效结算率=85%×30%=25.5%）" : "") + "）｜ 完成率="+(avgSSr*100).toFixed(1)+"%÷85%="+_fpct(avgSSr/0.85);
+      var stMainS = "项目均值 "+(avgSSr*100).toFixed(1)+"%（"+sSrVals.length+"项目" + (unlinkedS > 0 ? "，含未对接/零结算" + unlinkedS + "项按30%完成率计（等效结算率=85%×30%=25.5%）" : "") + "）｜ 完成率="+(avgSSr*100).toFixed(1)+"%÷85%="+_fpct(avgSSr/0.85);
       if(avgSSr/0.85 < 0.3) stMainS += "（保底30%）";
       else if(avgSSr/0.85 > 1.2) stMainS += "（封顶120%）";
       var stPerS = projsS.map(function(pr){
         var raw = parseFloat(pr.settle_rate);
-        if(!isNaN(raw)) { if (raw > 0) return (pr.school||pr.name)+" "+(raw*100).toFixed(0)+"%"; return null; }
+        if(!isNaN(raw)) { if (raw > 0) return (pr.school||pr.name)+" "+(raw*100).toFixed(0)+"%"; return (pr.school||pr.name)+" 0%（按保底分计）"; }
         return (pr.school||pr.name)+" 未对接财务 · 按保底分计（完成率30%，等效结算率25.5%）";
-      }).filter(function(x){ return x !== null; }).join("、");
+      }).join("、");
       details.push({name:"结算率", projCount:sSrVals.length,
         ratio:seResult.ratio, score:seResult.score, max:10, target:"85%",
         flowMain:stMainS, flowProjects:"各项目："+stPerS, flowBasis:""});
