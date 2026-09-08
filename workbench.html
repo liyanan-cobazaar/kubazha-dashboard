@@ -211,24 +211,35 @@ tr:hover td{background:#f8fafc}
 .vp-day{font-size:13px;font-weight:700;color:#1f2937;margin:16px 0 8px;display:flex;align-items:center;gap:8px}
 .vp-day-meta{font-size:11px;font-weight:400;color:#64748b}
 .vp-timeline{position:relative;margin-left:7px;padding-left:22px;border-left:2px solid #bfdbfe}
-.vp-card{position:relative;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-bottom:10px;transition:box-shadow .2s}
-.vp-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.vp-card:before{content:'';position:absolute;left:-28px;top:12px;width:12px;height:12px;border-radius:50%;background:#1a73e8;border:2.5px solid #eff6ff}
+.vp-card{position:relative;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-bottom:10px;transition:box-shadow .18s,border-color .18s,background .18s,transform .18s}
+.vp-card:hover{background:#f5f9ff;border-color:#93c5fd;box-shadow:0 6px 16px rgba(26,115,232,.13);transform:translateY(-1px)}
+.vp-card:before{content:'';position:absolute;left:-28px;top:12px;width:12px;height:12px;border-radius:50%;background:#1a73e8;border:2.5px solid #eff6ff;transition:background .18s,border-color .18s}
+.vp-card:hover:before{background:#f59e0b;border-color:#fef3c7}
 .vp-card-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .vp-cust-name{font-weight:700;font-size:13px;color:#1f2937}
 .vp-cust-school{font-size:11px;color:#64748b}
+.vp-cust-lab{font-size:11px;color:#0e7490;background:#ecfeff;border:1px solid #a5f3fc;border-radius:4px;padding:0 6px;line-height:18px;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vp-type-tag{font-size:10px;background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 6px}
 .vp-badge-import{font-size:10px;background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:8px}
 .vp-badge-demo{font-size:10px;background:#f1f5f9;color:#64748b;padding:1px 6px;border-radius:8px}
 .vp-who{font-size:11px;color:#64748b;margin-left:auto}
 .vp-body{font-size:12px;color:#334155;margin-top:6px;line-height:1.6}
 .vp-body .vp-date{color:#1a73e8;font-weight:700;margin-right:6px}
-.vp-toggle{font-size:11px;color:#1a73e8;cursor:pointer;margin-top:6px;user-select:none}
-.vp-toggle:hover{text-decoration:underline}
+.vp-toggle{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:#1a73e8;background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;padding:3px 10px;margin-top:8px;cursor:pointer;user-select:none;transition:background .15s,border-color .15s,color .15s}
+.vp-toggle:hover{background:#dbeafe;border-color:#60a5fa}
+.vp-toggle.open{background:#1a73e8;color:#fff;border-color:#1a73e8}
+.vp-toggle-arrow{display:inline-block;font-size:9px;transition:transform .2s}
+.vp-toggle.open .vp-toggle-arrow{transform:rotate(90deg)}
+.vp-toggle-count{font-size:10px;font-weight:700;background:#dbeafe;color:#1d4ed8;border-radius:9px;padding:0 7px}
+.vp-toggle.open .vp-toggle-count{background:rgba(255,255,255,.28);color:#fff}
+.vp-first-visit{font-size:11px;color:#94a3b8;margin-top:8px}
 .vp-hist{display:none}
-.vp-hist.open{display:block;margin-top:8px;padding:10px 10px 2px 20px;background:#f8fafc;border-left:2px solid #a5b4fc;border-radius:8px}
+.vp-hist.open{display:block;margin-top:8px;padding:10px 12px 2px 24px;background:#f8fafc;border-left:2px solid #6366f1;border-radius:8px}
+.vp-hist-head{font-size:11px;font-weight:700;color:#475569;margin-bottom:10px}
 .vp-hist-item{position:relative;margin-bottom:10px}
-.vp-hist-item:before{content:'';position:absolute;left:-15px;top:5px;width:8px;height:8px;border-radius:50%;background:#6366f1}
+.vp-hist-item:before{content:'';position:absolute;left:-16px;top:4px;width:8px;height:8px;border-radius:50%;background:#6366f1;box-shadow:0 0 0 3px #e0e7ff}
+.vp-hist-item.vp-hist-latest:before{background:#f59e0b;box-shadow:0 0 0 3px #fef3c7}
+.vp-hist-latest-tag{font-size:10px;background:#fef3c7;color:#b45309;border-radius:4px;padding:0 5px;margin-left:5px;font-weight:700}
 .vp-hist-date{display:block;font-size:12px;color:#4338ca;font-weight:700}
 .vp-hist-type{display:inline-block;background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 6px;margin:3px 0;font-size:10px}
 .vp-hist-txt{display:block;font-size:11px;color:#555;line-height:1.5;word-break:break-all}
@@ -4917,6 +4928,7 @@ function getVisitRecords() {
           time: '',
           type: vs.type || '用户走访',
           school: u.school,
+          lab: u.lab || '',
           person: u.leader || '',
           users: 0,
           content: vs.content || '',
@@ -4935,6 +4947,7 @@ function getVisitRecords() {
       time: '',
       type: u.visitType || '用户走访',
       school: u.school,
+      lab: u.lab || '',
       person: u.leader || '',
       users: 0,
       content: u.visitContent || '',
@@ -5058,18 +5071,23 @@ function renderUpVisits() {
       var badge = v.fromPool ? '<span class="vp-badge-import">导入</span>' : '<span class="vp-badge-demo">示例</span>';
       var key = (v.name||'')+'|'+(v.school||'');
       var hist = histIdx[key] || [v];
-      // 历史时间轴：该客户全部走访从旧到新；多于 1 条才提供展开
+      // 历史时间轴：该客户全部走访从旧到新；多于 1 条提供「历史走访记录」按钮展开，仅 1 条提示首次走访
       var histPart = '';
       if (hist.length > 1) {
         var histData = JSON.stringify(hist.slice().sort(function(a,b){ return a.date.localeCompare(b.date); }).map(function(h){
           return { d: formatDayHead(h.date, true) + (h.time ? ' ' + h.time : ''), t: h.type, c: h.content || '' };
         }));
-        histPart = '<div class="vp-toggle" onclick="toggleVisitHist(this)">▸ 历史走访 '+hist.length+' 次</div>'
+        histPart = '<div class="vp-toggle" onclick="toggleVisitHist(this)">'
+          + '<span class="vp-toggle-arrow">▸</span>历史走访记录'
+          + '<span class="vp-toggle-count">'+hist.length+' 次</span></div>'
           + '<div class="vp-hist" data-hist="'+esc(histData)+'"></div>';
+      } else {
+        histPart = '<div class="vp-first-visit">🌱 首次走访，暂无历史记录</div>';
       }
       card.innerHTML = '<div class="vp-card-head">'
         + '<span class="vp-cust-name">'+esc(v.name || '(未填姓名)')+'</span>'
         + '<span class="vp-cust-school">'+esc(v.school)+'</span>'
+        + (v.lab ? '<span class="vp-cust-lab" title="'+esc(v.lab)+'">🔬 '+esc(v.lab)+'</span>' : '')
         + '<span class="vp-type-tag">'+esc(v.type)+'</span>'
         + badge
         + '<span class="vp-who">走访人：'+esc(v.person || '未指定')+'</span>'
@@ -5095,22 +5113,28 @@ function toggleVisitHist(el) {
   var hist = el.nextElementSibling;
   if (!hist || !hist.classList || !hist.classList.contains('vp-hist')) return;
   var open = hist.classList.toggle('open');
+  el.classList.toggle('open', open);
   if (open && !hist.innerHTML) {
     var data;
     try { data = JSON.parse(hist.getAttribute('data-hist') || '[]'); } catch (e) { data = []; }
-    // data 已按日期升序存（从旧到新），直接顺序渲染
-    data.forEach(function(h){
+    // 面板头：统计 + 时间方向说明
+    var head = document.createElement('div');
+    head.className = 'vp-hist-head';
+    head.textContent = '🕘 历史走访时间轴 · 从旧到新 · 共 ' + data.length + ' 次';
+    hist.appendChild(head);
+    // data 已按日期升序存（从旧到新），直接顺序渲染；最后一条=最近一次，琥珀色标记
+    data.forEach(function(h, i){
       var item = document.createElement('div');
-      item.className = 'vp-hist-item';
+      var latest = (i === data.length - 1);
+      item.className = 'vp-hist-item' + (latest ? ' vp-hist-latest' : '');
       item.innerHTML = '<span class="vp-hist-date">'+esc(h.d)+'</span>'
+        + (latest ? '<span class="vp-hist-latest-tag">最近</span>' : '')
         + (h.t ? '<span class="vp-hist-type">'+esc(h.t)+'</span>' : '')
         + (h.c ? '<span class="vp-hist-txt">📝 '+esc(h.c)+'</span>' : '');
       hist.appendChild(item);
     });
     if (!data.length) hist.innerHTML = '<div style="font-size:11px;color:#999;padding:6px">暂无历史回访明细</div>';
   }
-  // 只切换箭头方向，保留「历史走访 N 次」计数
-  el.textContent = (open ? '▾' : '▸') + el.textContent.slice(1);
 }
 
 
