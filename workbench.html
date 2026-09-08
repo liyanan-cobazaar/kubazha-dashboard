@@ -1710,7 +1710,7 @@ var MODULE_SYNC = {
     file: 'userpool_crm.json',
     lsKey: 'wb_userpool_crm_v1',
     get: function () { return USER_POOL_CRM; },
-    set: function (v) { USER_POOL_CRM.length = 0; (v || []).forEach(function (x) { USER_POOL_CRM.push(x); }); },
+    set: function (v) { USER_POOL_CRM.length = 0; (v || []).forEach(function (x) { USER_POOL_CRM.push(normalizeUserPoolRecord(x)); }); },
     keyOf: function (r) { return (r.name || '') + '|' + (r.school || ''); }
   },
   marketing: {
@@ -4950,13 +4950,14 @@ function getVisitRecords() {
   return list;
 }
 
-// 天分组组头：YYYY-MM-DD → "08-28 周五"（选中月份时）或完整日期（全部月份时）
+// 天分组组头：YYYY-MM-DD → "2026年8月28日 周五"（始终完整显示年月日，跨年也不会混淆；full 参数保留兼容旧调用）
 function formatDayHead(d, full) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
   var p = d.split("-");
   var dt = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
   var wd = ["周日","周一","周二","周三","周四","周五","周六"][dt.getDay()];
-  return (full ? d : p[1]+"-"+p[2]) + " " + wd;
+  void full;
+  return parseInt(p[0],10)+'年'+parseInt(p[1],10)+'月'+parseInt(p[2],10)+'日 '+wd;
 }
 
 // 月份下拉选项动态重建（选项集合变化才重写，保留当前选择；选择失效回落"全部月份"）
@@ -5004,7 +5005,13 @@ function renderUpVisits() {
     return;
   }
 
-  filtered.sort(function(a,b){return b.date.localeCompare(a.date);});
+  // 默认排序：最近在前（日期倒序，同日内按时间倒序）；无法识别的日期（如遗留脏数据）统一排最后
+  filtered.sort(function(a,b){
+    var ka = /^\d{4}-\d{2}-\d{2}$/.test(a.date || '') ? a.date : '0000-00-00';
+    var kb = /^\d{4}-\d{2}-\d{2}$/.test(b.date || '') ? b.date : '0000-00-00';
+    if (ka !== kb) return kb.localeCompare(ka);
+    return (b.time || '').localeCompare(a.time || '');
+  });
 
   // 汇总行
   var persons = {}, custs = {};
@@ -5030,7 +5037,11 @@ function renderUpVisits() {
     if (!byDay[d]) { byDay[d] = []; dayKeys.push(d); }
     byDay[d].push(v);
   });
-  dayKeys.sort(function(a,b){ return b.localeCompare(a); });
+  dayKeys.sort(function(a,b){
+    var ka = /^\d{4}-\d{2}-\d{2}$/.test(a) ? a : '0000-00-00';
+    var kb = /^\d{4}-\d{2}-\d{2}$/.test(b) ? b : '0000-00-00';
+    return kb.localeCompare(ka);
+  });
 
   dayKeys.forEach(function(d){
     var recs = byDay[d];
@@ -5051,7 +5062,7 @@ function renderUpVisits() {
       var histPart = '';
       if (hist.length > 1) {
         var histData = JSON.stringify(hist.slice().sort(function(a,b){ return a.date.localeCompare(b.date); }).map(function(h){
-          return { d: h.date + (h.time ? ' ' + h.time : ''), t: h.type, c: h.content || '' };
+          return { d: formatDayHead(h.date, true) + (h.time ? ' ' + h.time : ''), t: h.type, c: h.content || '' };
         }));
         histPart = '<div class="vp-toggle" onclick="toggleVisitHist(this)">▸ 历史走访 '+hist.length+' 次</div>'
           + '<div class="vp-hist" data-hist="'+esc(histData)+'"></div>';
@@ -5595,6 +5606,17 @@ function formatDateCell(v){
   }
   var s = String(v).trim();
   if(!s) return '';
+  // 纯数字字符串（如 "46191"）：早期导入/本地缓存把 Excel 序列号存成了文本，同样按 1900 日期系统转换；
+  // 限定 5 位且 40000~60000（2009~2064年），避免把 "2026" 这类 4 位年份文本误转
+  var sn = s.match(/^(\d{5})(?:\.\d+)?$/);
+  if(sn){
+    var n = parseInt(sn[1],10);
+    if(n > 40000 && n < 60000){
+      var sd = new Date((n - 25569) * 86400 * 1000);
+      var sp = function(x){ return x < 10 ? '0'+x : ''+x; };
+      return sd.getUTCFullYear() + '-' + sp(sd.getUTCMonth()+1) + '-' + sp(sd.getUTCDate());
+    }
+  }
   // 把 2026/8/20、2026.8.20、2026年8月20日 统一转成 2026-08-20（注意：m[2] 是字符串，必须先转数字再补零，否则 '07' 会被重复补成 '007'）
   var m = s.match(/^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$/);
   if(m){ var p = function(n){ n = Number(n); return n < 10 ? '0'+n : ''+n; }; return m[1]+'-'+p(m[2])+'-'+p(m[3]); }
