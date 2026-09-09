@@ -1823,6 +1823,7 @@ var MODULE_SYNC = {
   perfconfirm: {
     file: 'performance_confirmations.json',
     lsKey: 'wb_perf_confirm_v1',
+    mergeFn: mergeConfirmStore, // updatedAt 新者胜（2026-09-09）：云端新初审/裁决能覆盖各端旧缓存
     get: function () { return PERF_CONFIRM; },
     set: function (v) { PERF_CONFIRM.length = 0; (v || []).forEach(function (x) { if (x && x.month && x.name) PERF_CONFIRM.push(x); }); },
     keyOf: function (r) { return (r.month || '') + '|' + (r.name || ''); }
@@ -1855,6 +1856,32 @@ function mergeArraysByKey(local, cloud, keyOf) {
   (local || []).forEach(function (r) { var k = keyOf(r); if (k) byKey[k] = r; });
   (cloud || []).forEach(function (r) { var k = keyOf(r); if (k && !byKey[k]) byKey[k] = r; });
   return Object.keys(byKey).map(function (k) { return byKey[k]; });
+}
+// 确认/申诉记录合并：按 updatedAt「新者胜」（2026-09-09 修复）
+// 事故背景：区域负责人初审后推送失败，初审意见只留在他本机；而原合并规则「本地整条优先」
+// 导致管理员浏览器缓存的旧记录（无初审）永远挡住云端新值——即使重推成功管理员也看不到。
+// 新规则：逐条比较 updatedAt，谁新谁赢；本机刚操作过（本机新）仍本机优先，防丢操作。
+function mergeConfirmStore(local, cloud) {
+  var byKey = {};
+  (cloud || []).forEach(function (r) { var k = (r.month || '') + '|' + (r.name || ''); if (k !== '|') byKey[k] = r; });
+  (local || []).forEach(function (r) {
+    var k = (r.month || '') + '|' + (r.name || ''); if (k === '|') return;
+    var c = byKey[k];
+    if (!c) { byKey[k] = r; return; }
+    var lu = Date.parse(r.updatedAt || '') || 0, cu = Date.parse(c.updatedAt || '') || 0;
+    byKey[k] = (lu > cu) ? r : c; // 相等（同一份）取云端，避免无谓覆盖
+  });
+  return Object.keys(byKey).map(function (k) { return byKey[k]; });
+}
+// 本机确认/申诉记录是否比云端新（有未推送成功的操作）——用于拉取后自动补推
+function confirmLocalNewer(local, cloud) {
+  var cmap = {};
+  (cloud || []).forEach(function (r) { cmap[(r.month || '') + '|' + (r.name || '')] = r; });
+  return (local || []).some(function (r) {
+    var c = cmap[(r.month || '') + '|' + (r.name || '')];
+    if (!c) return false; // 云端没有但本地有的旧格式记录不自动推，由正常保存流程处理
+    return (Date.parse(r.updatedAt || '') || 0) > (Date.parse(c.updatedAt || '') || 0);
+  });
 }
 // 人名归一（2026-09-05 用户确认）：「王春光/张亚娟」「王春光/亚娟」是两人共同负责清华项目的拼接写法，不是一个人。
 // 统一归一为「王春光」——王春光绩效按清华数据计算；张亚娟绩效含清华项目（由 getPersonLevelPeople 既有拆分逻辑计入）。
@@ -1903,6 +1930,12 @@ function applyModuleCloud(modKey, cloudVal) {
     if (modKey === 'perfconfirm' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') updatePerformanceContent();
   }
   if (modKey === 'perfrules' && typeof applySavedRules === 'function') applySavedRules(); // 管理员改过的规则版本拉取后立即套用到页面
+  // 确认/申诉记录：拉取后发现本机有比云端新的操作（上次推送失败的初审/裁决等）→ 自动补推（2026-09-09）
+  // 事故背景：原设计推送失败只在本机留底、不重试，下次打开只拉不推，导致「一次失败=永远上不了云」。
+  if (modKey === 'perfconfirm' && confirmLocalNewer(localVal, cloudVal) && typeof scheduleModulePush === 'function') {
+    try { localStorage.setItem(cfg.lsKey, JSON.stringify(merged)); } catch (e) {} // 先把本机新操作固化，防止补推前丢
+    scheduleModulePush('perfconfirm');
+  }
 }
 function pullModule(modKey) {
   var cfg = MODULE_SYNC[modKey]; if (!cfg) return Promise.resolve();
