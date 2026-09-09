@@ -1428,14 +1428,26 @@ function base64ToUtf8(b64) {
 function applyCloudScores(obj) {
   if (!obj || typeof obj !== 'object') return;
   var base = subjectiveScores || {};
-  // 关键修复：本地已存在的分优先（可能比云端新），云端只补充本地缺失的 key，
-  // 绝不用云端整体替换本地，避免「后台拉取把本机刚打的分冲掉」导致分数丢失。
-  subjectiveScores = Object.assign({}, obj, base);
-  // 固化合并结果到本地，让 localStorage 始终成为「本地∪云端」的超集；
+  // 合并规则（2026-09-09 修复「区域负责人打了分但员工端不同步」）：
+  // ① 本人有权填写的键：本地优先——防止后台拉取把本机刚打的分冲掉，丢分红线不破；
+  // ② 只读键（本人无权填，如员工看自己、区域负责人看别区人员）：以云端为准——
+  //    员工端看到的分始终同步区域负责人/总部的最新打分，不再被本机旧缓存卡住；
+  // ③ 云端没有而本地有的键：保留，绝不丢任何历史分。
+  var merged = {};
+  Object.keys(obj).forEach(function (k) { merged[k] = obj[k]; });
+  Object.keys(base).forEach(function (k) {
+    if (canPushSubjKey(k)) merged[k] = base[k];
+    else if (!(k in obj)) merged[k] = base[k];
+  });
+  subjectiveScores = merged;
+  // 固化合并结果到本地，让 localStorage 始终保持「本地∪云端」；
   // 这样即便日后云端被覆盖/本机清缓存，本地也不会丢任何已存在的分。
   try { localStorage.setItem(SUBJECTIVE_STORAGE_KEY, JSON.stringify(subjectiveScores)); } catch (e) {}
-  // 若本地有云端没有的 key，主动把本机分同步上云端（防丢：换浏览器/清缓存前先固化）
-  var localExtra = Object.keys(base).some(function (k) { return !(k in obj); });
+  // 仅当本人有权限、且与云端不一致（缺失或值不同）的键，才主动同步上云端；
+  // 只读端的旧缓存绝不再整体上推覆盖别人的分。
+  var localExtra = Object.keys(merged).some(function (k) {
+    return canPushSubjKey(k) && (!(k in obj) || String(obj[k]) !== String(merged[k]));
+  });
   if (localExtra && typeof schedulePush === 'function') schedulePush();
   if (typeof currentModule !== 'undefined' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') {
     updatePerformanceContent();
@@ -1506,6 +1518,41 @@ function leaderOfPerson(name) {
   for (var i = 0; i < arr.length; i++) if (arr[i].name === name) return arr[i].leader;
   return null;
 }
+// 该主观分键当前用户是否有权上推云端（2026-09-09 修复同步分叉）：
+// 键格式 "姓名_字段_月份" 或双评 "姓名_字段_月份@评价人"。
+// admin 可推全部；区域负责人仅可推「本月本人区域内的运营专员/项目营销负责人」的键
+// （双评键仅限本人槽位；当月挂两个负责人却未带评价人槽位的键不推，防误覆盖）；
+// 普通员工（staff）一个键都不推——员工端是只读的，旧缓存绝不能覆盖负责人的分。
+function canPushSubjKey(k) {
+  if (!CURRENT_USER) return false;
+  if (isAdmin()) return true;
+  if (!isLeader()) return false;
+  var parts = String(k).split('_');
+  if (parts.length < 3) return false;
+  var monthEval = parts.pop();
+  var field = parts.pop(); // eslint-disable-line
+  var name = parts.join('_');
+  var evaluator = null;
+  var month = monthEval;
+  var at = monthEval.indexOf('@');
+  if (at >= 0) { month = monthEval.slice(0, at); evaluator = monthEval.slice(at + 1); }
+  var md = (WORKBENCH_DATA.monthly_data || {})[month];
+  if (!md || !md.people) return false;
+  var ok = false;
+  var leaderSet = {};
+  (md.people || []).forEach(function (p) {
+    if (p.name !== name || p._synthetic) return;
+    if (p.role !== '运营专员' && p.role !== '项目营销负责人') return;
+    var lead = (p.leader && p.leader !== 'undefined' && String(p.leader).trim() !== '') ? p.leader : null;
+    if (lead) leaderSet[lead] = 1;
+    if (evaluator) { if (evaluator === CURRENT_USER.name) ok = true; return; }
+    if (lead === CURRENT_USER.name) ok = true;
+  });
+  // 该人当月挂了两位负责人（如郭旺双评），但不带 @ 槽位的旧格式键：只有 admin 能推
+  var leaderCount = Object.keys(leaderSet).length;
+  if (leaderCount >= 2 && !evaluator) return false;
+  return ok;
+}
 
 var _pushTimer = null;
 var _syncing = false;
@@ -1537,7 +1584,19 @@ function pushSubjectiveScores() {
       return { sha: j.sha, obj: obj };
     });
   }).then(function (cur) {
-    var merged = Object.assign({}, cur.obj, subjectiveScores);
+    // 权限过滤推送（2026-09-09）：本设备只把「本人有权填写」的主观分键合并上云端，
+    // 只读端（员工/其他区域负责人）的旧缓存不再整体上推，杜绝覆盖区域负责人的新分。
+    var pushable = {};
+    Object.keys(subjectiveScores).forEach(function (k) {
+      if (canPushSubjKey(k)) pushable[k] = subjectiveScores[k];
+    });
+    var merged = Object.assign({}, cur.obj, pushable);
+    // 若过滤后与云端完全一致，跳过写入（避免产生无意义的空提交）
+    if (JSON.stringify(merged) === JSON.stringify(cur.obj)) {
+      _syncing = false;
+      showSyncStatus('ok');
+      return null;
+    }
     var body = { message: '[sync] 合并主观分', content: utf8ToBase64(JSON.stringify(merged)) };
     if (cur.sha) body.sha = cur.sha;
     return fetch(GH_API, {
