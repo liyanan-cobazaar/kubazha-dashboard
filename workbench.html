@@ -120,7 +120,15 @@ table.sticky-head thead th{position:sticky;top:0;z-index:5;box-shadow:0 2px 0 #e
 .rule-edit-btn.save:hover{background:#e6f4ea}
 .rule-edit-btn.cancel{border-color:#94a3b8;color:#64748b}
 .rule-edit-btn.cancel:hover{background:#f1f5f9}
+/* 表格行列增删工具（2026-09-10：管理员编辑态可见，点进表格单元格后点按钮操作） */
+.rule-tbl-tools{display:inline-flex;gap:4px;align-items:center;padding:0 4px;border-left:1px solid #dbeafe;border-right:1px solid #dbeafe;margin:0 2px}
+.rule-tbl-tools .tip{font-size:10px;color:#94a3b8}
+.rule-edit-btn.tbl{border-color:#c7dbff;color:#1a73e8;background:#f5f9ff;padding:2px 8px}
+.rule-edit-btn.tbl:hover{background:#e8f0fe}
+.rule-edit-btn.tbl.del{border-color:#f3c9c4;color:#c5352a;background:#fef5f4}
+.rule-edit-btn.tbl.del:hover{background:#fde8e6}
 .rule-edit-zone[contenteditable="true"]{outline:2px dashed #1a73e8;outline-offset:6px;border-radius:4px}
+.rule-edit-zone[contenteditable="true"] td,.rule-edit-zone[contenteditable="true"] th{outline:1px dotted #bcd0f0;outline-offset:-1px}
 .rule-section ol,.rule-section ul{margin-left:16px}
 .rule-section li{margin-bottom:3px}
 .rule-table{width:100%;border-collapse:collapse;font-size:10px;margin-top:6px}
@@ -4743,10 +4751,20 @@ function startRuleEdit(part) {
   var h5 = zone.parentNode ? zone.parentNode.querySelector('h5') : null;
   if (h5) {
     var w = h5.querySelector('.rule-edit-btnwrap');
-    if (w) w.innerHTML = '<span style="font-size:10px;color:#1a73e8">编辑中：直接点击文字或表格修改</span>' +
+    if (w) w.innerHTML = '<span style="font-size:10px;color:#1a73e8">编辑中：点击文字直接改</span>' +
+      '<span class="rule-tbl-tools">' +
+        '<span class="tip">表格：点进单元格后</span>' +
+        '<button class="rule-edit-btn tbl" title="在光标所在行的下方插入一行" onmousedown="event.preventDefault()" onclick="ruleTblOp(\'rowAdd\')">＋行</button>' +
+        '<button class="rule-edit-btn tbl del" title="删除光标所在行" onmousedown="event.preventDefault()" onclick="ruleTblOp(\'rowDel\')">－行</button>' +
+        '<button class="rule-edit-btn tbl" title="在光标所在列的右侧插入一列" onmousedown="event.preventDefault()" onclick="ruleTblOp(\'colAdd\')">＋列</button>' +
+        '<button class="rule-edit-btn tbl del" title="删除光标所在列" onmousedown="event.preventDefault()" onclick="ruleTblOp(\'colDel\')">－列</button>' +
+      '</span>' +
       '<button class="rule-edit-btn save" onclick="saveRuleEdit(\'' + part + '\')">💾 保存</button>' +
       '<button class="rule-edit-btn cancel" onclick="cancelRuleEdit(\'' + part + '\')">取消</button>';
   }
+  // 记录编辑区内最后点击的单元格，作为表格操作的目标
+  zone.addEventListener('mousedown', ruleTblTrack, true);
+  zone.addEventListener('keyup', ruleTblTrackSel, true);
   try { zone.focus(); } catch (e) {}
 }
 function saveRuleEdit(part) {
@@ -4769,6 +4787,10 @@ function cancelRuleEdit(part) {
 function endRuleEdit(part) {
   var zone = ruleZoneOf(part);
   if (zone) {
+    try {
+      zone.removeEventListener('mousedown', ruleTblTrack, true);
+      zone.removeEventListener('keyup', ruleTblTrackSel, true);
+    } catch (e) {}
     zone.removeAttribute('contenteditable');
     var h5 = zone.parentNode ? zone.parentNode.querySelector('h5') : null;
     if (h5) {
@@ -4776,7 +4798,95 @@ function endRuleEdit(part) {
       if (w) w.innerHTML = '<button class="rule-edit-btn" onclick="startRuleEdit(\'' + part + '\')">✏ 修改</button>';
     }
   }
+  _ruleTblLastCell = null;
   delete _ruleEditBackup[part];
+}
+
+/* ===== 规则说明表格·行列增删（2026-09-10 用户要求：管理员在页面上自行增删表格行列）=====
+   用法：进入编辑态 → 鼠标点一下目标表格的某个单元格 → 点「＋行/－行/＋列/－列」。
+   目标单元格优先取当前选中的单元格，取不到时用编辑区内最后点击过的单元格兜底。 */
+var _ruleTblLastCell = null;
+function ruleTblTrack(e) {
+  var n = e.target;
+  if (n && n.nodeType === 3) n = n.parentNode;
+  while (n && n.nodeType === 1) {
+    var tag = n.tagName;
+    if (tag === 'TD' || tag === 'TH') { _ruleTblLastCell = n; return; }
+    if (tag === 'BODY' || tag === 'TABLE') return;
+    n = n.parentNode;
+  }
+}
+function ruleTblTrackSel() {
+  var c = ruleCellFromSelection();
+  if (c) _ruleTblLastCell = c;
+}
+function ruleCellFromSelection() {
+  try {
+    var sel = window.getSelection();
+    if (!sel || !sel.rangeCount) return null;
+    var n = sel.getRangeAt(0).startContainer;
+    if (n && n.nodeType === 3) n = n.parentNode;
+    while (n && n.nodeType === 1) {
+      var tag = n.tagName;
+      if (tag === 'TD' || tag === 'TH') return n;
+      if (tag === 'TABLE' || tag === 'BODY') return null;
+      n = n.parentNode;
+    }
+  } catch (e) {}
+  return null;
+}
+function ruleTblTargetCell() {
+  var c = ruleCellFromSelection();
+  if (!c && _ruleTblLastCell && document.body.contains(_ruleTblLastCell)) c = _ruleTblLastCell;
+  return c;
+}
+function ruleRowClear(tr) {
+  var cells = tr.querySelectorAll('th,td');
+  for (var i = 0; i < cells.length; i++) cells[i].innerHTML = '&nbsp;';
+}
+function ruleTblOp(op) {
+  var cell = ruleTblTargetCell();
+  if (!cell) { alert('请先用鼠标点一下要修改的表格（把光标点进表格的某个单元格里），再点按钮'); return; }
+  var tr = cell.parentNode;
+  var table = tr && tr.closest ? tr.closest('table') : null;
+  if (!table) { alert('没找到表格，请把光标点进表格单元格后再操作'); return; }
+  var idx = cell.cellIndex;
+  if (op === 'rowAdd') {
+    var nt = tr.cloneNode(true);
+    ruleRowClear(nt);
+    tr.parentNode.insertBefore(nt, tr.nextSibling);
+    var nc = nt.children[Math.min(idx, nt.children.length - 1)];
+    if (nc) { try { window.getSelection().selectAllChildren(nc); } catch (e) {} _ruleTblLastCell = nc; }
+  } else if (op === 'rowDel') {
+    var body = tr.parentNode;
+    var all = body.querySelectorAll('tr');
+    if (all.length <= 1) { alert('至少要保留一行，未删除'); return; }
+    body.removeChild(tr);
+    _ruleTblLastCell = null;
+  } else if (op === 'colAdd') {
+    var rows = table.querySelectorAll('tr');
+    for (var i = 0; i < rows.length; i++) {
+      var cs = rows[i].children;
+      var ref = cs[idx] || cs[cs.length - 1];
+      var isHead = ref && ref.tagName === 'TH';
+      var nd = document.createElement(isHead ? 'th' : 'td');
+      nd.innerHTML = '&nbsp;';
+      if (ref && ref.nextSibling) rows[i].insertBefore(nd, ref.nextSibling);
+      else rows[i].appendChild(nd);
+    }
+    var firstRow = table.querySelector('tr');
+    _ruleTblLastCell = firstRow ? firstRow.children[Math.min(idx + 1, firstRow.children.length - 1)] : null;
+  } else if (op === 'colDel') {
+    var rows2 = table.querySelectorAll('tr');
+    var maxc = 0;
+    for (var j = 0; j < rows2.length; j++) maxc = Math.max(maxc, rows2[j].children.length);
+    if (maxc <= 1) { alert('至少要保留一列，未删除'); return; }
+    for (var k = 0; k < rows2.length; k++) {
+      var cc = rows2[k].children[idx];
+      if (cc) rows2[k].removeChild(cc);
+    }
+    _ruleTblLastCell = null;
+  }
 }
 
 function toggleRulePanel(header) {
