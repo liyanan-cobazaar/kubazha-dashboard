@@ -1922,10 +1922,19 @@ function mergeMonthly(local, cloud) {
   out.available_months.forEach(function (m) {
     var lm = L[m], cm = C[m];
     if (lm && cm) {
+      // 月度级版本戳「新者胜」（2026-09-10）：任何对本机某月数据的修改都会打上 _rev 时间戳（见 touchMonth）。
+      // 背景：原规则是拉取时「本地优先」，导致云端直接修正的月度数据（如落实管理员裁决：培训/触达调整）
+      // 会被每台设备浏览器里的旧缓存永远压住，且任何设备后来的推送还会把云端修正改回去。
+      // 新规则：整月比较 _rev——云端版本更新（云端修正或他人设备已推送）整月取云端；本机版本更新（本机有未推送的修改）整月取本机。
+      var lr = lm._rev || 0, cr = cm._rev || 0;
+      if (cr > lr) { out.monthly_data[m] = cm; return; }
+      if (lr > cr) { out.monthly_data[m] = lm; return; }
+      // 双方都无 _rev（历史存量数据）：维持原「本地优先 + 人名自愈」合并，保护未推送的本地修改
       var byName = {};
       (cm.people || []).forEach(function (p) { p.name = normalizePersonName(p.name); byName[p.name + '|' + (p.school || '')] = p; });
       (lm.people || []).forEach(function (p) { p.name = normalizePersonName(p.name); byName[p.name + '|' + (p.school || '')] = p; }); // 本地优先
       out.monthly_data[m] = {
+        _rev: cm._rev || lm._rev || undefined, // 保留版本戳（双方同版时内容一致，戳不丢，避免每次拉取反复走旧合并分支）
         regions: lm.regions || cm.regions,
         totals: lm.totals || cm.totals,
         people: Object.keys(byName).map(function (k) { return byName[k]; })
@@ -1935,6 +1944,11 @@ function mergeMonthly(local, cloud) {
     }
   });
   return out;
+}
+// 给某月数据打版本戳：本机对该月做出任何修改（数据维护/导入/恢复）时调用，使云端合并能识别「本机这版更新」
+function touchMonth(month) {
+  var md = WORKBENCH_DATA.monthly_data[month];
+  if (md) md._rev = Date.now();
 }
 function applyModuleCloud(modKey, cloudVal) {
   var cfg = MODULE_SYNC[modKey]; if (!cfg || !cloudVal) return;
@@ -7919,6 +7933,7 @@ function confirmImport() {
     rebuildMonthAggregates(month);
     ensureRegionLeads(month);
     WORKBENCH_DATA.totals[month] = WORKBENCH_DATA.monthly_data[month].totals;
+    touchMonth(month); // 导入写入了该月 → 打版本戳
     if (WORKBENCH_DATA.available_months.indexOf(month) < 0) {
       WORKBENCH_DATA.available_months.push(month);
       WORKBENCH_DATA.available_months.sort();
@@ -8090,7 +8105,7 @@ function dmAddNewMonth() {
   if (!m) { alert('月份格式不正确，示例：2026-08'); return; }
   var mm = parseInt(m.split('-')[1], 10);
   if (mm <= 4) { alert('3/4月为基础运营期，不纳入月度维护，请填写 5 月及以后'); return; }
-  if (!WORKBENCH_DATA.monthly_data[m]) { WORKBENCH_DATA.monthly_data[m] = { regions: {}, people: [] }; auditLog('新建月份', m, '', '创建空月份'); }
+  if (!WORKBENCH_DATA.monthly_data[m]) { WORKBENCH_DATA.monthly_data[m] = { regions: {}, people: [] }; auditLog('新建月份', m, '', '创建空月份'); touchMonth(m); }
   if (WORKBENCH_DATA.available_months.indexOf(m) < 0) { WORKBENCH_DATA.available_months.push(m); WORKBENCH_DATA.available_months.sort(); }
   saveWorkbenchData();
   dmMonth = m;
@@ -8321,6 +8336,7 @@ function saveDmForm() {
       rebuildMonthAggregates(m);
       ensureRegionLeads(m);
       WORKBENCH_DATA.totals[m] = WORKBENCH_DATA.monthly_data[m].totals;
+      touchMonth(m); // 本机修改了该月 → 打版本戳，合并时本机这版胜
     }
   });
   if (WORKBENCH_DATA.available_months.indexOf(month) < 0) WORKBENCH_DATA.available_months.sort();
@@ -8358,6 +8374,7 @@ function dmDelete(idx) {
   rebuildMonthAggregates(month);
   ensureRegionLeads(month);
   WORKBENCH_DATA.totals[month] = WORKBENCH_DATA.monthly_data[month].totals;
+  touchMonth(month); // 本机修改了该月 → 打版本戳
   saveWorkbenchData();
   renderMaintainTable();
   renderAuditList();
@@ -8420,6 +8437,7 @@ function handleMonthlyRestore(input) {
         var md = WORKBENCH_DATA.monthly_data[m];
         if (!md.people) md.people = [];
         if (!md.regions || typeof md.regions !== 'object') md.regions = {};
+        touchMonth(m); // 备份恢复覆盖了该月 → 打版本戳
       });
       _leaderRegionCache = null;
       saveWorkbenchData();
