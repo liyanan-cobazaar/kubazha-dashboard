@@ -169,6 +169,27 @@ tr:hover td{background:#f8fafc}
 .arch-dot{width:9px;height:9px;border-radius:50%;flex:none;margin-top:5px}
 .arch-sum{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:12px;color:#475569}
 .rule-highlight{color:#dc2626;font-weight:600}
+/* ===== 裁决「调整前后对比」（2026-09-10 上线） ===== */
+.ruling-cmp-wrap{margin-top:6px;border:1px solid #ddd6fe;border-radius:8px;background:#fff;padding:8px 10px}
+.ruling-cmp-title{font-size:12px;font-weight:600;color:#4c1d95;display:flex;align-items:center;gap:6px;margin-bottom:5px}
+.ruling-cmp-badge{font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;background:#ede9fe;color:#6b4fd8}
+.ruling-cmp-badge.live{background:#fef3c7;color:#b45309}
+.ruling-cmp-tip{font-size:11px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:5px 8px;margin-bottom:5px;line-height:1.5}
+.ruling-cmp-note{font-size:11px;color:#64748b;margin-top:5px;line-height:1.5}
+.ruling-cmp-sum{font-size:12px;color:#1e293b;background:#f5f3ff;border-radius:6px;padding:5px 8px;margin-bottom:5px}
+.ruling-cmp-sum b{font-size:14px}
+table.ruling-cmp{width:100%;border-collapse:collapse;font-size:11px}
+table.ruling-cmp th{background:#f5f3ff;color:#4c1d95;font-weight:600;text-align:left;padding:4px 6px;border-bottom:1px solid #ddd6fe;white-space:nowrap}
+table.ruling-cmp td{padding:3px 6px;border-bottom:1px solid #f1f5f9;vertical-align:top;line-height:1.5}
+table.ruling-cmp td.rc-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+table.ruling-cmp tr.rc-chg td{background:#fefce8}
+table.ruling-cmp tr.rc-chg td.rc-name{font-weight:600;color:#92400e}
+table.ruling-cmp tr.rc-sub td{font-weight:600;background:#f8fafc;color:#334155}
+table.ruling-cmp tr.rc-total td{font-weight:700;background:#f0fdf4;color:#14532d}
+table.ruling-cmp tr.rc-total td.rc-num{font-size:13px;color:#1a73e8}
+.rc-grp{font-size:10px;color:#94a3b8;font-weight:400;margin-left:4px}
+.ruling-fill{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:5px;padding:6px 8px;background:#f8fafc;border:1px dashed #cbd5e1;border-radius:6px;font-size:11px;color:#475569}
+.ruling-fill input{width:76px;border:1px solid #cbd5e1;border-radius:5px;padding:3px 6px;font-size:11px}
 @media(max-width:900px){.sidebar{width:160px}.kpi-row{grid-template-columns:repeat(2,1fr)}.chart-row{grid-template-columns:1fr}}
 
 /* 校园行管理中心样式 */
@@ -908,11 +929,12 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
                 <tr><td>① 结果确认</td><td>被考评人（区域主管 / 营销负责人 / 运营专员）在本人绩效页阅读结果及评分依据（含计算过程）后，勾选确认声明并提交。<b>前置条件：评分须先完成</b>——管理员给区域主管评完主观分、区域主管给本区域运营专员/营销负责人评完主观分后，被评分本人的确认与申诉入口才会开放；评分未完成前无法确认或申诉</td><td>评分送达后 3 个工作日内</td></tr>
                 <tr><td>② 提出申诉</td><td>对结果有异议的，勾选异议指标、填写理由及依据后提交申诉（在确认区点「对结果有异议」）。<b>管理员裁决前，申诉人可随时撤销申诉</b>：撤销后回到「待确认」状态，可重新确认或再次申诉，撤销操作及原申诉内容全程留痕</td><td>同上，3 个工作日内</td></tr>
                 <tr><td>③ 区域负责人初审</td><td>区域负责人在「确认与申诉」页顶部的<b>申诉待办处理区</b>（或员工绩效卡内）选择「审核通过（转管理员复核）」或「驳回申诉」，并填写理由。<b>区域负责人驳回不直接终结申诉</b>——员工申诉权不由区域负责人单方面终结，驳回后连同理由转管理员终裁</td><td>2 个工作日内</td></tr>
-                <tr><td>④ 管理员（运营总监）复核</td><td>最终裁决：维持原结果 或 调整结果，裁决意见全程留痕、全员可查。裁决有误需补充材料时，管理员可在「确认与申诉」页展开记录，<b>撤销裁决</b>退回「待管理员复核」重新裁决（原裁决留痕）；如需整个流程作废重来，可执行<b>重置确认流程</b>（超级权限）回到「待确认」状态，全部历史留痕、员工可见流程曾被重置</td><td>3 个工作日内</td></tr>
+                <tr><td>④ 管理员（运营总监）复核</td><td>最终裁决：<b>结果维持不变</b> 或 <b>结果已更新</b>（调整结果）；裁决意见全程留痕。裁决为「结果已更新」时，系统自动记录调整前分值，<b>申诉人本人、该员工的区域负责人、管理员</b>均可查看调整前后各项分值对比（含各指标明细与变化）。裁决有误需补充材料时，管理员可在「确认与申诉」页展开记录，<b>撤销裁决</b>退回「待管理员复核」重新裁决（原裁决留痕）；如需整个流程作废重来，可执行<b>重置确认流程</b>（超级权限）回到「待确认」状态，全部历史留痕、员工可见流程曾被重置</td><td>3 个工作日内</td></tr>
               </tbody>
             </table>
             <div class="rule-note">
-              <strong>状态查看：</strong>申诉处理进度全程可查——员工绩效卡与「我的历史确认记录」中实时显示「待主观评分 / 待本人确认 / 申诉中 · 待××初审 / 待管理员复核 / 已裁决·维持（或调整）」；区域负责人、管理员在「确认与申诉」页集中查看待办与全部历史档案。<br>
+              <strong>状态查看：</strong>申诉处理进度全程可查——员工绩效卡与「我的历史确认记录」中实时显示「待主观评分 / 待本人确认 / 申诉中 · 待××初审 / 待管理员复核 / 结果已更新（或结果维持不变）」；区域负责人、管理员在「确认与申诉」页集中查看待办与全部历史档案。<br>
+              <strong>调整前后对比：</strong>管理员裁决为「结果已更新」时，系统自动记录调整前分值；<b>申诉人本人、该员工的区域负责人、管理员</b>均可在绩效卡申诉详情区、确认台账（关键节点列与展开时间线）、本人历史记录中查看调整前后各项分值对比（同区域其他专员/营销负责人不可见）。<br>
               <strong>确认与申诉效力：</strong>逾期未确认且未提出申诉的，视为对当月考核结果无异议。申诉期间当月考核结果暂按原结果执行；裁决后如需调整，差额随最近一次工资发放补足或核减。确认记录（姓名、时间、当月考核版本）由系统自动留存。<br>
               <strong>评分顺序与确认门槛：</strong>先由管理员完成区域主管的主观评分，再由区域主管完成本区域运营专员/营销负责人的主观评分；两级评分均完成后，被评分本人方可确认结果或提出申诉，3 个工作日确认期自本人评分送达后起算。<br>
               <strong>跨区域人员双评（仅郭旺）：</strong>郭旺项目横跨东北西北、天津两个区域，其主观分由两位区域负责人（高欢庆、刘金玲）各自填写，<b>二人均提交后按平均值计分</b>；任一人未填写视为评分未完成，郭旺暂不能确认或申诉（自2026年8月起执行，此前月份按原单人评分口径）。
@@ -3715,7 +3737,8 @@ function confirmStatusText(rec, p) {
     return '申诉中 · 待' + (rec.leader || '区域负责人') + '初审';
   }
   if (rec.status === 'ruled' && rec.finalRuling) {
-    return rec.finalRuling.adjust ? '已裁决 · 调整原结果' : '已裁决 · 维持原结果';
+    // 2026-09-10 用户要求：裁决后的状态文案改为结果描述（结果已更新 / 结果维持不变），原表述有歧义
+    return rec.finalRuling.adjust ? '结果已更新' : '结果维持不变';
   }
   return CONFIRM_LABEL[rec.status];
 }
@@ -3730,6 +3753,204 @@ function nowConfirmStr() {
   var d = new Date(), p = function (n) { return (n < 10 ? '0' : '') + n; };
   return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
 }
+
+// ===== 裁决「调整前后对比」（2026-09-10 上线） =====
+// 背景：员工申诉、管理员裁决「结果已更新」后，**申诉人本人 / 该员工的区域负责人 / 管理员**
+//       都应看到调整前后分别是多少分（含各指标明细与变化）；同区域其他专员、营销负责人不可见（绩效分敏感）。
+// 可见范围由既有渲染入口天然限定，无需额外鉴权：
+//   · 绩效卡申诉详情区 renderConfirmArea —— 仅 isSelf / isAdmin / isMyMember 进入该分支
+//   · 确认台账 archiveVisibleRecs —— admin 看全员、leader 仅看 r.leader === 本人 的记录
+//   · 本人历史记录 renderMyConfirmHistory —— 仅 r.name === CURRENT_USER.name
+//
+// 数据模型（挂在 rec.finalRuling 上，随 performance_confirmations.json 多端同步）：
+//   { by, time, adjust, comment,
+//     before: { obj:[{name,val,score,max}], objScore, objMax, subj:[{name,weight,value}], subjTotal, total, manual? } | null,
+//     after:  { 同 before } | null,      // 管理员点「确认调整已生效」后冻结归档
+//     afterFrozenAt: 'YYYY-MM-DD HH:mm' | null, afterBy: string | null }
+//   · before：管理员点「调整并更新结果」的那一刻自动抓取（此刻评分尚未修改，正好是调整前）。
+//   · after ：默认实时读取当前评分（改一次分对比表跟着变一次，零额外操作）；点归档后固定不再漂移。
+
+// 临时切换 perfMonth 执行 fn —— 客观分 calcObjectiveScore / 主观分 subjFieldKey 均依赖全局 perfMonth
+function withPerfMonth(m, fn) {
+  var old = perfMonth;
+  perfMonth = m;
+  try { return fn(); } finally { perfMonth = old; }
+}
+
+// 抓取某人某月的完整分值快照（客观明细 + 主观明细 + 小计/总分）。月份数据缺失或找不到该人时返回 null。
+function snapshotScoreOf(month, name, role) {
+  return withPerfMonth(month, function () {
+    var md = WORKBENCH_DATA.monthly_data[month];
+    if (!md) return null;
+    var person = null;
+    (getPersonLevelPeople(md) || []).forEach(function (x) { if (!person && x.name === name && x.role === role) person = x; });
+    if (!person) return null;
+    var objResult = calcObjectiveScore(person, role);
+    var objMax = objResult.details.reduce(function (s, d) { return s + d.max; }, 0);
+    var subj = (SUBJECTIVE_FIELDS[role] || []).map(function (f) {
+      var v = subjFieldValue(name, f.key);
+      return { name: f.name, weight: f.weight, value: (v === null ? null : Math.round(v * 10) / 10) };
+    });
+    var subjTotal = calcSubjectiveTotal(name, role);
+    return {
+      obj: objResult.details.map(function (d) {
+        return { name: d.name, val: (d.val === undefined || d.val === null ? '' : String(d.val)), score: Math.round(d.score * 10) / 10, max: d.max };
+      }),
+      objScore: Math.round(objResult.total * 10) / 10,
+      objMax: objMax,
+      subj: subj,
+      subjTotal: Math.round(subjTotal * 10) / 10,
+      total: Math.round((objResult.total + subjTotal) * 10) / 10
+    };
+  });
+}
+
+// 一位小数展示（空值 → —）
+function rcNum(v) {
+  if (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) return '—';
+  return String(Math.round(parseFloat(v) * 10) / 10);
+}
+// 指标原始值紧凑展示（≥1万折算「万」）
+function rcVal(v) {
+  if (v === null || v === undefined || v === '') return '';
+  var n = parseFloat(v);
+  if (isNaN(n)) return String(v);
+  if (Math.abs(n) >= 10000) return (n / 10000).toFixed(1) + '万';
+  return String(Math.round(n * 100) / 100);
+}
+// 变化量徽标：升绿降红、无变化灰
+function rcDelta(b, a) {
+  if (b === null || b === undefined || a === null || a === undefined) return '<span style="color:#94a3b8">—</span>';
+  var d = Math.round((parseFloat(a) - parseFloat(b)) * 10) / 10;
+  if (isNaN(d) || d === 0) return '<span style="color:#94a3b8">—</span>';
+  var up = d > 0;
+  return '<span style="color:' + (up ? '#1a8a3a' : '#d93025') + ';font-weight:700">' + (up ? '+' : '') + d.toFixed(1) + '</span>';
+}
+
+// 「调整前后对比」表格：完整列出客观各指标、客观小计、主观各指标、主观合计、总分；有变化的行高亮
+function rulingCompareTable(before, after) {
+  if (!before || !after) return '';
+  var rows = [];
+  var bObj = {}, aObj = {}, names = [];
+  (before.obj || []).forEach(function (d) { bObj[d.name] = d; if (names.indexOf(d.name) < 0) names.push(d.name); });
+  (after.obj || []).forEach(function (d) { aObj[d.name] = d; if (names.indexOf(d.name) < 0) names.push(d.name); });
+  names.forEach(function (n) {
+    var b = bObj[n], a = aObj[n];
+    var bs = b ? b.score : null, as = a ? a.score : null;
+    rows.push({ name: n, grp: '客观',
+      bTxt: b ? ((rcVal(b.val) ? rcVal(b.val) + ' · ' : '') + rcNum(b.score)) : '—',
+      aTxt: a ? ((rcVal(a.val) ? rcVal(a.val) + ' · ' : '') + rcNum(a.score)) : '—',
+      b: bs, a: as, chg: (bs !== as) });
+  });
+  rows.push({ name: '客观小计', grp: '', bTxt: rcNum(before.objScore), aTxt: rcNum(after.objScore),
+    b: before.objScore, a: after.objScore, sub: true, chg: (before.objScore !== after.objScore) });
+  var bS = {}, aS = {}, sn = [];
+  (before.subj || []).forEach(function (d) { bS[d.name] = d; if (sn.indexOf(d.name) < 0) sn.push(d.name); });
+  (after.subj || []).forEach(function (d) { aS[d.name] = d; if (sn.indexOf(d.name) < 0) sn.push(d.name); });
+  sn.forEach(function (n) {
+    var b = bS[n], a = aS[n];
+    var bv = b && b.value !== null ? b.value : null, av = a && a.value !== null ? a.value : null;
+    rows.push({ name: n, grp: '主观', bTxt: b ? rcNum(b.value) : '—', aTxt: a ? rcNum(a.value) : '—',
+      b: bv, a: av, chg: (bv !== av) });
+  });
+  rows.push({ name: '主观合计', grp: '', bTxt: rcNum(before.subjTotal), aTxt: rcNum(after.subjTotal),
+    b: before.subjTotal, a: after.subjTotal, sub: true, chg: (before.subjTotal !== after.subjTotal) });
+  rows.push({ name: '总分', grp: '', bTxt: rcNum(before.total), aTxt: rcNum(after.total),
+    b: before.total, a: after.total, total: true, chg: (before.total !== after.total) });
+
+  var h = '<table class="ruling-cmp"><tr><th>指标</th><th style="text-align:right">调整前</th><th style="text-align:right">调整后</th><th style="text-align:right">变化</th></tr>';
+  rows.forEach(function (r) {
+    var cls = r.total ? 'rc-total' : (r.sub ? 'rc-sub' : (r.chg ? 'rc-chg' : ''));
+    h += '<tr' + (cls ? ' class="' + cls + '"' : '') + '>' +
+      '<td class="rc-name">' + escConfirmHtml(r.name) + (r.grp ? '<span class="rc-grp">' + r.grp + '</span>' : '') + '</td>' +
+      '<td class="rc-num">' + escConfirmHtml(r.bTxt) + '</td>' +
+      '<td class="rc-num">' + escConfirmHtml(r.aTxt) + '</td>' +
+      '<td class="rc-num">' + rcDelta(r.b, r.a) + '</td></tr>';
+  });
+  h += '</table>';
+  return h;
+}
+
+// 裁决对比区块（绩效卡 / 台账展开时间线 共用）
+function rulingCompareBlockHtml(rec, ctx) {
+  var fr = rec && rec.finalRuling;
+  if (!fr || !fr.adjust) return '';
+  var mn = escConfirmJs(rec.month), nm = escConfirmJs(rec.name);
+  if (!fr.before) {
+    // 历史记录：裁决发生在功能上线前，未抓到调整前分值 → 仅管理员可补录一次
+    if (!isAdmin()) return '';
+    return '<div class="ruling-cmp-wrap">' +
+      '<div class="ruling-cmp-title">📊 调整前后对比</div>' +
+      '<div class="ruling-cmp-tip">本次裁决早于「调整前后对比」功能上线，系统未记录调整前分值。请补录一次，之后自动留档。</div>' +
+      '<button class="btn-minor" onclick="toggleRulingFill(this)">＋ 补充调整前分值</button>' +
+      '<div class="ruling-fill" style="display:none">' +
+      '<span>调整前客观小计 <input type="number" step="0.1" data-fb="obj"></span>' +
+      '<span>调整前主观合计 <input type="number" step="0.1" data-fb="subj"></span>' +
+      '<button class="btn-confirm" onclick="saveRulingBefore(\'' + mn + '\',\'' + nm + '\',this)">保存补录</button>' +
+      '</div></div>';
+  }
+  var after = fr.after || snapshotScoreOf(rec.month, rec.name, rec.role);
+  if (!after) return '<div class="ruling-cmp-wrap"><div class="ruling-cmp-title">📊 调整前后对比</div>' +
+    '<div class="ruling-cmp-tip">未找到 ' + escConfirmHtml(rec.month) + ' 的分值数据，暂时无法生成对比（该月月度数据可能尚未录入）。</div></div>';
+  var frozen = !!fr.after;
+  var h = '<div class="ruling-cmp-wrap">';
+  h += '<div class="ruling-cmp-title">📊 调整前后对比' +
+    (frozen ? '<span class="ruling-cmp-badge">已归档</span>' : '<span class="ruling-cmp-badge live">实时</span>') + '</div>';
+  h += '<div class="ruling-cmp-sum">总分 <b>' + rcNum(fr.before.total) + '</b> → <b>' + rcNum(after.total) + '</b> ' + rcDelta(fr.before.total, after.total) + '</div>';
+  if (fr.before.manual) h += '<div class="ruling-cmp-tip">「调整前」分值为管理员事后补录（客观小计 / 主观合计）。</div>';
+  h += rulingCompareTable(fr.before, after);
+  if (frozen) {
+    h += '<div class="ruling-cmp-note">已归档 ' + escConfirmHtml(fr.afterFrozenAt || '') + (fr.afterBy ? ' · ' + escConfirmHtml(fr.afterBy) : '') +
+      '；此后评分再变化不影响本记录（历史可对账）。</div>';
+  } else {
+    h += '<div class="ruling-cmp-note">「调整后」为实时读取的当前评分。' +
+      (isAdmin() ? '确认分值无误后请点下方按钮归档，归档后不再随评分变化。' : '（管理员归档后固定。）') + '</div>';
+    if (isAdmin()) h += '<button class="btn-minor" onclick="confirmRulingEffect(\'' + mn + '\',\'' + nm + '\')">✓ 确认调整已生效并归档</button>';
+  }
+  h += '</div>';
+  return h;
+}
+
+// 展开/收起「补充调整前分值」小表单
+function toggleRulingFill(btn) {
+  var wrap = btn.parentNode;
+  var f = wrap ? wrap.querySelector('.ruling-fill') : null;
+  if (!f) return;
+  f.style.display = (f.style.display === 'none' || !f.style.display) ? 'flex' : 'none';
+}
+
+// 管理员：补录历史裁决的「调整前」分值（仅客观小计 + 主观合计，总分自动相加）
+function saveRulingBefore(month, name, btn) {
+  if (!isAdmin()) { alert('仅管理员可补录调整前分值'); return; }
+  var form = btn.closest('.ruling-fill') || btn.parentNode;
+  var oEl = form.querySelector('[data-fb="obj"]'), sEl = form.querySelector('[data-fb="subj"]');
+  var o = parseFloat(oEl && oEl.value), s = parseFloat(sEl && sEl.value);
+  if (isNaN(o) || isNaN(s)) { alert('请填写「调整前客观小计」与「调整前主观合计」（数字，可填 0）'); return; }
+  var rec = getConfirmRec(month, name);
+  if (!rec || !rec.finalRuling) { alert('未找到该裁决记录'); return; }
+  rec.finalRuling.before = { obj: [], subj: [], objMax: null,
+    objScore: Math.round(o * 10) / 10, subjTotal: Math.round(s * 10) / 10, total: Math.round((o + s) * 10) / 10, manual: true };
+  rec.updatedAt = new Date().toISOString();
+  saveConfirmRec(rec);
+  alert('已补录调整前分值，对比表已生成。');
+}
+
+// 管理员：归档「调整后」分值（冻结为当前评分，此后评分变化不再影响本记录）
+function confirmRulingEffect(month, name) {
+  if (!isAdmin()) { alert('仅管理员可归档调整后分值'); return; }
+  var rec = getConfirmRec(month, name);
+  if (!rec || !rec.finalRuling || !rec.finalRuling.adjust) { alert('该记录没有「结果已更新」的裁决'); return; }
+  var snap = snapshotScoreOf(month, name, rec.role);
+  if (!snap) { alert('未找到 ' + month + ' 的分值数据，无法归档'); return; }
+  if (!confirm('确认归档？\n将把「' + month + ' ' + name + '」的当前评分冻结为本次裁决的「调整后」分值，归档后评分再变化也不影响本记录。')) return;
+  rec.finalRuling.after = snap;
+  rec.finalRuling.afterFrozenAt = nowConfirmStr();
+  rec.finalRuling.afterBy = CURRENT_USER ? CURRENT_USER.name : '管理员';
+  rec.updatedAt = new Date().toISOString();
+  saveConfirmRec(rec);
+  alert('已归档调整后分值。');
+}
+
 function getConfirmRec(month, name) {
   for (var i = 0; i < PERF_CONFIRM.length; i++) {
     if (PERF_CONFIRM[i].month === month && PERF_CONFIRM[i].name === name) return PERF_CONFIRM[i];
@@ -3838,11 +4059,21 @@ function submitPerfRuling(name, btn, adjust, month) {
   if (!comment) { alert('请填写裁决意见'); return; }
   var rec = getConfirmRec(m, name);
   if (!rec || rec.status !== 'appealing') { alert('该人员当前没有申诉中的记录'); return; }
-  if (!confirm(adjust ? '确认「调整原结果」？请同步修正相应评分（主观分可直接修改，客观分需修正月度数据后自动重算）。' : '确认「维持原结果」？')) return;
+  if (!confirm(adjust
+    ? '确认「结果已更新」？\n\n系统会先自动记录「调整前」分值（以此刻的评分为准），请在裁决后再修正相应评分：主观分可直接修改，客观分需修正月度数据后自动重算。确认分值无误后，再点「确认调整已生效并归档」。'
+    : '确认「结果维持不变」？')) return;
   rec.status = 'ruled';
   rec.finalRuling = { by: '管理员', time: nowConfirmStr(), adjust: !!adjust, comment: comment };
+  if (adjust) {
+    // 关键：此刻评分尚未修改，正是「调整前」分值 —— 抓一次快照冻结进裁决记录，供三方查看对比
+    var snapBefore = snapshotScoreOf(m, name, rec.role);
+    if (snapBefore) rec.finalRuling.before = snapBefore;
+  }
   rec.updatedAt = new Date().toISOString();
   saveConfirmRec(rec);
+  alert(adjust
+    ? '裁决已记录（结果已更新），并自动保存了「调整前」分值。\n请修正相应评分，确认无误后点「✓ 确认调整已生效并归档」。'
+    : '裁决已记录（结果维持不变）。');
 }
 
 // 员工本人：撤销申诉（复核流程未结束前可撤，全程留痕，2026-09-05 用户要求）
@@ -3996,15 +4227,17 @@ function renderConfirmArea(p) {
     }
     if (rec.finalRuling) {
       html += '<div class="confirm-review-block" style="border-color:#ddd6fe;background:#faf5ff"><b>管理员裁决</b>（' + escConfirmHtml(rec.finalRuling.time || '') + '）：' +
-        (rec.finalRuling.adjust ? '<span style="color:#d93025;font-weight:600">调整原结果</span>' : '<span style="color:#1a8a3a;font-weight:600">维持原结果</span>') +
+        (rec.finalRuling.adjust ? '<span style="color:#6b4fd8;font-weight:600">结果已更新</span>' : '<span style="color:#1a8a3a;font-weight:600">结果维持不变</span>') +
         '<br>' + escConfirmHtml(rec.finalRuling.comment || '') + '</div>';
+      // 调整前后对比：申诉人本人 / 该员工区域负责人 / 管理员 可见
+      html += rulingCompareBlockHtml(rec);
     } else if (isAdmin() && rec.status === 'appealing') {
       html += '<div class="confirm-review-block" style="border-color:#ddd6fe;background:#faf5ff"><b>管理员复核</b>（请于 3 个工作日内裁决）' +
         '<textarea class="confirm-textarea" placeholder="裁决意见（必填）…"></textarea>' +
         '<div class="confirm-actions">' +
-        '<button class="btn-appeal" onclick="submitPerfRuling(\'' + nm + '\',this,true)">⚖ 调整原结果</button>' +
+        '<button class="btn-appeal" onclick="submitPerfRuling(\'' + nm + '\',this,true)">⚖ 调整并更新结果</button>' +
         '<button class="btn-confirm" onclick="submitPerfRuling(\'' + nm + '\',this,false)">✓ 维持原结果</button></div>' +
-        '<div class="confirm-meta">提示：裁决为「调整」时，请同步修正相应评分——主观分可直接在本页修改；客观分需修正月度数据后自动重算。</div></div>';
+        '<div class="confirm-meta">提示：请<b>先点裁决、再修正评分</b>——点「调整并更新结果」时系统会自动记录「调整前」分值（主观分可在本页直接改，客观分需修正月度数据后自动重算）；改完点「确认调整已生效并归档」冻结。员工本人、其区域负责人与您均可查看调整前后对比。</div></div>';
     } else if (rec.status === 'appealing') {
       html += '<div class="confirm-meta">⏳ 等待管理员复核（3 个工作日内）…</div>';
     }
@@ -4069,9 +4302,10 @@ function pendingAppealPanelHtml() {
         '<button class="btn-appeal" style="margin-top:4px" onclick="saveFirstReview(\'' + nm + '\',this,\'reject\',\'' + mn + '\')">✗ 驳回申诉</button>';
     } else if (isAdmin()) {
       h += '<textarea class="confirm-textarea" style="min-height:44px" placeholder="裁决意见（必填）…"></textarea>' +
-        '<button class="btn-appeal" style="margin-top:4px" onclick="submitPerfRuling(\'' + nm + '\',this,true,\'' + mn + '\')">⚖ 调整原结果</button> ' +
+        '<button class="btn-appeal" style="margin-top:4px" onclick="submitPerfRuling(\'' + nm + '\',this,true,\'' + mn + '\')">⚖ 调整并更新结果</button> ' +
         '<button class="btn-confirm" style="margin-top:4px" onclick="submitPerfRuling(\'' + nm + '\',this,false,\'' + mn + '\')">✓ 维持原结果</button>' +
-        (!reviewed ? '<div style="font-size:10px;color:#94a3b8;margin-top:3px">注：区域负责人尚未初审，管理员可直接裁决</div>' : '');
+        '<div style="font-size:10px;color:#94a3b8;margin-top:3px">先点裁决、再修正评分：点「调整并更新结果」会自动记录调整前分值；改完在本页档案中「确认调整已生效并归档」。' +
+        (!reviewed ? '（区域负责人尚未初审，管理员可直接裁决）' : '') + '</div>';
     } else {
       h += '<span style="color:#94a3b8">等待 ' + escConfirmHtml(reviewed ? '管理员复核' : (r.leader || '区域负责人') + ' 初审') + '…</span>';
     }
@@ -4152,7 +4386,14 @@ function archiveKeyNode(r) {
     return '<span style="color:#d93025">' + s + '</span>';
   }
   if (r.status === 'ruled' && r.finalRuling) {
-    return (r.finalRuling.adjust ? '<span style="color:#d93025;font-weight:600">裁决：调整原结果</span>' : '<span style="color:#1a8a3a;font-weight:600">裁决：维持原结果</span>') + '（' + escConfirmHtml(r.finalRuling.time || '') + '）';
+    var frk = r.finalRuling;
+    if (!frk.adjust) return '<span style="color:#1a8a3a;font-weight:600">结果维持不变</span>（' + escConfirmHtml(frk.time || '') + '）';
+    var sk = '<span style="color:#6b4fd8;font-weight:600">结果已更新</span>';
+    if (frk.before) {
+      var aftK = frk.after || snapshotScoreOf(r.month, r.name, r.role);
+      if (aftK) sk += ' 总分 ' + rcNum(frk.before.total) + ' → ' + rcNum(aftK.total) + ' ' + rcDelta(frk.before.total, aftK.total);
+    }
+    return sk + '（' + escConfirmHtml(frk.time || '') + '）';
   }
   if (r.status === 'pending' && !subjScoreComplete(r.name, r.role)) return '<span style="color:#64748b">主观评分尚未完成</span>';
   return '<span style="color:#e08a00">等待本人确认</span>';
@@ -4171,7 +4412,7 @@ function archiveDetailHtml(r) {
     h += '<div class="arch-tl"><span class="arch-dot" style="background:#1a73e8"></span><div><b>区域负责人初审</b><div style="color:#64748b">' + escConfirmHtml(r.appeal.firstReview.by || '') + ' · ' + escConfirmHtml(r.appeal.firstReview.time || '') + '</div><div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:6px 8px;margin-top:4px">初审意见原文：' + escConfirmHtml(r.appeal.firstReview.comment || '') + '</div></div></div>';
   }
   if (r.finalRuling) {
-    h += '<div class="arch-tl"><span class="arch-dot" style="background:#6b4fd8"></span><div><b>管理员裁决：' + (r.finalRuling.adjust ? '调整原结果' : '维持原结果') + '</b><div style="color:#64748b">' + escConfirmHtml(r.finalRuling.time || '') + ' · 申诉期间暂按原结果执行，裁决后差额随最近一次工资补足或核减</div><div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:6px 8px;margin-top:4px">裁决意见原文：' + escConfirmHtml(r.finalRuling.comment || '') + '</div></div></div>';
+    h += '<div class="arch-tl"><span class="arch-dot" style="background:#6b4fd8"></span><div style="flex:1;min-width:0"><b>管理员裁决：' + (r.finalRuling.adjust ? '结果已更新' : '结果维持不变') + '</b><div style="color:#64748b">' + escConfirmHtml(r.finalRuling.time || '') + ' · 申诉期间暂按原结果执行，裁决后差额随最近一次工资补足或核减</div><div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:6px 8px;margin-top:4px">裁决意见原文：' + escConfirmHtml(r.finalRuling.comment || '') + '</div>' + rulingCompareBlockHtml(r, 'archive') + '</div></div>';
   }
   // 历史留痕：撤销申诉 / 撤销裁决 / 重置确认流程 全程可见
   (r.history || []).forEach(function (his) {
@@ -4243,7 +4484,7 @@ function renderMyConfirmHistory() {
     h += '<div style="flex:1;min-width:0">';
     h += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + stColor + ';margin-right:6px"></span><b>' + confirmStatusText(r) + '</b>' +
       (r.status === 'confirmed' && r.confirmTime ? ' <span style="color:#94a3b8;font-size:11px">' + escConfirmHtml(r.confirmTime) + ' 确认</span>' : '') +
-      (r.status === 'ruled' && r.finalRuling ? ' <span style="color:#94a3b8;font-size:11px">裁决：' + (r.finalRuling.adjust ? '调整' : '维持') + '（' + escConfirmHtml(r.finalRuling.time || '') + '）</span>' : '') +
+      (r.status === 'ruled' && r.finalRuling ? ' <span style="color:#94a3b8;font-size:11px">' + (r.finalRuling.adjust ? '结果已更新' : '结果维持不变') + '（' + escConfirmHtml(r.finalRuling.time || '') + '）</span>' : '') +
       '</div>';
     if (r.appeal && r.appeal.submitTime) {
       h += '<div style="background:#fef2f2;border-radius:6px;padding:5px 8px;margin-top:4px;font-size:11px;color:#7f1d1d">申诉（' + escConfirmHtml(r.appeal.items || '') + ' · ' + escConfirmHtml(r.appeal.submitTime) + '）：' + escConfirmHtml(r.appeal.reason || '') + '</div>';
@@ -4253,6 +4494,7 @@ function renderMyConfirmHistory() {
     }
     if (r.finalRuling) {
       h += '<div style="color:#6b4fd8;font-size:11px;margin-top:3px">管理员裁决（' + escConfirmHtml(r.finalRuling.time || '') + '）：' + escConfirmHtml(r.finalRuling.comment || '') + '</div>';
+      h += rulingCompareBlockHtml(r, 'my'); // 本人可见调整前后对比
     }
     (r.history || []).forEach(function (his) {
       var t2 = his.type === 'appeal_withdrawn' ? '申诉已撤销' : (his.type === 'ruling_revoked' ? '裁决已被撤销，待重新裁决' : '流程被管理员重置，回到待确认');
