@@ -127,6 +127,10 @@ table.sticky-head thead th{position:sticky;top:0;z-index:5;box-shadow:0 2px 0 #e
 .rule-edit-btn.tbl:hover{background:#e8f0fe}
 .rule-edit-btn.tbl.del{border-color:#f3c9c4;color:#c5352a;background:#fef5f4}
 .rule-edit-btn.tbl.del:hover{background:#fde8e6}
+.upms-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.upms-toggle{display:inline-flex;align-items:center;cursor:pointer;user-select:none}
+.upms-caret{display:inline-block;width:0;height:0;border-left:6px solid #64748b;border-top:5px solid transparent;border-bottom:5px solid transparent;margin-right:7px;transition:transform .15s;vertical-align:middle}
+.upms-caret.open{transform:rotate(90deg)}
 .rule-edit-zone[contenteditable="true"]{outline:2px dashed #1a73e8;outline-offset:6px;border-radius:4px}
 .rule-edit-zone[contenteditable="true"] td,.rule-edit-zone[contenteditable="true"] th{outline:1px dotted #bcd0f0;outline-offset:-1px}
 .rule-section ol,.rule-section ul{margin-left:16px}
@@ -2411,6 +2415,28 @@ function userPoolMonthStats(month) {
     });
   });
   return out;
+}
+// 建档 / 回访日期异常扫描（2026-09-10 新增）：
+//   自动统计只认 YYYY-MM-DD。日期为空或写法认不出的记录，永远不会落在任何月份里（表上也看不出来），
+//   所以单独扫一遍给管理员提示：samples 给出前 3 条样例，方便照方抓药去改数据。
+//   不传参数 = 扫全表（月度动态区用）；传数组 = 只扫这一批（导入完成提示用）。
+function userPoolDateIssues(list) {
+  var arr = list || USER_POOL_CRM || [];
+  var r = { total: arr.length, addEmpty: 0, addBad: 0, visitBad: 0, samples: [] };
+  arr.forEach(function (u) {
+    if (!u) return;
+    var ad = String(u.addDate || '').trim();
+    if (!ad) r.addEmpty++;
+    else if (!/^\d{4}-\d{2}-\d{2}$/.test(ad)) {
+      r.addBad++;
+      if (r.samples.length < 3) r.samples.push({ name: String(u.name || ''), leader: String(u.leader || ''), raw: ad });
+    }
+    (u.visits || []).forEach(function (vs) {
+      var d = String((vs && vs.date) || '').trim();
+      if (d && !/^\d{4}-\d{2}-\d{2}$/.test(d)) r.visitBad++;
+    });
+  });
+  return r;
 }
 // 某人某月的自动统计值
 function userPoolAutoOf(month, name) {
@@ -5369,6 +5395,15 @@ function renderUpSubTab() {
 }
 
 // --- 月度用户池动态（2026-09-10 新增）：按负责人分别体现当月「新增建档 / 回访更新 / 合计」 ---
+// --- 折叠状态（2026-09-10 用户确认：默认收起，平时只占一行摘要，想追数字点三角展开明细）---
+var UPMS_COLLAPSED_KEY = 'wb_upms_collapsed_v1';
+function upmsCollapsed() {
+  try { var v = localStorage.getItem(UPMS_COLLAPSED_KEY); return v === null ? true : v === '1'; } catch (e) { return true; }
+}
+function toggleUpMonthStats() {
+  try { localStorage.setItem(UPMS_COLLAPSED_KEY, upmsCollapsed() ? '0' : '1'); } catch (e) {}
+  renderUserPoolMonthStats();
+}
 // 管理员看全员；其他角色只看本人一行。月份切换即时重算，数据来自用户池CRM导入记录（绩效同源）。
 function renderUserPoolMonthStats() {
   var wrap = $('upMonthStats');
@@ -5407,20 +5442,29 @@ function renderUserPoolMonthStats() {
       + '</tr>';
   }).join('');
   var emptyTxt = isAdm ? '该月用户池表格中暂无「首次建档」或「回访」落在本月的记录' : '该月没有您名下的用户池新增建档或回访记录';
-  var html = '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;background:#fbfdff">'
-    + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap">'
+  // 顶部摘要条（始终可见）：三角 + 标题 + 月份 + 本月合计；收起时也能一眼看到关键数
+  var collapsed = upmsCollapsed();
+  var bar = '<div class="upms-bar">'
+    + '<span class="upms-toggle" onclick="toggleUpMonthStats()" title="' + (collapsed ? '展开明细' : '收起明细') + '">'
+    + '<span class="upms-caret' + (collapsed ? '' : ' open') + '"></span>'
     + '<span style="font-size:13px;font-weight:600;color:#1e293b">📈 月度用户池动态</span>'
+    + '</span>'
     + '<select id="upStatsMonthSel" onchange="renderUserPoolMonthStats()" style="padding:3px 8px;border:1px solid #ddd;border-radius:5px;font-size:12px">' + opts + '</select>'
-    + '<span style="font-size:11px;color:#64748b">新增建档 = 当月首次建档且 A–M 信息完整 ｜ 回访更新 = 当月「时间+类型+内容」齐全的回访，每组计 1</span>'
+    + '<span style="font-size:12px;color:#64748b">新增建档 <b style="color:#1a8a3a">' + sumNew + '</b> ｜ 回访 <b style="color:#6b4fd8">' + sumRv + '</b> ｜ 合计 <b style="color:#1e293b">' + (sumNew + sumRv) + '</b>'
+    + (sumInc ? ' <span style="color:#b45309">· ' + sumInc + ' 条不完整未计</span>' : '') + '</span>'
+    + '<span class="upms-toggle" style="margin-left:auto;font-size:11px;color:#1a73e8" onclick="toggleUpMonthStats()">' + (collapsed ? '点击展开明细' : '点击收起') + '</span>'
     + '</div>';
+  // 明细区（默认收起，用 CSS display 控制，展开/收起不重算数据）
+  var body = '<div id="upmsBody"' + (collapsed ? ' style="display:none"' : '') + '>';
+  body += '<div style="font-size:11px;color:#64748b;margin:8px 0">新增建档 = 当月首次建档且 A–M 信息完整 ｜ 回访更新 = 当月「时间+类型+内容」齐全的回访，每组计 1</div>';
   if (autoMonth) {
-    html += '<div style="font-size:11px;color:#1a8a3a;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:4px 8px;margin-bottom:8px">'
+    body += '<div style="font-size:11px;color:#1a8a3a;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;padding:4px 8px;margin-bottom:8px">'
       + formatMonthLabel(cur) + ' 起绩效「用户池」按此表自动统计（合计口径 = 新增建档 + 回访更新），无需在月度数据里手填；特殊情况由管理员在数据维护中修正。'
       + '</div>';
   } else {
-    html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:8px">' + formatMonthLabel(cur) + ' 早于 2026-09，绩效仍按历史手填值；本表仅供对照参考。</div>';
+    body += '<div style="font-size:11px;color:#94a3b8;margin-bottom:8px">' + formatMonthLabel(cur) + ' 早于 2026-09，绩效仍按历史手填值；本表仅供对照参考。</div>';
   }
-  html += '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>'
+  body += '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>'
     + '<th style="text-align:left;padding:4px 8px;border-bottom:1px solid #e2e8f0">负责人</th>'
     + '<th style="text-align:right;padding:4px 8px;border-bottom:1px solid #e2e8f0">新增建档</th>'
     + '<th style="text-align:right;padding:4px 8px;border-bottom:1px solid #e2e8f0">回访更新</th>'
@@ -5429,12 +5473,25 @@ function renderUserPoolMonthStats() {
     + '<th style="text-align:right;padding:4px 8px;border-bottom:1px solid #e2e8f0">备注</th>'
     + '</tr></thead><tbody>' + (rows || '<tr><td colspan="6" style="text-align:center;color:#999;padding:14px">' + emptyTxt + '</td></tr>');
   if (rows && (isAdm || keys.length)) {
-    html += '<tr style="background:#f8fafc;font-weight:700"><td style="padding:4px 8px">合计（' + keys.length + ' 人）</td>'
+    body += '<tr style="background:#f8fafc;font-weight:700"><td style="padding:4px 8px">合计（' + keys.length + ' 人）</td>'
       + '<td class="upms-num">' + sumNew + '</td><td class="upms-num">' + sumRv + '</td><td class="upms-num">' + (sumNew + sumRv) + '</td><td></td>'
       + '<td style="text-align:right;color:#b45309;font-size:11px">' + (sumInc ? sumInc + ' 条不完整未计' : '') + '</td></tr>';
   }
-  html += '</tbody></table></div>';
-  wrap.innerHTML = html;
+  body += '</tbody></table>';
+  // 日期异常提醒（仅管理员、仅明细区）：日期为空或写法认不出的记录不会进任何月份的统计，且表上看不出来
+  if (isAdm) {
+    var isu = userPoolDateIssues();
+    if (isu.addEmpty || isu.addBad || isu.visitBad) {
+      body += '<div style="font-size:11px;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:5px 8px;margin-top:8px;line-height:1.7">'
+        + '日期提醒：全表 ' + isu.total + ' 条中，<b>' + isu.addEmpty + '</b> 条没填「首次建档日期」、<b>' + isu.addBad + '</b> 条日期写法认不出'
+        + (isu.visitBad ? '，另有 <b>' + isu.visitBad + '</b> 组回访时间认不出' : '')
+        + '，这些记录不会出现在任何月份的自动统计里，建议在表格中改成 2026-09-15 这种「年-月-日」写法后重新导入。'
+        + (isu.samples.length ? '<br>样例：' + isu.samples.map(function (s) { return escHtml(s.name) + '（负责人 ' + escHtml(s.leader || '未填') + '，原值「' + escHtml(s.raw) + '」）'; }).join('；') : '')
+        + '</div>';
+    }
+  }
+  body += '</div>';
+  wrap.innerHTML = '<div style="border:1px solid #e2e8f0;border-radius:8px;padding:10px 12px;background:#fbfdff">' + bar + body + '</div>';
 }
 
 // --- Tab1: 学校用户列表 ---
@@ -6296,9 +6353,12 @@ function formatDateCell(v){
   }
   var s = String(v).trim();
   if(!s) return '';
+  // 末尾多余的日期分隔符（如「9.10.」「46191.」）只在识别时忽略：认不出来时原样返回，绝不改动用户原始写法
+  var s2 = s.replace(/[.．/／、\-]+$/, '').trim();
+  if(!s2) return s;
   // 纯数字字符串（如 "46191"）：早期导入/本地缓存把 Excel 序列号存成了文本，同样按 1900 日期系统转换；
   // 限定 5 位且 40000~60000（2009~2064年），避免把 "2026" 这类 4 位年份文本误转
-  var sn = s.match(/^(\d{5})(?:\.\d+)?$/);
+  var sn = s2.match(/^(\d{5})(?:\.\d+)?$/);
   if(sn){
     var n = parseInt(sn[1],10);
     if(n > 40000 && n < 60000){
@@ -6308,8 +6368,29 @@ function formatDateCell(v){
     }
   }
   // 把 2026/8/20、2026.8.20、2026年8月20日 统一转成 2026-08-20（注意：m[2] 是字符串，必须先转数字再补零，否则 '07' 会被重复补成 '007'）
-  var m = s.match(/^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$/);
+  var m = s2.match(/^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$/);
   if(m){ var p = function(n){ n = Number(n); return n < 10 ? '0'+n : ''+n; }; return m[1]+'-'+p(m[2])+'-'+p(m[3]); }
+  // 补强（2026-09-10）：手填的简写日期同样识别，避免「26.9.10」「9.10」这类值被漏统计。
+  // 只补「年月日齐全且数值合法」的写法；只有年月（如「2026.7.」）或月日越界（如 13 月 40 日）一律不臆造，
+  // 原样返回并由 userPoolDateIssues 计入日期异常提醒，交给人工确认。
+  //   ① 两位年份：26.9.10 / 26/9/10 / 26-9-10 / 26年9月10日 → 2026-09-10（一律按 20xx）
+  var m2 = s2.match(/^(\d{2})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$/);
+  if(m2){
+    var mo2 = Number(m2[2]), d2 = Number(m2[3]);
+    if(mo2 >= 1 && mo2 <= 12 && d2 >= 1 && d2 <= 31){
+      var p2 = function(n){ n = Number(n); return n < 10 ? '0'+n : ''+n; };
+      return '20'+m2[1]+'-'+p2(mo2)+'-'+p2(d2);
+    }
+  }
+  //   ② 缺年份：9.10 / 9/10 / 9-10 / 9月10日 → 按当前年份补齐（用户池表格均为当月填报）
+  var m3 = s2.match(/^(\d{1,2})[-/.月](\d{1,2})日?$/);
+  if(m3){
+    var mm = Number(m3[1]), dd = Number(m3[2]);
+    if(mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31){
+      var p3 = function(n){ n = Number(n); return n < 10 ? '0'+n : ''+n; };
+      return new Date().getFullYear() + '-' + p3(mm) + '-' + p3(dd);
+    }
+  }
   return s;
 }
 
@@ -6589,6 +6670,16 @@ function confirmModuleImport() {
   var msg = '导入完成：新增 '+newItems.length+' 条';
   if (mg.users > 0) msg += '；为 '+mg.users+' 位已存在用户合并新增回访 '+mg.visits+' 次';
   if (st.skipped.length) msg += '；跳过工作表：'+st.skipped.join('；');
+  // 日期异常提醒（用户池导入专用·2026-09-10）：只提示「写法认不出」的——空值的后果表上已有「不完整未计」反馈，
+  // 而写法认不出是隐性陷阱：记录看着在表里，却永远进不了月度统计
+  if (st.modKey === 'userpool') {
+    var isu = userPoolDateIssues(newItems);
+    if (isu.addBad || isu.visitBad) {
+      var eg = isu.samples.length ? '，例：' + isu.samples[0].name + ' 的「' + isu.samples[0].raw + '」' : '';
+      msg += '\n\n日期提醒：本次导入中有 ' + isu.addBad + ' 条建档日期、' + isu.visitBad + ' 组回访时间的写法系统认不出' + eg
+        + '。\n这些记录不会计入用户池统计，请改成 2026-09-15 这种「年-月-日」写法后重新导入。';
+    }
+  }
   alert(msg);
 }
 
