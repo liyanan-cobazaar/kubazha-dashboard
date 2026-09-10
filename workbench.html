@@ -945,7 +945,8 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
           <div class="rule-section">
             <h5>六、用户池与触达口径</h5>
             <div class="rule-note">
-              <strong>1. 用户池建档：</strong>以<strong>采购人</strong>为最小单元建档，信息链：学校 → 学院 → 实验室/课题组 → 采购人。同一采购人服务多个课题组/实验室的，多个课题组填在同一格（顿号分隔），只建一个档案，不重复建档。
+              <strong>1. 用户池建档：</strong>以<strong>采购人</strong>为最小单元建档，信息链：学校 → 学院 → 实验室/课题组 → 采购人。同一采购人服务多个课题组/实验室的，多个课题组填在同一格（顿号分隔），只建一个档案，不重复建档。<br>
+              <strong>建档去重：</strong>同一采购人 + 同一学校 + <strong>同一学院</strong>只算 1 条（同一采购人在同校不同学院算不同用户）；补录信息、变更等不计新增；同一人当月重复录入只计 1 次。
             </div>
             <table class="rule-table">
               <thead><tr><th>建档必填项</th><th>填写要求</th></tr></thead>
