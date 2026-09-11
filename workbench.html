@@ -5407,11 +5407,28 @@ function toggleUpMonthStats() {
   try { localStorage.setItem(UPMS_COLLAPSED_KEY, upmsCollapsed() ? '0' : '1'); } catch (e) {}
   renderUserPoolMonthStats();
 }
+// 从用户池 CRM 记录里提取所有有效月份（建档/回访），避免月度绩效数据没录 9 月时用户池动态看不到 9 月
+function userPoolMonthsFromCRM() {
+  var set = {};
+  (USER_POOL_CRM || []).forEach(function (u) {
+    if (!u) return;
+    var ad = String(u.addDate || '').trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(ad)) set[ad.slice(0, 7)] = true;
+    (u.visits || []).forEach(function (v) {
+      var d = String((v && v.date) || '').trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(d)) set[d.slice(0, 7)] = true;
+    });
+  });
+  return Object.keys(set).sort().reverse();
+}
 // 管理员看全员；其他角色只看本人一行。月份切换即时重算，数据来自用户池CRM导入记录（绩效同源）。
 function renderUserPoolMonthStats() {
   var wrap = $('upMonthStats');
   if (!wrap) return;
-  var months = (WORKBENCH_DATA.available_months || []).slice().sort().reverse();
+  // 月度用户池动态的月份选项 = 绩效月份 ∪ 用户池 CRM 实际月份（以用户池最大月份兜底，避免新月份有数据但下拉缺失）
+  var baseMonths = (WORKBENCH_DATA.available_months || []).slice();
+  userPoolMonthsFromCRM().forEach(function (m) { if (baseMonths.indexOf(m) < 0) baseMonths.push(m); });
+  var months = baseMonths.sort().reverse();
   if (!months.length) { wrap.innerHTML = ''; return; }
   var sel = $('upStatsMonthSel');
   var cur = sel ? sel.value : '';
