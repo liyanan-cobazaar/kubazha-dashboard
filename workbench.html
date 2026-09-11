@@ -6241,34 +6241,38 @@ function renderUpVisits() {
     return;
   }
 
-  // 默认排序：最近在前（日期倒序，同日内按时间倒序）；无法识别的日期（如遗留脏数据）统一排最后
-  filtered.sort(function(a,b){
-    var ka = /^\d{4}-\d{2}-\d{2}$/.test(a.date || '') ? a.date : '0000-00-00';
-    var kb = /^\d{4}-\d{2}-\d{2}$/.test(b.date || '') ? b.date : '0000-00-00';
-    if (ka !== kb) return kb.localeCompare(ka);
-    return (b.time || '').localeCompare(a.time || '');
-  });
-
-  // 汇总行
-  var persons = {}, custs = {};
-  filtered.forEach(function(v){
-    if (v.person) persons[v.person] = 1;
-    custs[(v.name||'')+'|'+(v.school||'')] = 1;
-  });
-  var label = mf === "all" ? "全部月份" : mf.slice(0,4)+'年'+parseInt(mf.slice(5,7),10)+'月';
-  tl.innerHTML = '<div class="vp-summary">'+esc(label)+' 共 <strong>'+filtered.length+'</strong> 次走访 · '
-    + Object.keys(persons).length+' 位走访人 · '+Object.keys(custs).length+' 位用户（点开卡片可看完整历史走访，不受月份筛选限制）</div>';
-
-  // 客户历史索引：从基础集合按 客户+学校 聚合（含全部月份）
+  // 2026-09-11 方案A：一个客户一张卡片（此前每组回访各生成一张卡片，同一客户反复出现像重复记录）。
+  // 历史索引：从基础集合按 客户+学校 聚合（含全部月份），卡片的历史时间轴从这里取
   var histIdx = {};
   base.forEach(function(v){
     var key = (v.name||'')+'|'+(v.school||'');
     (histIdx[key] = histIdx[key] || []).push(v);
   });
 
-  // 按天分组（日期倒序）
-  var byDay = {}, dayKeys = [];
+  // 每位客户取「当前月份筛选范围内最近一次回访」作为卡片挂载点：卡片日期/正文显示该次，其余全部进历史时间轴
+  var dkey = function(v){ return /^\d{4}-\d{2}-\d{2}$/.test(v.date || '') ? v.date : '0000-00-00'; };
+  var byCust = {};
   filtered.forEach(function(v){
+    var key = (v.name||'')+'|'+(v.school||'');
+    var cur = byCust[key];
+    if (!cur || dkey(v) > dkey(cur) || (dkey(v) === dkey(cur) && (v.time||'') > (cur.time||''))) byCust[key] = v;
+  });
+  var cardList = Object.keys(byCust).map(function(k){ return byCust[k]; })
+    .sort(function(a,b){
+      if (dkey(a) !== dkey(b)) return dkey(b).localeCompare(dkey(a));
+      return (b.time||'').localeCompare(a.time||'');
+    });
+
+  // 汇总行：卡片数按客户计；累计次数 = 当前筛选范围内的全部回访
+  var persons = {};
+  cardList.forEach(function(v){ if (v.person) persons[v.person] = 1; });
+  var label = mf === "all" ? "全部月份" : mf.slice(0,4)+'年'+parseInt(mf.slice(5,7),10)+'月';
+  tl.innerHTML = '<div class="vp-summary">'+esc(label)+' 共 <strong>'+cardList.length+'</strong> 位客户 · 累计 '+filtered.length+' 次走访 · '
+    + Object.keys(persons).length+' 位走访人（一个客户一张卡片，点开可看该客户完整历史走访，不受月份筛选限制）</div>';
+
+  // 按天分组（按卡片挂载的那次回访日期，倒序）
+  var byDay = {}, dayKeys = [];
+  cardList.forEach(function(v){
     var d = (v.date || '').slice(0,10) || '未知日期';
     if (!byDay[d]) { byDay[d] = []; dayKeys.push(d); }
     byDay[d].push(v);
@@ -6283,7 +6287,7 @@ function renderUpVisits() {
     var recs = byDay[d];
     var head = document.createElement("div");
     head.className = "vp-day";
-    head.innerHTML = esc(formatDayHead(d, mf === "all")) + '<span class="vp-day-meta">'+recs.length+' 次走访</span>';
+    head.innerHTML = esc(formatDayHead(d, mf === "all")) + '<span class="vp-day-meta">'+recs.length+' 位客户</span>';
     tl.appendChild(head);
 
     var line = document.createElement("div");
