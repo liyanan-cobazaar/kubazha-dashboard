@@ -131,6 +131,7 @@ table.sticky-head thead th{position:sticky;top:0;z-index:5;box-shadow:0 2px 0 #e
 .upms-toggle{display:inline-flex;align-items:center;cursor:pointer;user-select:none}
 .upms-caret{display:inline-block;width:0;height:0;border-left:6px solid #64748b;border-top:5px solid transparent;border-bottom:5px solid transparent;margin-right:7px;transition:transform .15s;vertical-align:middle}
 .upms-caret.open{transform:rotate(90deg)}
+.upms-num{text-align:center !important}
 .rule-edit-zone[contenteditable="true"]{outline:2px dashed #1a73e8;outline-offset:6px;border-radius:4px}
 .rule-edit-zone[contenteditable="true"] td,.rule-edit-zone[contenteditable="true"] th{outline:1px dotted #bcd0f0;outline-offset:-1px}
 .rule-section ol,.rule-section ul{margin-left:16px}
@@ -5458,7 +5459,7 @@ function renderUserPoolMonthStats() {
       + '<td class="upms-num" style="color:#6b4fd8;font-weight:600">' + st.revisitCount + '</td>'
       + '<td class="upms-num" style="font-weight:700">' + eff + '</td>'
       + '<td class="upms-num" style="color:' + (manual !== null ? '#b45309' : '#94a3b8') + '">' + (manual !== null ? ('修正 ' + manual + '（自动 ' + (st.newCount + st.revisitCount) + '）') : (autoMonth ? '自动统计' : '—')) + '</td>'
-      + '<td style="color:#b45309;font-size:11px">' + (st.incomplete ? st.incomplete + ' 条不完整未计' : '') + '</td>'
+      + '<td class="upms-num" style="color:#b45309;font-size:11px">' + (st.incomplete ? st.incomplete + ' 条不完整未计' : '') + '</td>'
       + '</tr>';
   }).join('');
   var emptyTxt = isAdm ? '该月用户池表格中暂无「首次建档」或「回访」落在本月的记录' : '该月没有您名下的用户池新增建档或回访记录';
@@ -5486,16 +5487,16 @@ function renderUserPoolMonthStats() {
   }
   body += '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>'
     + '<th style="text-align:left;padding:4px 8px;border-bottom:1px solid #e2e8f0">负责人</th>'
-    + '<th style="text-align:right;padding:4px 8px;border-bottom:1px solid #e2e8f0">新增建档</th>'
-    + '<th style="text-align:right;padding:4px 8px;border-bottom:1px solid #e2e8f0">回访更新</th>'
-    + '<th style="text-align:right;padding:4px 8px;border-bottom:1px solid #e2e8f0">合计</th>'
-    + '<th style="text-align:right;padding:4px 8px;border-bottom:1px solid #e2e8f0">计入绩效</th>'
-    + '<th style="text-align:right;padding:4px 8px;border-bottom:1px solid #e2e8f0">备注</th>'
+    + '<th style="text-align:center;padding:4px 8px;border-bottom:1px solid #e2e8f0">新增建档</th>'
+    + '<th style="text-align:center;padding:4px 8px;border-bottom:1px solid #e2e8f0">回访更新</th>'
+    + '<th style="text-align:center;padding:4px 8px;border-bottom:1px solid #e2e8f0">合计</th>'
+    + '<th style="text-align:center;padding:4px 8px;border-bottom:1px solid #e2e8f0">计入绩效</th>'
+    + '<th style="text-align:center;padding:4px 8px;border-bottom:1px solid #e2e8f0">备注</th>'
     + '</tr></thead><tbody>' + (rows || '<tr><td colspan="6" style="text-align:center;color:#999;padding:14px">' + emptyTxt + '</td></tr>');
   if (rows && (isAdm || keys.length)) {
     body += '<tr style="background:#f8fafc;font-weight:700"><td style="padding:4px 8px">合计（' + keys.length + ' 人）</td>'
-      + '<td class="upms-num">' + sumNew + '</td><td class="upms-num">' + sumRv + '</td><td class="upms-num">' + (sumNew + sumRv) + '</td><td></td>'
-      + '<td style="text-align:right;color:#b45309;font-size:11px">' + (sumInc ? sumInc + ' 条不完整未计' : '') + '</td></tr>';
+      + '<td class="upms-num">' + sumNew + '</td><td class="upms-num">' + sumRv + '</td><td class="upms-num">' + (sumNew + sumRv) + '</td><td class="upms-num"></td>'
+      + '<td class="upms-num" style="color:#b45309;font-size:11px">' + (sumInc ? sumInc + ' 条不完整未计' : '') + '</td></tr>';
   }
   body += '</tbody></table>';
   // 日期异常提醒（仅管理员、仅明细区）：日期为空或写法认不出的记录不会进任何月份的统计，且表上看不出来
