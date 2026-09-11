@@ -973,14 +973,14 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
                 <tr><td>用户角色</td><td>PI/课题组负责人 / 采购老师 / 实验员 / 采购秘书 / 研究生 / 其他</td></tr>
                 <tr><td>首次建档（原“新增日期”）</td><td>年-月-日（如 2026-08-20）</td></tr>
                 <tr><td>用户基本信息（选填）</td><td>职称/头衔、研究方向、采购习惯、重要备注等补充信息，自由填写；导入后显示在学校用户列表「用户基本信息」列</td></tr>
-                <tr><td>负责人</td><td>归属运营人员</td></tr>
+                <tr><td>走访人</td><td>归属运营人员（用户池这里统称走访人，对应月度数据维护和绩效里的运营人员）</td></tr>
               </tbody>
             </table>
             <div class="rule-note">
               <strong>2. 用户池（绩效口径，2026-09 起自动统计）</strong>：绩效中的「用户池」人数由系统按本表格自动统计，月度数据里无需再手填（该列可不填，填了也不导入）。当月用户池数 = <strong>新增建档数 + 完整回访数</strong>：
               ① 新增建档 = 首次建档日期在该月、且 A–M 列信息完整的记录（「用户基本信息」为选填列，不计入完整性判定；下单金额需填写，填 0 也算完整，留空算不完整）；
               ② 完整回访 = 「回访时间 + 回访类型 + 回访内容」三项齐全的一组，按回访时间归属月份，每组计 1（不完整的组不计）。
-              同一人当月既有新建档又有回访，两项各计各的；特殊情况可由管理员在「数据维护」中修正（修正值优先于自动统计，留空即恢复自动）。2026-09 之前的历史月份仍按原手填值。明细可在用户池CRM「月度用户池动态」中按负责人逐月查看。
+              同一人当月既有新建档又有回访，两项各计各的；特殊情况可由管理员在「数据维护」中修正（修正值优先于自动统计，留空即恢复自动）。2026-09 之前的历史月份仍按原手填值。明细可在用户池CRM「月度用户池动态」中按走访人逐月查看。
             </div>
             <div class="rule-note">
               <strong>3. 回访：</strong>回访是用户池的持续运营动作。每次回访在用户池表格末尾追加一组「回访时间N / 回访N类型 / 回访N内容」（N 按顺序递增，几次回访填几组）；回访类型沿用 8 类：首次拜访、常规走访、深度回访、问题处理、需求发掘、新品推介、售后跟进、其他。回访自动更新档案（<strong>最近触达 = 日期最大那次回访，无需也不可手填</strong>；走访类型 / 走访内容自动取最新一组），<strong>每组完整回访计入当月用户池数（见第 2 条），但不计触达</strong>。
@@ -1038,20 +1038,27 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
       <!-- Tab1: 21所学校 × S/A/B/C用户列表 -->
       <div id="upSchools" class="upool-tab-content">
         <div id="upMonthStats" style="margin-bottom:12px"></div>
-        <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center">
-          <select id="upSchoolSelect" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;min-width:180px">
+        <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center;flex-wrap:wrap">
+          <select id="upSchoolSelect" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;min-width:160px">
             <option value="all">全部学校 (21所)</option>
           </select>
           <select id="upLevelFilter" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px">
             <option value="all">全部等级</option><option value="S">S级 (高价值)</option>
             <option value="A">A级 (优质)</option><option value="B">B级 (潜力)</option><option value="C">C级 (普通)</option>
           </select>
-          <span style="font-size:11px;color:#888">共 <strong id="upTotalCount">0</strong> 名用户</span>
+          <input id="upNameSearch" placeholder="🔍 采购用户名搜索" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;min-width:140px">
+          <select id="upLeaderFilter" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;min-width:130px">
+            <option value="all">全部走访人</option>
+          </select>
+          <select id="upAddMonthFilter" style="padding:6px 10px;border:1px solid #ddd;border-radius:5px;font-size:12px;min-width:130px">
+            <option value="all">全部建档月份</option>
+          </select>
+          <span style="font-size:11px;color:#888">共 <strong id="upTotalCount">0</strong> 名用户<span id="upFilterHint"></span></span>
           <button onclick="downloadModuleTemplate('userpool')" style="margin-left:auto;padding:6px 14px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600">📄 模板</button>
           <button onclick="document.getElementById('upFileInput').click()" style="padding:6px 14px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600">📥 导入</button>
           <input type="file" id="upFileInput" accept=".xlsx,.xls" style="display:none" onchange="handleModuleImportFile('userpool', this)">
         </div>
-        <table class="sticky-head"><colgroup><col style="width:8%"><col style="width:8%"><col style="width:12%"><col style="width:11%"><col style="width:8%"><col style="width:13%"><col style="width:8%"><col style="width:13%"><col style="width:7%"><col style="width:7%"><col style="width:5%"></colgroup><thead><tr><th>采购用户</th><th>等级(S/A/B/C)</th><th>学校/学院</th><th>实验室/课题组</th><th>首次建档</th><th>用户基本信息</th><th>最近触达</th><th>走访内容</th><th>走访类型</th><th>下单金额(万)</th><th>负责人</th></tr></thead><tbody id="upUserTable"></tbody></table>
+        <table class="sticky-head"><colgroup><col style="width:8%"><col style="width:8%"><col style="width:12%"><col style="width:11%"><col style="width:8%"><col style="width:13%"><col style="width:8%"><col style="width:13%"><col style="width:7%"><col style="width:7%"><col style="width:5%"></colgroup><thead><tr><th>采购用户</th><th>等级(S/A/B/C)</th><th>学校/学院</th><th>实验室/课题组</th><th>首次建档</th><th>用户基本信息</th><th>最近触达</th><th>走访内容</th><th>走访类型</th><th>下单金额(万)</th><th>走访人</th></tr></thead><tbody id="upUserTable"></tbody></table>
       </div>
 
       <!-- Tab2: 等级分布分析 -->
@@ -5387,6 +5394,37 @@ function fillUserPoolFilterOptions() {
   Object.keys(vpSet).sort().forEach(function(p){
     vpf.innerHTML += "<option value='"+p+"'>"+p+"</option>";
   });
+  // 用户列表的「走访人」+「首次建档月份」筛选（2026-09-11 用户要求加）
+  var ulf = $("upLeaderFilter");
+  var leaderSet = {};
+  USER_POOL_CRM.forEach(function(u){ if (inSchoolScope(u.school) && u.leader) leaderSet[u.leader] = 1; });
+  if(ulf){
+    var prevLeader = ulf.value;
+    ulf.innerHTML = "<option value='all'>全部走访人</option>";
+    Object.keys(leaderSet).sort().forEach(function(p){
+      ulf.innerHTML += "<option value='"+p+"'>"+p+"</option>";
+    });
+    // 保留用户已选中的值
+    if(prevLeader && prevLeader !== 'all' && leaderSet[prevLeader]) ulf.value = prevLeader;
+  }
+  var uamf = $("upAddMonthFilter");
+  if(uamf){
+    var monthSet = {};
+    USER_POOL_CRM.forEach(function(u){
+      if(!inSchoolScope(u.school)) return;
+      var ad = formatDateCell(u.addDate);
+      if(ad && ad.length >= 7) monthSet[ad.slice(0,7)] = 1;
+    });
+    var prevMonth = uamf.value;
+    var months = Object.keys(monthSet).sort().reverse(); // 最近的月份排前面
+    uamf.innerHTML = "<option value='all'>全部建档月份</option>";
+    months.forEach(function(m){
+      // 显示成「2026年9月」更直观
+      var lbl = m.replace(/^(\d{4})-(\d{1,2})$/, function(_,y,mm){ return y+'年'+parseInt(mm,10)+'月'; });
+      uamf.innerHTML += "<option value='"+m+"'>"+lbl+"</option>";
+    });
+    if(prevMonth && prevMonth !== 'all' && monthSet[prevMonth]) uamf.value = prevMonth;
+  }
 }
 
 function renderUpSubTab() {
@@ -5486,7 +5524,7 @@ function renderUserPoolMonthStats() {
     body += '<div style="font-size:11px;color:#94a3b8;margin-bottom:8px">' + formatMonthLabel(cur) + ' 早于 2026-09，绩效仍按历史手填值；本表仅供对照参考。</div>';
   }
   body += '<table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr>'
-    + '<th style="text-align:left;padding:4px 8px;border-bottom:1px solid #e2e8f0">负责人</th>'
+    + '<th style="text-align:left;padding:4px 8px;border-bottom:1px solid #e2e8f0">走访人</th>'
     + '<th style="text-align:center;padding:4px 8px;border-bottom:1px solid #e2e8f0">新增建档</th>'
     + '<th style="text-align:center;padding:4px 8px;border-bottom:1px solid #e2e8f0">回访更新</th>'
     + '<th style="text-align:center;padding:4px 8px;border-bottom:1px solid #e2e8f0">合计</th>'
@@ -5520,11 +5558,25 @@ function renderUpSchoolList() {
   renderUserPoolMonthStats();
   var schoolFilter = $("upSchoolSelect").value;
   var levelFilter = $("upLevelFilter").value;
+  var nameQuery = ($("upNameSearch").value || '').trim();
+  var leaderFilter = $("upLeaderFilter").value;
+  var monthFilter = $("upAddMonthFilter").value;
 
   var filtered = USER_POOL_CRM.filter(function(u){
     if(!inSchoolScope(u.school)) return false;
     if(schoolFilter!=="all" && u.school!==schoolFilter) return false;
     if(levelFilter!=="all" && u.level!==levelFilter) return false;
+    if(leaderFilter!=="all" && u.leader!==leaderFilter) return false;
+    if(monthFilter!=="all"){
+      var ad = formatDateCell(u.addDate);
+      if(ad.slice(0,7) !== monthFilter) return false;
+    }
+    if(nameQuery){
+      // 采购用户名模糊匹配（去除空格后大小写不敏感），同时匹配联系方式方便用手机号找人
+      var q = nameQuery.replace(/\s+/g,'').toLowerCase();
+      var hay = ((u.name||'') + ' ' + (u.contact||'')).replace(/\s+/g,'').toLowerCase();
+      if(hay.indexOf(q) < 0) return false;
+    }
     return true;
   });
 
@@ -5534,15 +5586,43 @@ function renderUpSchoolList() {
   var levelOrder = {"S":0,"A":1,"B":2,"C":3};
   filtered.sort(function(a,b){ return (levelOrder[a.level]||9)-(levelOrder[b.level]||9); });
 
+  // 2026-09-11 修复：去掉原硬截断前100条。无筛选时数据量大给个 500 上限 + 提示，避免浏览器卡顿；
+  // 一旦用了任一筛选条件就不截断，让用户能看到完整的匹配结果。
+  var anyFilter = schoolFilter!=='all' || levelFilter!=='all' || nameQuery || leaderFilter!=='all' || monthFilter!=='all';
+  var MAX_RENDER = 500;
+  var renderArr = anyFilter ? filtered : filtered.slice(0, MAX_RENDER);
+  var hint = $("upFilterHint");
+  if(hint){
+    if(!anyFilter && filtered.length > MAX_RENDER){
+      hint.innerHTML = '<span style="color:#b45309">（数据较多，默认显示前 '+MAX_RENDER+' 条，请用上方筛选缩窄范围）</span>';
+    } else {
+      hint.innerHTML = '';
+    }
+  }
+
   var tbody = "";
-  filtered.slice(0,100).forEach(function(u){
+  renderArr.forEach(function(u){
     var lc = u.level==="S"?"#ef4444":(u.level==="A"?"#f59e0b":(u.level==="B"?"#3b82f6":"#6b7280"));
     tbody += "<tr><td><strong>"+u.name+"</strong></td><td style='white-space:nowrap'><span style='color:"+lc+";font-weight:700'>● "+u.level+"</span></td><td>"+u.school+"<br><span style='font-size:10px;color:#888'>"+u.college+"</span></td><td style='font-size:11px'>"+u.lab+"</td><td style='white-space:nowrap'>"+formatDateCell(u.addDate)+"</td><td style='font-size:11px;white-space:normal;line-height:1.5'>"+(u.basicInfo||'')+"</td><td style='white-space:nowrap'>"+(formatDateCell(u.lastTouch)||'<span style="color:#bbb">—</span>')+"</td><td style='font-size:11px;white-space:normal;line-height:1.5'>"+(u.visitContent||'')+"</td><td style='white-space:nowrap'>"+(u.visitType?("<span style='background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 7px;font-size:11px'>"+u.visitType+"</span>"):'')+"</td><td style='white-space:nowrap;text-align:right'>¥"+u.order.toFixed(1)+"</td><td style='white-space:nowrap'>"+(u.leader||'')+(u.contact?"<br><span style='font-size:10px;color:#888'>"+u.contact+"</span>":"")+"</td></tr>";
   });
-  $("upUserTable").innerHTML = tbody || "<tr><td colspan='11' style='text-align:center;color:#999;padding:20px'>暂无数据</td></tr>";
+  if(!renderArr.length){
+    tbody = "<tr><td colspan='11' style='text-align:center;color:#999;padding:20px'>暂无数据</td></tr>";
+  } else if(!anyFilter && filtered.length > MAX_RENDER){
+    tbody += "<tr><td colspan='11' style='text-align:center;color:#b45309;font-size:11px;padding:8px;background:#fff7ed'>共 "+filtered.length+" 条记录，当前仅显示前 "+MAX_RENDER+" 条。请用上方任一筛选缩窄范围。</td></tr>";
+  }
+  $("upUserTable").innerHTML = tbody;
 
   $("upSchoolSelect").onchange = renderUpSchoolList;
   $("upLevelFilter").onchange = renderUpSchoolList;
+  $("upLeaderFilter").onchange = renderUpSchoolList;
+  $("upAddMonthFilter").onchange = renderUpSchoolList;
+  // 输入框用 input 事件实时筛选 + 200ms 防抖，避免每打一个字都重渲
+  var nameInput = $("upNameSearch");
+  if(nameInput._debounced) clearTimeout(nameInput._debounced);
+  nameInput.oninput = function(){
+    clearTimeout(nameInput._debounced);
+    nameInput._debounced = setTimeout(renderUpSchoolList, 200);
+  };
 }
 
 // --- Tab2: 等级分析 ---
@@ -6226,7 +6306,7 @@ var MODULE_TEMPLATES = {
     b64: USERPOOL_TEMPLATE_B64,
     sheets: [{
       name: '用户池CRM',
-      headers: ['采购用户','等级(S/A/B/C)','学校','学院','实验室/课题组','联系方式','用户角色','首次建档','用户基本信息','走访内容','走访类型','下单金额(元)','负责人','回访时间1','回访1类型','回访1内容','回访时间2','回访2类型','回访2内容','回访时间3','回访3类型','回访3内容'],
+      headers: ['采购用户','等级(S/A/B/C)','学校','学院','实验室/课题组','联系方式','用户角色','首次建档','用户基本信息','走访内容','走访类型','下单金额(元)','走访人','回访时间1','回访1类型','回访1内容','回访时间2','回访2类型','回访2内容','回访时间3','回访3类型','回访3内容'],
       aliases: {
         name:['采购用户','姓名'], level:['等级(S/A/B/C)','等级'], school:['学校'],
         college:['学院'], lab:['实验室/课题组','课题组'],
@@ -6234,7 +6314,7 @@ var MODULE_TEMPLATES = {
         addDate:['首次建档','新增日期'], lastTouch:['最近触达'],
         basicInfo:['用户基本信息','基本信息'],
         visitContent:['走访内容'], visitType:['走访类型'],
-        order:['下单金额(元)','下单金额'], leader:['负责人']
+        order:['下单金额(元)','下单金额'], leader:['走访人','负责人']  // 兼容老模板列名「负责人」（2026-09-11 起新模板统一称「走访人」，对应月度数据维护和绩效里的「运营人员」）
       },
       sample: [
         ['张教授','A','南方医科大学','基础医学院','XX课题组','138****8888（微信同号）','采购老师','2026-03-15','教授/博导，有机合成方向，每月固定采购试剂，对到货时效敏感','拜访化学系张教授课题组，了解新学期试剂采购计划，预计采购额15万+','常规走访','50w','陈宝华','2026-07-10','首次拜访','初次拜访介绍平台，拿到微信','2026-08-20','常规走访','了解新学期试剂采购计划，预计采购额15万+','','',''],
@@ -6500,7 +6580,7 @@ function moduleNoteLines(modKey) {  if (modKey==='marketing') return [
     '走访类型：在本列下拉选择其一 —— 首次拜访 / 常规走访 / 深度回访 / 问题处理 / 需求发掘 / 新品推介 / 售后跟进；若以上都不符合，请选「其他」并在单元格内自填具体类型。',
     '【回访列组·多次回访】同一用户反复回访时，按「回访时间1 / 回访1类型 / 回访1内容」填写第1次，第2次填「回访时间2 / 回访2类型 / 回访2内容」，依此类推（模板预留3组，需要更多组可自行在表尾按同样格式加列）。回访时间同样必须填完整「年-月-日」。导入后：每组回访各生成一条走访记录；「最近触达」由系统自动取日期最大的一次回访，模板里没有也不需要这一列；走访类型/走访内容自动取最新一组回访，无需重复填写。',
     '下单金额(元)：支持 50w=500000 元；导入后自动 ÷10000 显示为「万」。',
-    '负责人：填对应运营人员。',
+    '走访人：填对应运营人员（与「月度数据维护」「绩效」模块里的「运营人员」是同一群人，这里统称「走访人」）。',
     '【绩效自动统计】2026-09 起，绩效「用户池」人数按本表自动统计：当月新增建档（A–M 信息完整）+ 当月完整回访（时间/类型/内容齐全，每组计1），无需再在月度数据里手填；明细见本模块「月度用户池动态」。',
     '必填：采购用户、学校；其余可选。导入为「仅追加」（相同 采购用户+学校+学院 的新增记录不会重复导入——同一采购人在同校不同学院算不同用户）；已存在的用户若在回访列组里带了新回访，会自动按「日期+类型+内容」去重后合并进去，不用整表重填。'
   ];
