@@ -1375,7 +1375,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
       <span style="font-size:13px;font-weight:600">月份：</span>
       <select id="dmMonthSel" onchange="switchDmMonth()" style="padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px"></select>
       <span style="font-size:12px;color:#888">新月份：</span>
-      <input id="dmNewMonthInput" placeholder="如 2026-08" style="width:90px;padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px">
+      <input id="dmNewMonthInput" placeholder="如 2026-09 或 2026年9月" style="width:90px;padding:5px 8px;border:1px solid #ccc;border-radius:6px;font-size:13px">
       <button onclick="dmAddNewMonth()" style="padding:5px 10px;border:1px solid #1a73e8;border-radius:6px;font-size:12px;background:#fff;color:#1a73e8;cursor:pointer">➕ 建月</button>
       <button id="dmAddBtn" onclick="openDmForm('add')" style="padding:6px 14px;border:none;border-radius:6px;font-size:13px;background:#1a73e8;color:#fff;cursor:pointer;font-weight:600">＋ 新增一条</button>
       <span style="margin-left:6px;font-size:12px;color:#888">搜索：</span>
@@ -2012,7 +2012,48 @@ function normalizePersonName(n) {
   if (s === '王春光/张亚娟' || s === '王春光/亚娟' || s === '张亚娟/王春光' || s === '亚娟/王春光') return '王春光';
   return s;
 }
+// 2026-09-11 修复：Excel 把「2026年9月」这类写法存成日期单元格（序列号 46266），旧版 parseMonthCell
+// 把序列号误读成月份键「4626-06」（用户模板导入后月份变成 4626年6月）。此映射表登记已知脏月份 →
+// 正确月份，在 mergeMonthly 入口与本地加载时自动迁移（幂等），防止旧浏览器缓存把脏月份反复推回云端。
+var LEGACY_MONTH_MAP = { '4626-06': '2026-09' };
+function fixLegacyMonths(data) {
+  if (!data || !data.monthly_data) return data;
+  var changed = false;
+  Object.keys(LEGACY_MONTH_MAP).forEach(function (bad) {
+    var src = data.monthly_data[bad];
+    if (!src) return;
+    var good = LEGACY_MONTH_MAP[bad];
+    var dst = data.monthly_data[good];
+    if (!dst) {
+      data.monthly_data[good] = src; // 目标月份不存在：整体改名即可
+    } else {
+      // 目标月份已存在：people 按 姓名|学校 去重合并（真实记录优先于 _synthetic 合成占位）
+      var byKey = {};
+      (dst.people || []).forEach(function (p) { byKey[p.name + '|' + (p.school || '')] = p; });
+      (src.people || []).forEach(function (p) {
+        var k = p.name + '|' + (p.school || '');
+        if (!byKey[k] || (byKey[k]._synthetic && !p._synthetic)) byKey[k] = p;
+      });
+      dst.people = Object.keys(byKey).map(function (k) { return byKey[k]; });
+      if (!dst.regions || !Object.keys(dst.regions).length) dst.regions = src.regions || {};
+      if (!dst.totals || !Object.keys(dst.totals).length) dst.totals = src.totals || {};
+      if (!dst._rev || (src._rev || 0) > dst._rev) dst._rev = src._rev;
+    }
+    delete data.monthly_data[bad];
+    changed = true;
+  });
+  if (!changed) return data;
+  var am = data.available_months || [];
+  data.available_months = am.filter(function (m) { return !LEGACY_MONTH_MAP[m]; });
+  Object.keys(LEGACY_MONTH_MAP).forEach(function (bad) {
+    var good = LEGACY_MONTH_MAP[bad];
+    if (data.monthly_data[good] && data.available_months.indexOf(good) < 0) data.available_months.push(good);
+  });
+  data.available_months.sort();
+  return data;
+}
 function mergeMonthly(local, cloud) {
+  fixLegacyMonths(local); fixLegacyMonths(cloud); // 先迁移历史脏月份，避免旧缓存把 4626-06 复活
   var out = { available_months: [], monthly_data: {} };
   var months = {};
   (local.available_months || []).concat(cloud.available_months || []).forEach(function (m) { months[m] = true; });
@@ -8451,6 +8492,7 @@ function loadWorkbenchData() {
         if (WORKBENCH_DATA.available_months.indexOf(m) < 0) WORKBENCH_DATA.available_months.push(m);
       }
     });
+    fixLegacyMonths(WORKBENCH_DATA); // 自愈：把历史脏月份（如 4626-06）迁回正确月份
     WORKBENCH_DATA.available_months.sort();
     // 同步全局月份状态
     selectedMonths = WORKBENCH_DATA.available_months.slice();
@@ -8513,12 +8555,35 @@ function matchColumn(headers) {
 
 // ---------- 方案甲：多sheet / 月份自动识别 / 仅追加新记录 ----------
 
+// Excel 日期序列号（1900 日期系统）→ "YYYY-MM"。仅接受合理区间 40000~60000（约 2009~2064 年），
+// 避免把 4 位年份、订单金额等普通数字误当日期。
+function excelSerialToMonth(n) {
+  if (typeof n !== 'number' || isNaN(n) || n < 40000 || n >= 60000) return null;
+  var d = new Date(Math.round((n - 25569) * 86400000)); // 25569 = 1970-01-01 的序列号
+  return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0');
+}
 function parseMonthCell(v) {
   if (v === undefined || v === null || v === '') return null;
+  // Date 对象（cellDates 场景兜底）：按 UTC 取年月
+  if (v instanceof Date && !isNaN(v.getTime())) {
+    return v.getUTCFullYear() + '-' + String(v.getUTCMonth() + 1).padStart(2, '0');
+  }
+  // 数字单元格：Excel 会把「2026年9月」这类写法存成日期单元格（序列号 46266 = 2026-09-01），
+  // SheetJS 默认返回数字。此前直接当字符串解析会把 46266 误读成「4626年6月」（2026-09-11 用户发现）。
+  if (typeof v === 'number' && !isNaN(v)) {
+    if (v >= 1 && v <= 12) return '2026-' + String(v).padStart(2, '0'); // 1~12 视为「N月」
+    return excelSerialToMonth(v); // 序列号区间则还原日期；否则无法识别
+  }
   var s = String(v).trim();
+  // 纯数字文本（如 "46266"）：同样先按序列号识别；不在区间（如只填了年份 "2026"）则无法确定月份，返回 null
+  var sn = s.match(/^(\d{4,6})$/);
+  if (sn) {
+    if (parseInt(sn[1], 10) >= 1 && parseInt(sn[1], 10) <= 12) return '2026-' + String(parseInt(sn[1], 10)).padStart(2, '0');
+    return excelSerialToMonth(parseInt(sn[1], 10));
+  }
   var m = s.match(/(\d{4})[\.\-年]?\s*(\d{1,2})\s*月?/);
   if (m) { var yy = parseInt(m[1], 10), mm = parseInt(m[2], 10); if (mm >= 1 && mm <= 12) return yy + '-' + String(mm).padStart(2, '0'); }
-  var m2 = s.match(/(\d{1,2})\s*月?/);
+  var m2 = s.match(/^(\d{1,2})\s*月?$/);
   if (m2) { var mm2 = parseInt(m2[1], 10); if (mm2 >= 1 && mm2 <= 12) return '2026-' + String(mm2).padStart(2, '0'); }
   return null;
 }
@@ -9077,7 +9142,7 @@ function switchDmMonth() {
 function dmAddNewMonth() {
   var v = $('dmNewMonthInput').value;
   var m = parseMonthCell(v);
-  if (!m) { alert('月份格式不正确，示例：2026-08'); return; }
+  if (!m) { alert('月份格式不正确，示例：2026-09 或 2026年9月'); return; }
   var mm = parseInt(m.split('-')[1], 10);
   if (mm <= 4) { alert('3/4月为基础运营期，不纳入月度维护，请填写 5 月及以后'); return; }
   if (!WORKBENCH_DATA.monthly_data[m]) { WORKBENCH_DATA.monthly_data[m] = { regions: {}, people: [] }; auditLog('新建月份', m, '', '创建空月份'); touchMonth(m); }
