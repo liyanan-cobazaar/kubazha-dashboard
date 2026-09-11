@@ -132,6 +132,24 @@ table.sticky-head thead th{position:sticky;top:0;z-index:5;box-shadow:0 2px 0 #e
 .upms-caret{display:inline-block;width:0;height:0;border-left:6px solid #64748b;border-top:5px solid transparent;border-bottom:5px solid transparent;margin-right:7px;transition:transform .15s;vertical-align:middle}
 .upms-caret.open{transform:rotate(90deg)}
 .upms-num{text-align:center !important}
+/* ===== 用户列表「逐条新增/编辑」相关（2026-09-11 新增，仅管理员） ===== */
+.up-act-wrap{display:flex;flex-direction:column;gap:4px;align-items:stretch}
+.up-act-btn{background:#fff;border:1px solid #cbd5e1;border-radius:5px;font-size:11px;padding:2px 6px;cursor:pointer;color:#1a73e8;line-height:1.5;white-space:nowrap}
+.up-act-btn:hover{background:#eff6ff;border-color:#1a73e8}
+.up-act-btn.danger{color:#dc2626}
+.up-act-btn.danger:hover{background:#fef2f2;border-color:#dc2626}
+.up-edit-hint{font-size:11px;line-height:1.7;color:#475569;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:7px 10px;margin-bottom:12px}
+.up-edit-hint b{color:#1a73e8}
+.up-edit-sec{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:#1e293b;margin:16px 0 8px;padding-bottom:5px;border-bottom:1px dashed #e2e8f0}
+.up-edit-sec span{font-size:11px;font-weight:400;color:#94a3b8}
+.up-visit-row{display:grid;grid-template-columns:18px 132px 118px 1fr 24px;gap:7px;align-items:center;margin-bottom:7px}
+.up-visit-row input,.up-visit-row select{width:100%;padding:6px 8px;border:1px solid #cbd5e1;border-radius:6px;font-size:12px;box-sizing:border-box;font-family:inherit}
+.up-visit-idx{font-size:11px;color:#94a3b8;text-align:center}
+.up-visit-del{background:#fff;border:1px solid #fecaca;color:#dc2626;border-radius:5px;font-size:13px;line-height:1;padding:4px 0;cursor:pointer}
+.up-visit-del:hover{background:#fef2f2}
+.up-add-visit{background:#fff;border:1px dashed #93c5fd;color:#1a73e8;border-radius:6px;font-size:12px;padding:6px 12px;cursor:pointer;margin-top:2px}
+.up-add-visit:hover{background:#eff6ff}
+.up-warn{font-size:11px;color:#b45309;margin-top:4px}
 .rule-edit-zone[contenteditable="true"]{outline:2px dashed #1a73e8;outline-offset:6px;border-radius:4px}
 .rule-edit-zone[contenteditable="true"] td,.rule-edit-zone[contenteditable="true"] th{outline:1px dotted #bcd0f0;outline-offset:-1px}
 .rule-section ol,.rule-section ul{margin-left:16px}
@@ -261,6 +279,7 @@ table.ruling-cmp tr.rc-total td.rc-num{font-size:13px;color:#1a73e8}
 .vp-type-tag{font-size:10px;background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 6px}
 .vp-badge-import{font-size:10px;background:#dcfce7;color:#15803d;padding:1px 6px;border-radius:8px}
 .vp-badge-demo{font-size:10px;background:#f1f5f9;color:#64748b;padding:1px 6px;border-radius:8px}
+.vp-badge-manual{font-size:10px;background:#e0e7ff;color:#4338ca;padding:1px 6px;border-radius:8px}
 .vp-who{font-size:11px;color:#64748b;margin-left:auto}
 .vp-body{font-size:12px;color:#334155;margin-top:6px;line-height:1.6}
 .vp-body .vp-date{color:#1a73e8;font-weight:700;margin-right:6px}
@@ -1055,10 +1074,11 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
           </select>
           <span style="font-size:11px;color:#888">共 <strong id="upTotalCount">0</strong> 名用户<span id="upFilterHint"></span></span>
           <button onclick="downloadModuleTemplate('userpool')" style="margin-left:auto;padding:6px 14px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600">📄 模板</button>
+          <button id="upAddUserBtn" onclick="openUserPoolEditModal(null)" title="按用户池模板同一套字段，逐条录入一条用户档案与走访记录（Excel 批量导入的单条版）。仅管理员可用。" style="padding:6px 14px;background:#fff;color:#1a73e8;border:1px solid #1a73e8;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600">➕ 单条新增</button>
           <button onclick="document.getElementById('upFileInput').click()" style="padding:6px 14px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-size:12px;cursor:pointer;font-weight:600">📥 导入</button>
           <input type="file" id="upFileInput" accept=".xlsx,.xls" style="display:none" onchange="handleModuleImportFile('userpool', this)">
         </div>
-        <table class="sticky-head"><colgroup><col style="width:8%"><col style="width:8%"><col style="width:12%"><col style="width:11%"><col style="width:8%"><col style="width:13%"><col style="width:8%"><col style="width:13%"><col style="width:7%"><col style="width:7%"><col style="width:5%"></colgroup><thead><tr><th>采购用户</th><th>等级(S/A/B/C)</th><th>学校/学院</th><th>实验室/课题组</th><th>首次建档</th><th>用户基本信息</th><th>最近触达</th><th>走访内容</th><th>走访类型</th><th>下单金额(万)</th><th>走访人</th></tr></thead><tbody id="upUserTable"></tbody></table>
+        <table class="sticky-head" id="upUserTableEl"><colgroup id="upUserCols"></colgroup><thead id="upUserHead"></thead><tbody id="upUserTable"></tbody></table>
       </div>
 
       <!-- Tab2: 等级分布分析 -->
@@ -1828,12 +1848,59 @@ function mergeRuleStore(local, cloud) {
 }
 // ===== 多模块云端共享（复用主观分模式：GET 静态+API，本地优先合并，PUT 乐观合并） =====
 // 让 用户池/营销活动/校园行/月度数据 在不同设备、不同人之间看到同一份、改动即同步（等同共享文档）。
+
+// --- 用户池「软删除墓碑」机制（2026-09-11 新增）---
+// 为什么需要：用户池云端合并原先是「按键取并集」（mergeArraysByKey），
+//   一旦有删除动作，云端还留着的旧记录会被并集拉回来 → 删了等于没删。
+// 做法：删除时不真删云端，而是留一条同键的墓碑记录 {_deleted:true,_ts:删除时刻}；
+//   每条档案带 _ts（最后修改时刻），合并时「同键取 _ts 大者」，墓碑胜出则该键整体作废（不进入列表）。
+//   这样既能让删除跨设备生效，又能支持「删掉后重新导入/新增」把它救回来（新记录 _ts 更大）。
+//   UP_TOMB 只在本文件内部流转，USER_POOL_CRM 看到的永远是不含墓碑的干净数据。
+var UP_TOMB = [];
+var UP_TOMB_MAX = 500;
+function upRecordKey(r) { return (r && r.name || '') + '|' + (r && r.school || '') + '|' + (r && r.college || ''); }
+function upRecordStamp(r) { var t = Number((r && (r._ts || r._deletedAt)) || 0); return isNaN(t) ? 0 : t; }
+function pruneUpTombstones(list) {
+  var byKey = {};
+  (list || []).forEach(function (t) { if (!t || !t._deleted) return; var k = upRecordKey(t); if (!k || k === '||') return; if (!byKey[k] || upRecordStamp(t) > upRecordStamp(byKey[k])) byKey[k] = t; });
+  return Object.keys(byKey).map(function (k) { return byKey[k]; })
+    .sort(function (a, b) { return upRecordStamp(b) - upRecordStamp(a); }).slice(0, UP_TOMB_MAX);
+}
+// 新增/导入某条档案后，清掉它对应的墓碑（否则云端合并时墓碑更“新”会把这条又抹掉）
+function upClearTombstones(records) {
+  if (!UP_TOMB.length) return;
+  var keys = {};
+  (records || []).forEach(function (r) { var k = upRecordKey(r); if (k) keys[k] = 1; });
+  UP_TOMB = UP_TOMB.filter(function (t) { return !keys[upRecordKey(t)]; });
+}
+// 用户池专用合并：同键取 _ts 新者胜（并列时保留先来的=云端），输出含墓碑，由 set() 再拆开
+function mergeUserPool(local, cloud) {
+  var map = {}, order = [];
+  function add(r) {
+    if (!r) return;
+    var k = upRecordKey(r);
+    if (!k || k === '||') return;
+    if (map[k] === undefined) { map[k] = r; order.push(k); return; }
+    if (upRecordStamp(r) > upRecordStamp(map[k])) map[k] = r;
+  }
+  (cloud || []).forEach(add);
+  (local || []).forEach(add);
+  return order.map(function (k) { return map[k]; });
+}
+
 var MODULE_SYNC = {
   userpool: {
     file: 'userpool_crm.json',
     lsKey: 'wb_userpool_crm_v1',
-    get: function () { return USER_POOL_CRM; },
-    set: function (v) { USER_POOL_CRM.length = 0; (v || []).forEach(function (x) { USER_POOL_CRM.push(normalizeUserPoolRecord(x)); }); },
+    mergeFn: mergeUserPool, // 同键 _ts 新者胜 + 墓碑生效（支持删除跨设备同步）
+    get: function () { return USER_POOL_CRM.concat(UP_TOMB); }, // 墓碑随本模块一起上云/落本地，才能跨设备生效
+    set: function (v) {
+      var live = [], tomb = [];
+      (v || []).forEach(function (x) { if (!x) return; if (x._deleted) tomb.push(x); else live.push(normalizeUserPoolRecord(x)); });
+      USER_POOL_CRM.length = 0;
+      live.forEach(function (x) { USER_POOL_CRM.push(x); });
+      UP_TOMB = pruneUpTombstones(tomb);
+    },
     // 2026-09-10 用户确认：同一采购人在同校不同学院算不同用户 → 去重键加「学院」
     keyOf: function (r) { return (r.name || '') + '|' + (r.school || '') + '|' + (r.college || ''); }
   },
@@ -1992,7 +2059,11 @@ function applyModuleCloud(modKey, cloudVal) {
   if (typeof currentModule !== 'undefined') {
     if (modKey === 'monthly' && typeof renderMonthBtns === 'function') renderMonthBtns();
     if (modKey === 'monthly' && typeof currentModule !== 'undefined' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') updatePerformanceContent(); // 月度数据云端合并后（如拼接名自愈）即时刷新绩效页
-    if (modKey === 'userpool' && currentModule === 'modUserPool' && typeof renderUpSchoolList === 'function') renderUpSchoolList();
+    if (modKey === 'userpool' && currentModule === 'modUserPool' && typeof renderUpSubTab === 'function') {
+      // 云端合并后联动：筛选下拉（可能新增走访人/建档月份）+ 当前页签（用户列表/走访记录/月度动态等）
+      try { fillUserPoolFilterOptions(); } catch (e) {}
+      try { renderUpSubTab(); } catch (e) {}
+    }
     if (modKey === 'marketing' && currentModule === 'modMarketing' && typeof renderMarketing === 'function') renderMarketing();
     if (modKey === 'campus' && currentModule === 'modCampus' && typeof renderCampus === 'function') renderCampus();
     if (modKey === 'perfconfirm' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') updatePerformanceContent();
@@ -5380,12 +5451,16 @@ function fillUserPoolFilterOptions() {
   var poolSchools = {};
   USER_POOL_CRM.forEach(function(u){ if (u.school && inSchoolScope(u.school)) { schoolOpts[u.school] = 1; poolSchools[u.school] = 1; } });
   var schoolNames = Object.keys(schoolOpts).sort();
+  // 重建选项时保留用户已选中的学校（新增/编辑档案后刷新下拉，不该把筛选条件冲掉）
+  var prevSchool = ss.value, prevVisitSchool = vsf.value;
   ss.innerHTML = "<option value='all'>全部学校</option>";
   vsf.innerHTML = "<option value='all'>全部学校</option>";
   schoolNames.forEach(function(n){
     ss.innerHTML += "<option value='"+n+"'>"+n+"</option>";
     vsf.innerHTML += "<option value='"+n+"'>"+n+"</option>";
   });
+  if (prevSchool && prevSchool !== 'all' && schoolOpts[prevSchool]) ss.value = prevSchool;
+  if (prevVisitSchool && prevVisitSchool !== 'all' && schoolOpts[prevVisitSchool]) vsf.value = prevVisitSchool;
   // 走访人筛选（按范围内的走访记录，含用户池导入的负责人）
   var vpf = $("visitPersonFilter");
   var vpSet = {};
@@ -5593,22 +5668,43 @@ function renderUpSchoolList() {
   var renderArr = anyFilter ? filtered : filtered.slice(0, MAX_RENDER);
   var hint = $("upFilterHint");
   if(hint){
+    var hintHtml = '';
     if(!anyFilter && filtered.length > MAX_RENDER){
-      hint.innerHTML = '<span style="color:#b45309">（数据较多，默认显示前 '+MAX_RENDER+' 条，请用上方筛选缩窄范围）</span>';
-    } else {
-      hint.innerHTML = '';
+      hintHtml = '<span style="color:#b45309">（数据较多，默认显示前 '+MAX_RENDER+' 条，请用上方筛选缩窄范围）</span>';
     }
+    // 新增/删除后的即时回执：明确告诉用户“保存成功/列表里在哪”，避免“保存了却看不到”
+    if (upSavedNotice) hintHtml += (hintHtml ? ' ' : '') + '<span style="color:#15803d;font-weight:600">' + upSavedNotice + '</span>';
+    hint.innerHTML = hintHtml;
   }
+
+  // 表头/列宽按角色动态生成：管理员多出「操作」列（编辑/删除）；非管理员不生成该列，避免留下空列
+  var adm = isAdmin();
+  var HEAD = ['采购用户','等级(S/A/B/C)','学校/学院','实验室/课题组','首次建档','用户基本信息','最近触达','走访内容','走访类型','下单金额(万)','走访人'];
+  var WID  = [8,7,12,10,8,12,8,12,7,7,9];
+  if (adm) { HEAD.push('操作'); WID = [8,6,11,10,8,11,8,11,7,7,7,6]; }
+  $("upUserCols").innerHTML = WID.map(function(w){ return '<col style="width:'+w+'%">'; }).join('');
+  $("upUserHead").innerHTML = '<tr>' + HEAD.map(function(h){ return '<th>'+h+'</th>'; }).join('') + '</tr>';
+  var COLS = HEAD.length;
+  var addBtn = $("upAddUserBtn");
+  if (addBtn) addBtn.style.display = adm ? '' : 'none';
 
   var tbody = "";
   renderArr.forEach(function(u){
     var lc = u.level==="S"?"#ef4444":(u.level==="A"?"#f59e0b":(u.level==="B"?"#3b82f6":"#6b7280"));
-    tbody += "<tr><td><strong>"+u.name+"</strong></td><td style='white-space:nowrap'><span style='color:"+lc+";font-weight:700'>● "+u.level+"</span></td><td>"+u.school+"<br><span style='font-size:10px;color:#888'>"+u.college+"</span></td><td style='font-size:11px'>"+u.lab+"</td><td style='white-space:nowrap'>"+formatDateCell(u.addDate)+"</td><td style='font-size:11px;white-space:normal;line-height:1.5'>"+(u.basicInfo||'')+"</td><td style='white-space:nowrap'>"+(formatDateCell(u.lastTouch)||'<span style="color:#bbb">—</span>')+"</td><td style='font-size:11px;white-space:normal;line-height:1.5'>"+(u.visitContent||'')+"</td><td style='white-space:nowrap'>"+(u.visitType?("<span style='background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 7px;font-size:11px'>"+u.visitType+"</span>"):'')+"</td><td style='white-space:nowrap;text-align:right'>¥"+u.order.toFixed(1)+"</td><td style='white-space:nowrap'>"+(u.leader||'')+(u.contact?"<br><span style='font-size:10px;color:#888'>"+u.contact+"</span>":"")+"</td></tr>";
+    var opCell = '';
+    if (adm) {
+      var idx = USER_POOL_CRM.indexOf(u); // 用对象引用反查真实下标，避免排序/筛选后错位
+      opCell = "<td style='text-align:center'><span class='up-act-wrap'>"
+        + "<button class='up-act-btn' onclick='openUserPoolEditModal("+idx+")' title='编辑该档案（可改字段、增删回访记录）'>编辑</button>"
+        + "<button class='up-act-btn danger' onclick='deleteUserPoolRecord("+idx+")' title='删除该档案（同步删除其走访记录，并联动月度动态/绩效口径）'>删除</button>"
+        + "</span></td>";
+    }
+    tbody += "<tr><td><strong>"+(u.name||'')+"</strong></td><td style='white-space:nowrap'><span style='color:"+lc+";font-weight:700'>● "+(u.level||'—')+"</span></td><td>"+(u.school||'')+"<br><span style='font-size:10px;color:#888'>"+(u.college||'')+"</span></td><td style='font-size:11px'>"+(u.lab||'')+"</td><td style='white-space:nowrap'>"+formatDateCell(u.addDate)+"</td><td style='font-size:11px;white-space:normal;line-height:1.5'>"+(u.basicInfo||'')+"</td><td style='white-space:nowrap'>"+(formatDateCell(u.lastTouch)||'<span style="color:#bbb">—</span>')+"</td><td style='font-size:11px;white-space:normal;line-height:1.5'>"+(u.visitContent||'')+"</td><td style='white-space:nowrap'>"+(u.visitType?("<span style='background:#eef2ff;color:#3730a3;border-radius:4px;padding:1px 7px;font-size:11px'>"+u.visitType+"</span>"):'')+"</td><td class='upms-num' style='white-space:nowrap'>¥"+(Number(u.order)||0).toFixed(1)+"</td><td style='white-space:nowrap'>"+(u.leader||'')+(u.contact?"<br><span style='font-size:10px;color:#888'>"+u.contact+"</span>":"")+"</td>"+opCell+"</tr>";
   });
   if(!renderArr.length){
-    tbody = "<tr><td colspan='11' style='text-align:center;color:#999;padding:20px'>暂无数据</td></tr>";
+    tbody = "<tr><td colspan='"+COLS+"' style='text-align:center;color:#999;padding:20px'>暂无数据</td></tr>";
   } else if(!anyFilter && filtered.length > MAX_RENDER){
-    tbody += "<tr><td colspan='11' style='text-align:center;color:#b45309;font-size:11px;padding:8px;background:#fff7ed'>共 "+filtered.length+" 条记录，当前仅显示前 "+MAX_RENDER+" 条。请用上方任一筛选缩窄范围。</td></tr>";
+    tbody += "<tr><td colspan='"+COLS+"' style='text-align:center;color:#b45309;font-size:11px;padding:8px;background:#fff7ed'>共 "+filtered.length+" 条记录，当前仅显示前 "+MAX_RENDER+" 条。请用上方任一筛选缩窄范围。</td></tr>";
   }
   $("upUserTable").innerHTML = tbody;
 
@@ -5623,6 +5719,339 @@ function renderUpSchoolList() {
     clearTimeout(nameInput._debounced);
     nameInput._debounced = setTimeout(renderUpSchoolList, 200);
   };
+}
+
+// ==================== 用户列表「逐条新增 / 编辑 / 删除」（2026-09-11 新增，仅管理员） ====================
+// 设计要点：单条录入的字段与「用户池CRM模板」完全一致，且直接复用导入用的 build() 逻辑
+//   （表单值 → 拼成一行「模板行」→ moduleColMap + build），所以解析/日期规范化/回访组规则与批量导入
+//   完全同源，不会出现「导入对、手填错」的口径漂移（相当于批量导入的单条版）。
+// 联动：任何增删改都会重算【学校用户列表 / 等级分析 / S级重点关注 / 走访记录时间线 / 月度用户池动态】
+//   与绩效「用户池」自动统计口径，并推送云端 + 写入操作留痕。
+var UP_VISIT_TYPES = ['首次拜访','常规走访','深度回访','问题处理','需求发掘','新品推介','售后跟进','其他'];
+var UP_USER_ROLES = ['PI/课题组负责人','采购老师','实验员','采购秘书','研究生','其他'];
+var upEditIdx = null;      // 正在编辑的记录在 USER_POOL_CRM 中的下标；null = 新增
+var upSavedNotice = '';    // 新增/删除后的提示（渲染列表时显示，避免「保存了却看不到」）
+var upSavedNoticeTimer = null;
+function upShowNotice(html) {
+  upSavedNotice = html;
+  // 立刻把提示刷进列表（删除路径的调用时序在重渲之后，这里补一次）
+  try { if ($('upFilterHint')) renderUpSchoolList(); } catch (e) {}
+  if (upSavedNoticeTimer) clearTimeout(upSavedNoticeTimer);
+  upSavedNoticeTimer = setTimeout(function () {
+    upSavedNotice = '';
+    try { if ($('upUserTable')) renderUpSchoolList(); } catch (e) {}
+  }, 15000);
+}
+function upRecLabel(r) { return (r.name || '') + '（' + (r.school || '') + (r.college ? ' / ' + r.college : '') + '）'; }
+// 下单金额按模板口径填「元」，实时换算成列表里显示的「万元」，避免用户填错单位
+function upOrderHint() {
+  var el = $('upfOrderHint'); if (!el) return;
+  var raw = ($('upfOrder') ? $('upfOrder').value : '').trim();
+  if (!raw) { el.textContent = '按模板口径填「元」，可写 150000 或 15w / 15万。'; el.style.color = '#94a3b8'; return; }
+  var y = numYuan(raw);
+  if (!y) { el.textContent = '⚠️ 没识别到金额，请填数字，例如 150000 或 15w。'; el.style.color = '#b45309'; return; }
+  el.textContent = '= ' + (y / 10000).toFixed(2) + ' 万元（列表「下单金额(万)」按此显示）';
+  el.style.color = '#1a73e8';
+}
+
+// 走访人候选 = 月度数据里的运营人员 ∪ 用户池里已有的走访人（防止打错名字导致绩效归不到人）
+function upLeaderCandidates() {
+  var set = {};
+  Object.keys(WORKBENCH_DATA.monthly_data || {}).forEach(function (m) {
+    (((WORKBENCH_DATA.monthly_data[m] || {}).people) || []).forEach(function (p) {
+      if (p && !p._synthetic && p.name) set[String(p.name).trim()] = 1;
+    });
+  });
+  (USER_POOL_CRM || []).forEach(function (u) { if (u && u.leader) set[String(u.leader).trim()] = 1; });
+  return Object.keys(set).filter(Boolean).sort();
+}
+function upIsKnownPerson(name) {
+  var key = userPoolStatsKey(name);
+  if (!key) return false;
+  var found = false;
+  Object.keys(WORKBENCH_DATA.monthly_data || {}).forEach(function (m) {
+    ((((WORKBENCH_DATA.monthly_data[m] || {}).people) || [])).forEach(function (p) {
+      if (p && p.name && userPoolStatsKey(p.name) === key) found = true;
+    });
+  });
+  return found;
+}
+function upCheckLeader() {
+  var el = $('upfLeaderWarn'); if (!el) return;
+  var v = ($('upfLeader') ? $('upfLeader').value : '').trim();
+  if (v && !upIsKnownPerson(v)) {
+    el.style.display = '';
+    el.textContent = '⚠️「' + v + '」不在运营人员名单里：月度用户池动态能统计到，但绩效可能归不到人，请核对姓名或从候选里选。';
+  } else { el.style.display = 'none'; }
+}
+// 下拉通用填充：cur 值不在候选里时补一个选项，避免编辑老数据时把值弄丢
+function fillUpSelect(id, options, cur) {
+  var el = $(id); if (!el) return;
+  cur = String(cur == null ? '' : cur).trim();
+  var opts = (options || []).slice();
+  if (cur && opts.indexOf(cur) < 0) opts.push(cur);
+  el.innerHTML = '<option value="">（未填）</option>' + opts.map(function (o) {
+    return '<option value="' + escHtml(o) + '">' + escHtml(o) + '</option>';
+  }).join('');
+  el.value = cur;
+}
+function upSchoolOptions(rec) {
+  var names = scopeSchools(SCHOOL_PROFILES).map(function (s) { return s.name; }).filter(Boolean).sort();
+  var cur = rec && rec.school ? String(rec.school).trim() : '';
+  if (cur && names.indexOf(cur) < 0) names.push(cur); // 老数据里的非标准校名保留，避免一编辑就被改掉
+  return names;
+}
+
+// ---- 弹窗开关 ----
+function openUserPoolEditModal(idx) {
+  if (!isAdmin()) { alert('仅管理员可逐条新增/编辑用户档案'); return; }
+  var isEdit = (idx !== null && idx !== undefined);
+  var rec = isEdit ? USER_POOL_CRM[idx] : null;
+  if (isEdit && !rec) { alert('记录不存在，请刷新后重试'); return; }
+  upEditIdx = isEdit ? idx : null;
+
+  $('upEditTitle').textContent = isEdit ? '✎ 编辑用户档案' : '➕ 单条新增（用户档案 + 走访记录）';
+  $('upEditSaveBtn').textContent = isEdit ? '保存修改' : '保存新增';
+  $('upEditHint').innerHTML = isEdit
+    ? '正在编辑：<b>' + escHtml(upRecLabel(rec)) + '</b><br>字段与「用户池CRM模板」一致。改动会同时影响 <b>走访记录时间线</b>、<b>月度用户池动态</b> 与 <b>绩效「用户池」指标</b>。'
+    : '字段与「用户池CRM模板」完全一致，等于批量导入的单条版。保存后会同时出现在 <b>学校用户列表</b>、<b>走访记录时间线</b>，并计入 <b>月度用户池动态</b>。<br>必填：采购用户、学校。';
+
+  fillUpSelect('upfLevel', ['S', 'A', 'B', 'C'], rec ? rec.level : '');
+  fillUpSelect('upfSchool', upSchoolOptions(rec), rec ? rec.school : '');
+  fillUpSelect('upfUserRole', UP_USER_ROLES, rec ? rec.userRole : '');
+  fillUpSelect('upfVisitType', UP_VISIT_TYPES, rec ? rec.visitType : '');
+  $('upfName').value = rec ? (rec.name || '') : '';
+  $('upfCollege').value = rec ? (rec.college || '') : '';
+  $('upfLab').value = rec ? (rec.lab || '') : '';
+  $('upfContact').value = rec ? (rec.contact || '') : '';
+  $('upfAddDate').value = (rec && /^\d{4}-\d{2}-\d{2}$/.test(rec.addDate || '')) ? rec.addDate : '';
+  $('upfOrder').value = rec ? (function () { var o = Number(rec.order); return isNaN(o) ? '' : String(Math.round(o * 10000)); })() : '';
+  upOrderHint();
+  $('upfLeader').value = rec ? (rec.leader || '') : '';
+  $('upfBasicInfo').value = rec ? (rec.basicInfo || '') : '';
+  $('upfVisitContent').value = rec ? (rec.visitContent || '') : '';
+  upRenderVisitRows(rec && rec.visits ? rec.visits : []);
+
+  $('upLeaderList').innerHTML = upLeaderCandidates().map(function (n) {
+    return '<option value="' + escHtml(n) + '"></option>';
+  }).join('');
+  upCheckLeader();
+  $('upEditModal').classList.add('active');
+  setTimeout(function () { try { $('upfName').focus(); } catch (e) {} }, 60);
+  if (!window._upEscBound) {
+    window._upEscBound = true;
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Escape') return;
+      var m = $('upEditModal');
+      if (m && m.classList.contains('active')) { ev.preventDefault(); closeUpEditModal(); }
+    });
+  }
+}
+function closeUpEditModal() {
+  var m = $('upEditModal'); if (m) m.classList.remove('active');
+  upEditIdx = null;
+}
+
+// ---- 回访记录组 ----
+function upRenumberVisits() {
+  var rows = $('upVisitRows').querySelectorAll('.up-visit-row');
+  Array.prototype.forEach.call(rows, function (r, i) { r.querySelector('.up-visit-idx').textContent = (i + 1); });
+}
+function addUpVisitRow(v) {
+  v = v || {};
+  var row = document.createElement('div');
+  row.className = 'up-visit-row';
+  var idx = document.createElement('span'); idx.className = 'up-visit-idx'; idx.textContent = '1';
+  var d = document.createElement('input'); d.type = 'date'; d.className = 'up-v-date'; d.value = (v.date && /^\d{4}-\d{2}-\d{2}$/.test(v.date)) ? v.date : '';
+  var t = document.createElement('select'); t.className = 'up-v-type';
+  t.innerHTML = '<option value="">类型…</option>' + UP_VISIT_TYPES.map(function (x) {
+    return '<option value="' + escHtml(x) + '">' + escHtml(x) + '</option>';
+  }).join('');
+  if (v.type) {
+    if (UP_VISIT_TYPES.indexOf(v.type) < 0) t.innerHTML += '<option value="' + escHtml(v.type) + '">' + escHtml(v.type) + '</option>';
+    t.value = v.type;
+  }
+  var c = document.createElement('input'); c.className = 'up-v-content'; c.placeholder = '回访内容（做了什么、聊了什么）'; c.value = v.content || '';
+  var del = document.createElement('button'); del.type = 'button'; del.className = 'up-visit-del'; del.textContent = '×'; del.title = '删除这一组';
+  del.onclick = function () { row.parentNode.removeChild(row); upRenumberVisits(); };
+  row.appendChild(idx); row.appendChild(d); row.appendChild(t); row.appendChild(c); row.appendChild(del);
+  $('upVisitRows').appendChild(row);
+  upRenumberVisits();
+}
+function upRenderVisitRows(list) {
+  var wrap = $('upVisitRows');
+  wrap.innerHTML = '';
+  ((list && list.length) ? list : [{}]).forEach(function (v) { addUpVisitRow(v); });
+}
+function upReadVisitRows() {
+  var out = [];
+  Array.prototype.forEach.call($('upVisitRows').querySelectorAll('.up-visit-row'), function (row) {
+    var v = {
+      date: (row.querySelector('.up-v-date').value || '').trim(),
+      type: (row.querySelector('.up-v-type').value || '').trim(),
+      content: (row.querySelector('.up-v-content').value || '').trim()
+    };
+    if (!v.date && !v.type && !v.content) return; // 整组全空 → 忽略
+    out.push(v);
+  });
+  return out;
+}
+
+// ---- 表单 → 记录（复用导入的 build，保证与批量导入同源）----
+function upFormToRecord(prevVisits) {
+  var sh = MODULE_TEMPLATES.userpool.sheets[0];
+  var headers = ['采购用户','等级(S/A/B/C)','学校','学院','实验室/课题组','联系方式','用户角色','首次建档','用户基本信息','走访内容','走访类型','下单金额(元)','走访人'];
+  var row = [
+    $('upfName').value.trim(), $('upfLevel').value, $('upfSchool').value,
+    $('upfCollege').value.trim(), $('upfLab').value.trim(), $('upfContact').value.trim(),
+    $('upfUserRole').value, $('upfAddDate').value, $('upfBasicInfo').value.trim(),
+    $('upfVisitContent').value.trim(), $('upfVisitType').value,
+    $('upfOrder').value.trim(), $('upfLeader').value.trim()
+  ];
+  upReadVisitRows().forEach(function (v, i) {
+    headers.push('回访时间' + (i + 1), '回访' + (i + 1) + '类型', '回访' + (i + 1) + '内容');
+    row.push(v.date, v.type, v.content);
+  });
+  var rec = sh.build(row, moduleColMap(headers, sh.aliases), headers);
+  // 回访来源标记：原有的保留原来源，新填的标 manual（走访记录页签据此显示「手动录入」）
+  var seen = {};
+  (prevVisits || []).forEach(function (pv) {
+    seen[(pv.date || '') + '|' + (pv.type || '') + '|' + (pv.content || '')] = pv.src || 'import';
+  });
+  (rec.visits || []).forEach(function (v) {
+    v.src = seen[(v.date || '') + '|' + (v.type || '') + '|' + (v.content || '')] || 'manual';
+  });
+  return rec;
+}
+function upSortVisits(list) {
+  list.sort(function (a, b) {
+    var da = a.date || '', db = b.date || '';
+    if (da === db) return 0;
+    if (!da) return -1;
+    if (!db) return 1;
+    return da < db ? -1 : 1;
+  });
+  return list;
+}
+// 逐字段对比，给操作留痕写「从什么值到什么值」
+function upDiffText(a, b) {
+  var fields = [['name','采购用户'],['level','等级'],['school','学校'],['college','学院'],['lab','实验室/课题组'],
+    ['contact','联系方式'],['userRole','用户角色'],['addDate','首次建档'],['order','下单金额(万)'],
+    ['leader','走访人'],['basicInfo','用户基本信息'],['visitType','走访类型'],['visitContent','走访内容']];
+  var out = [];
+  fields.forEach(function (f) {
+    var ov = a ? a[f[0]] : '', nv = b ? b[f[0]] : '';
+    if (f[0] === 'order') { ov = (Number(ov) || 0).toFixed(2); nv = (Number(nv) || 0).toFixed(2); }
+    ov = (ov === undefined || ov === null) ? '' : String(ov);
+    nv = (nv === undefined || nv === null) ? '' : String(nv);
+    if (ov !== nv) out.push(f[1] + '：' + (ov || '空') + ' → ' + (nv || '空'));
+  });
+  var ovs = (a && a.visits ? a.visits.length : 0), nvs = (b && b.visits ? b.visits.length : 0);
+  if (ovs !== nvs) out.push('回访组：' + ovs + ' → ' + nvs + ' 组');
+  return out.slice(0, 8).join('；');
+}
+// 这条记录是否会被当前筛选条件挡在列表外（保存后给提示，避免“保存了却看不到”）
+function upFilteredOut(rec) {
+  if (!inSchoolScope(rec.school)) return true;
+  if ($('upSchoolSelect').value !== 'all' && rec.school !== $('upSchoolSelect').value) return true;
+  if ($('upLevelFilter').value !== 'all' && rec.level !== $('upLevelFilter').value) return true;
+  if ($('upLeaderFilter').value !== 'all' && rec.leader !== $('upLeaderFilter').value) return true;
+  if ($('upAddMonthFilter').value !== 'all' && formatDateCell(rec.addDate).slice(0, 7) !== $('upAddMonthFilter').value) return true;
+  var q = ($('upNameSearch').value || '').trim().replace(/\s+/g, '').toLowerCase();
+  if (q) {
+    var hay = ((rec.name || '') + ' ' + (rec.contact || '')).replace(/\s+/g, '').toLowerCase();
+    if (hay.indexOf(q) < 0) return true;
+  }
+  return false;
+}
+
+// ---- 保存（新增 / 编辑）----
+function submitUpEdit() {
+  if (!isAdmin()) { alert('仅管理员可操作'); return; }
+  var name = $('upfName').value.trim();
+  var school = $('upfSchool').value;
+  if (!name) { alert('请填写「采购用户」'); try { $('upfName').focus(); } catch (e) {} return; }
+  if (!school) { alert('请选择「学校」'); try { $('upfSchool').focus(); } catch (e) {} return; }
+  var addDate = $('upfAddDate').value;
+  if (addDate && !/^\d{4}-\d{2}-\d{2}$/.test(addDate)) { alert('「首次建档」格式应为 年-月-日'); return; }
+  var inc = upReadVisitRows().filter(function (v) { return !v.date || !v.type || !v.content; });
+  if (inc.length && !confirm('有 ' + inc.length + ' 组回访缺「时间 / 类型 / 内容」其中一项。\n它们不会计入用户池统计（完整回访要求三项齐全），也不会出现在走访记录时间线里。\n\n仍要保存吗？')) return;
+
+  var isEdit = (upEditIdx !== null);
+  var old = isEdit ? USER_POOL_CRM[upEditIdx] : null;
+  if (isEdit && !old) { alert('记录已变化，请刷新后重试'); return; }
+  var keyOf = MODULE_SYNC.userpool.keyOf;
+  var rec = upFormToRecord(old && old.visits ? old.visits : null);
+  var newKey = keyOf(rec);
+
+  if (isEdit) {
+    var oldKey = keyOf(old);
+    var clash = USER_POOL_CRM.filter(function (r, i) { return i !== upEditIdx && keyOf(r) === newKey; })[0];
+    if (clash) { alert('已存在另一条「同名 + 同校 + 同学院」的档案，不能保存成重复档案。\n请修改「采购用户 / 学校 / 学院」，或直接编辑那一条。'); return; }
+    rec.id = old.id || rec.id;
+    rec._ts = Date.now();
+    normalizeUserPoolRecord(rec);
+    USER_POOL_CRM[upEditIdx] = rec;
+    upClearTombstones([rec]);
+    auditLog('用户池编辑', '', newKey, '档案：' + upRecLabel(rec) + (oldKey !== newKey ? '（原键 ' + oldKey + '）' : '') + '；' + (upDiffText(old, rec) || '字段未变化'));
+  } else {
+    var dup = USER_POOL_CRM.filter(function (r) { return keyOf(r) === newKey; })[0];
+    if (dup) {
+      // 与批量导入同规则：已建档 → 只合并新回访，不重建档案
+      var newVs = rec.visits || [];
+      if (!newVs.length) {
+        alert('该采购用户（同校同学院）已建档。\n· 想改档案信息 → 请用列表里的「编辑」按钮\n· 只想补录一次回访 → 请在「回访记录」区填上时间和内容后重试');
+        return;
+      }
+      if (!confirm('该采购用户（同校同学院）已建档，现有 ' + ((dup.visits || []).length) + ' 组回访。\n是否把本次填写的 ' + newVs.length + ' 组回访合并进原档案？\n（原档案其余字段保持不变，与批量导入规则一致）')) return;
+      var seen = {};
+      (dup.visits = dup.visits || []).forEach(function (v) { seen[(v.date || '') + '|' + (v.type || '') + '|' + (v.content || '')] = 1; });
+      var added = 0;
+      newVs.forEach(function (v) {
+        var k = (v.date || '') + '|' + (v.type || '') + '|' + (v.content || '');
+        if (seen[k]) return;
+        seen[k] = 1; dup.visits.push(v); added++;
+      });
+      if (!added) { alert('本次填写的回访在原档案里已存在，没有需要合并的内容。'); return; }
+      upSortVisits(dup.visits);
+      var last = dup.visits[dup.visits.length - 1];
+      dup.lastTouch = last.date; dup.visitType = last.type; dup.visitContent = last.content;
+      dup._ts = Date.now();
+      upClearTombstones([dup]);
+      normalizeUserPoolRecord(dup);
+      auditLog('用户池合并回访', '', newKey, '档案：' + upRecLabel(dup) + '；合并新增回访 ' + added + ' 组');
+      upShowNotice('已为「' + escHtml(upRecLabel(dup)) + '」合并新增回访 ' + added + ' 组。');
+    } else {
+      rec._ts = Date.now();
+      normalizeUserPoolRecord(rec);
+      USER_POOL_CRM.push(rec);
+      upClearTombstones([rec]);
+      auditLog('用户池新增', '', newKey, '档案：' + upRecLabel(rec) + '；回访 ' + ((rec.visits || []).length) + ' 组；下单 ' + (Number(rec.order) || 0).toFixed(2) + ' 万');
+      upShowNotice('已新增「' + escHtml(upRecLabel(rec)) + '」' + (upFilteredOut(rec) ? '（当前筛选条件不匹配，清空筛选即可看到）' : '') + '。');
+    }
+  }
+  closeUpEditModal();
+  afterUserPoolChange();
+}
+
+// ---- 删除（软删除墓碑：同时让云端/其他设备一并删掉，且重新导入能救回来）----
+function deleteUserPoolRecord(idx) {
+  if (!isAdmin()) { alert('仅管理员可删除用户档案'); return; }
+  var rec = USER_POOL_CRM[idx];
+  if (!rec) { alert('记录不存在，请刷新后重试'); return; }
+  var vc = (rec.visits || []).length;
+  if (!confirm('确定删除这条用户档案吗？\n\n' + upRecLabel(rec)
+    + '\n回访记录：' + vc + ' 组　下单：¥' + (Number(rec.order) || 0).toFixed(1) + '万'
+    + '\n\n删除后同步影响：走访记录时间线、月度用户池动态（新增建档/回访计数）、绩效「用户池」指标。'
+    + '\n删除标记会随数据同步到云端与其他设备。')) return;
+  var key = MODULE_SYNC.userpool.keyOf(rec);
+  var label = upRecLabel(rec);
+  USER_POOL_CRM.splice(idx, 1);
+  addUpTombstone(rec);
+  auditLog('用户池删除', '', key, '删除档案：' + label + '；含回访 ' + vc + ' 组');
+  closeUpEditModal();
+  afterUserPoolChange();
+  upShowNotice('已删除「' + escHtml(label) + '」。');
 }
 
 // --- Tab2: 等级分析 ---
@@ -5726,7 +6155,8 @@ function getVisitRecords() {
           users: 0,
           content: vs.content || '',
           name: u.name || '',
-          fromPool: true
+          fromPool: true,
+          manual: vs.src === 'manual' // 该组回访是管理员在用户列表里逐条录入的（区别于 Excel 导入）
         });
       });
       return;
@@ -5861,7 +6291,7 @@ function renderUpVisits() {
     recs.forEach(function(v){
       var card = document.createElement("div");
       card.className = "vp-card";
-      var badge = v.fromPool ? '<span class="vp-badge-import">导入</span>' : '<span class="vp-badge-demo">示例</span>';
+      var badge = v.manual ? '<span class="vp-badge-manual">手动录入</span>' : (v.fromPool ? '<span class="vp-badge-import">导入</span>' : '<span class="vp-badge-demo">示例</span>');
       var key = (v.name||'')+'|'+(v.school||'');
       var hist = histIdx[key] || [v];
       // 历史时间轴：该客户全部走访从旧到新；多于 1 条提供「历史走访记录」按钮展开，仅 1 条提示首次走访
@@ -6122,8 +6552,9 @@ function loadCampusEvents() {
 }
 
 // 用户池CRM持久化
+// 注意：本地缓存写的是「档案 + 墓碑」的合集（与云端同格式），否则本机的删除标记会被下一次保存抹掉
 function saveUserPool() {
-  try { localStorage.setItem('wb_userpool_crm_v1', JSON.stringify(USER_POOL_CRM)); }
+  try { localStorage.setItem('wb_userpool_crm_v1', JSON.stringify(USER_POOL_CRM.concat(UP_TOMB))); }
   catch (e) { console.warn('save user pool failed', e); }
   flushModulePush('userpool');
 }
@@ -6134,16 +6565,39 @@ function loadUserPool() {
     var arr = JSON.parse(raw);
     if (!Array.isArray(arr)) return;
     USER_POOL_CRM.length = 0;
-    var changed = false;
+    var tomb = [], changed = false;
     arr.forEach(function(u) {
+      if (!u) return;
+      if (u._deleted) { tomb.push(u); return; } // 墓碑不进列表，单独收着
       var before = JSON.stringify({ addDate: u.addDate, lastTouch: u.lastTouch, visits: u.visits });
       normalizeUserPoolRecord(u);
       var after = JSON.stringify({ addDate: u.addDate, lastTouch: u.lastTouch, visits: u.visits });
       if (before !== after) changed = true;
       USER_POOL_CRM.push(u);
     });
+    UP_TOMB = pruneUpTombstones(tomb);
     if (changed) saveUserPool();
   } catch (e) { console.warn('load user pool failed', e); }
+}
+
+// 用户池档案改动后的统一联动（新增/编辑/删除共用）：
+// ①绩效「用户池」自动口径重算（下钻到区域汇总/全月合计） ②筛选下拉刷新 ③用户池各页签重绘
+// ④若绩效页正开着，顺手刷新（用户池数变了） ⑤落本地并推云端
+// 波及范围：学校用户列表 / 等级分析 / S级重点关注 / 走访记录时间线 / 月度用户池动态 / 绩效用户池指标
+function afterUserPoolChange() {
+  try { refreshUserPoolAuto(); } catch (e) {}
+  try { fillUserPoolFilterOptions(); } catch (e) {}
+  try { renderUpSubTab(); } catch (e) {}
+  try { if (typeof currentModule !== 'undefined' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') updatePerformanceContent(); } catch (e) {}
+  saveUserPool();
+}
+// 记一条墓碑（删除档案时调用），并把同键旧墓碑替换掉
+function addUpTombstone(rec) {
+  var k = upRecordKey(rec);
+  if (!k || k === '||') return;
+  UP_TOMB = UP_TOMB.filter(function (t) { return upRecordKey(t) !== k; });
+  UP_TOMB.push({ name: rec.name || '', school: rec.school || '', college: rec.college || '', _deleted: true, _ts: Date.now() });
+  UP_TOMB = pruneUpTombstones(UP_TOMB);
 }
 
 // 部门协助持久化
@@ -6364,11 +6818,14 @@ var MODULE_TEMPLATES = {
       keyOf: function(p){ return (p.name||'')+'|'+(p.school||'')+'|'+(p.college||''); } // 2026-09-10：去重键加「学院」（同校不同学院=不同用户）
     }],
     afterAppend: function(items){
-      items.forEach(function(u){ normalizeUserPoolRecord(u); USER_POOL_CRM.push(u); });
-      saveUserPool();
-      refreshUserPoolAuto(); // 导入即更新：绩效「用户池」自动统计值随新数据刷新
-      fillUserPoolFilterOptions();
-      renderUpSubTab();
+      var now = Date.now();
+      items.forEach(function(u){
+        normalizeUserPoolRecord(u);
+        u._ts = now; // 打「最后修改时刻」：云端合并靠它判断这条比墓碑/旧版本更新（详见 mergeUserPool 注释）
+        USER_POOL_CRM.push(u);
+      });
+      upClearTombstones(items); // 重新导入同一采购人 = 明确要恢复它，清掉旧墓碑，别被云端合并又抹掉
+      afterUserPoolChange();    // 导入即联动：绩效「用户池」自动统计 / 筛选下拉 / 各页签
     }
   }
 };
@@ -6773,6 +7230,7 @@ function mergeUserPoolVisitGroups() {
       ex.visitType = last.type;
       ex.visitContent = last.content;
     }
+    ex._ts = Date.now(); // 该档案本次被改（新增了回访）→ 打时间戳，保证云端合并时不会被别的设备旧版覆盖
     mergedUsers++;
   });
   return { users: mergedUsers, visits: mergedVisits };
@@ -6787,7 +7245,7 @@ function confirmModuleImport() {
   tpl.afterAppend(newItems);
   // 新增记录先落库，再对已存在用户执行回访合并（合并依赖 afterAppend 已写入的 USER_POOL_CRM）
   var mg = mergeUserPoolVisitGroups();
-  if (mg.users > 0) { saveUserPool(); fillUserPoolFilterOptions(); renderUpSubTab(); }
+  if (mg.users > 0) { afterUserPoolChange(); } // 合并回访后同样联动（绩效口径/筛选/页签）并推云端
   closeModuleImportModal();
   var msg = '导入完成：新增 '+newItems.length+' 条';
   if (mg.users > 0) msg += '；为 '+mg.users+' 位已存在用户合并新增回访 '+mg.visits+' 次';
@@ -10678,6 +11136,94 @@ function initTaskDispatch() {
     <div class="mkt-modal-footer">
       <button class="mkt-btn-secondary" onclick="closeChangePwd()">取消</button>
       <button class="mkt-btn-primary" onclick="saveChangePwd()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 用户池：单条新增 / 编辑 弹窗（2026-09-11 新增，仅管理员）===== -->
+<!-- 字段与「用户池CRM模板」完全一致；保存时复用批量导入的 build() 解析，保证与导入同源 -->
+<div id="upEditModal" class="mkt-modal-overlay" onclick="if(event.target===this)closeUpEditModal()">
+  <div class="mkt-modal" style="width:780px;max-width:94vw">
+    <div class="mkt-modal-header">
+      <h3 id="upEditTitle" style="margin:0;font-size:16px;color:#1a73e8">➕ 单条新增（用户档案 + 走访记录）</h3>
+      <button class="btn-minor" style="border:none;background:none;font-size:20px;line-height:1;cursor:pointer;color:#94a3b8" onclick="closeUpEditModal()" title="关闭">×</button>
+    </div>
+    <div class="mkt-modal-body">
+      <div id="upEditHint" class="up-edit-hint"></div>
+
+      <div class="up-edit-sec">👤 用户档案 <span>字段与用户池CRM模板一致；带 * 为必填</span></div>
+      <div class="mkt-form-grid">
+        <div class="mkt-form-row">
+          <label>采购用户 *</label>
+          <input type="text" id="upfName" placeholder="如：张教授" autocomplete="off">
+        </div>
+        <div class="mkt-form-row">
+          <label>等级（S / A / B / C）</label>
+          <select id="upfLevel"></select>
+        </div>
+        <div class="mkt-form-row">
+          <label>学校 *</label>
+          <select id="upfSchool"></select>
+        </div>
+        <div class="mkt-form-row">
+          <label>学院</label>
+          <input type="text" id="upfCollege" placeholder="如：基础医学院" autocomplete="off">
+        </div>
+        <div class="mkt-form-row">
+          <label>实验室 / 课题组</label>
+          <input type="text" id="upfLab" placeholder="如：XX课题组" autocomplete="off">
+        </div>
+        <div class="mkt-form-row">
+          <label>联系方式</label>
+          <input type="text" id="upfContact" placeholder="如：138****8888（微信同号）" autocomplete="off">
+        </div>
+        <div class="mkt-form-row">
+          <label>用户角色</label>
+          <select id="upfUserRole"></select>
+        </div>
+        <div class="mkt-form-row">
+          <label>首次建档</label>
+          <input type="date" id="upfAddDate">
+        </div>
+        <div class="mkt-form-row">
+          <label>下单金额（元）</label>
+          <input type="text" id="upfOrder" placeholder="如：150000 或 15w" autocomplete="off" oninput="upOrderHint()">
+          <div id="upfOrderHint" style="font-size:11px;color:#94a3b8;margin-top:4px;line-height:1.5">按模板口径填「元」，可写 150000 或 15w / 15万。</div>
+        </div>
+        <div class="mkt-form-row">
+          <label>走访人（= 月度数据里的运营人员）</label>
+          <input type="text" id="upfLeader" list="upLeaderList" placeholder="从候选里选，或直接输入" autocomplete="off" oninput="upCheckLeader()">
+          <datalist id="upLeaderList"></datalist>
+          <div id="upfLeaderWarn" class="up-warn" style="display:none"></div>
+        </div>
+        <div class="mkt-form-row" style="grid-column:1/-1">
+          <label>用户基本信息</label>
+          <textarea id="upfBasicInfo" placeholder="如：教授/博导，有机合成方向，每月固定采购试剂，对到货时效敏感"></textarea>
+        </div>
+      </div>
+
+      <div class="up-edit-sec">🗓️ 走访记录 <span>主走访内容用于列表展示；下方「回访记录」按时间顺序自动排序</span></div>
+      <div class="mkt-form-grid">
+        <div class="mkt-form-row">
+          <label>走访类型</label>
+          <select id="upfVisitType"></select>
+        </div>
+        <div class="mkt-form-row">
+          <label>主走访内容</label>
+          <input type="text" id="upfVisitContent" placeholder="本次走访/最近一次走访做了什么" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="up-edit-sec" style="margin-top:6px">🔁 回访记录 <span>日期 + 类型 + 内容 三项齐全才计入「完整回访」</span></div>
+      <div class="up-visit-row" style="color:#94a3b8;font-size:11px;margin-bottom:4px">
+        <span class="up-visit-idx">#</span><span>回访时间</span><span>回访类型</span><span>回访内容</span><span></span>
+      </div>
+      <div id="upVisitRows"></div>
+      <button type="button" class="up-add-visit" onclick="addUpVisitRow()">＋ 添加一组回访</button>
+    </div>
+    <div class="mkt-modal-footer">
+      <button class="mkt-btn-secondary" onclick="closeUpEditModal()">取消</button>
+      <button class="mkt-btn-primary" id="upEditSaveBtn" onclick="submitUpEdit()">保存新增</button>
     </div>
   </div>
 </div>
