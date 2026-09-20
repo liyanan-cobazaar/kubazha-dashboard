@@ -6152,26 +6152,29 @@ function renderUpVIP() {
 
   var cards = $("vipUserCards");
   cards.innerHTML = "";
-  vipUsers.slice(0,24).forEach(function(u){
+  // 2026-09-20 重构：去掉原 slice(0,24) 截断——S级每位用户一张卡片，全量渲染，人数与「学校用户列表」筛 S 级完全一致；
+  // 字段与用户列表列一一对应，档案里没填的字段明确显示「—」（数据本身为空，不是卡片丢字段）；学院显示完整值不再截断。
+  var dash = '<span style="color:#c4b5a0">—</span>';
+  vipUsers.forEach(function(u){
     var card = document.createElement("div");
     card.className = "vip-card";
     card.innerHTML =
-      '<h4>⭐ '+u.name+' <span style="float:right;font-size:11px;color:#92400e">'+u.school+'</span></h4>' +
-      '<div style="font-size:11px;color:#78716c;line-height:1.6">' +
-        '<div>🏫 学院: '+(u.college ? u.college.split("/")[0] : '')+'</div>' +
-        '<div>🔬 实验室: '+u.lab+'</div>' +
-        '<div>📅 首次建档: '+formatDateCell(u.addDate)+'</div>' +
+      '<h4>⭐ '+u.name+' <span style="float:right;font-size:11px;color:#92400e">'+(u.school||'')+'</span></h4>' +
+      '<div style="font-size:11px;color:#78716c;line-height:1.7">' +
+        '<div>🏫 学院: '+(u.college||dash)+'</div>' +
+        '<div>🔬 实验室/课题组: '+(u.lab||dash)+'</div>' +
+        '<div>📅 首次建档: '+(formatDateCell(u.addDate)||dash)+'</div>' +
         (u.basicInfo?'<div>📋 用户基本信息: '+u.basicInfo+'</div>':'') +
-        '<div>📞 最近触达: '+formatDateCell(u.lastTouch)+'</div>' +
+        (u.contact?'<div>📱 联系方式: '+u.contact+'</div>':'') +
+        '<div>📞 最近触达: '+(formatDateCell(u.lastTouch)||dash)+'</div>' +
         (u.visitType?'<div>🏷 走访类型: '+u.visitType+'</div>':'') +
         (u.visitContent?'<div>📝 走访内容: '+u.visitContent+'</div>':'') +
-        (u.contact?'<div>📱 联系方式: '+u.contact+'</div>':'') +
         (u.buyer && u.buyer !== u.name ? '<div>🧑‍🔬 采购用户: '+u.buyer+'</div>' : '') +
         (u.userRole?'<div>💼 用户角色: '+u.userRole+'</div>':'') +
       '</div>' +
       '<div class="vip-stat">' +
-        '<span>负责人: '+(u.leader||'')+'</span>' +
-        '<span>下单: ¥'+u.order.toFixed(1)+'万</span>' +
+        '<span>走访人: '+(u.leader||dash)+'</span>' +
+        '<span>下单: ¥'+(Number(u.order)||0).toFixed(1)+'万</span>' +
       '</div>';
     cards.appendChild(card);
   });
