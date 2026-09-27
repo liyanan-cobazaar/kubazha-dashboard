@@ -1857,7 +1857,7 @@ function mergeRuleStore(local, cloud) {
 //   这样既能让删除跨设备生效，又能支持「删掉后重新导入/新增」把它救回来（新记录 _ts 更大）。
 //   UP_TOMB 只在本文件内部流转，USER_POOL_CRM 看到的永远是不含墓碑的干净数据。
 var UP_TOMB = [];
-var UP_TOMB_MAX = 500;
+var UP_TOMB_MAX = 5000; // 2026-09-27 调高：支持用户池整库清空（2778 条一次性打墓碑），原 500 上限会把多余记录截断导致旧数据复活
 function upRecordKey(r) { return (r && r.name || '') + '|' + (r && r.school || '') + '|' + (r && r.college || ''); }
 function upRecordStamp(r) { var t = Number((r && (r._ts || r._deletedAt)) || 0); return isNaN(t) ? 0 : t; }
 function pruneUpTombstones(list) {
