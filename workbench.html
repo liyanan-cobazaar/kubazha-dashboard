@@ -8526,9 +8526,10 @@ function loadWorkbenchData() {
     });
     fixLegacyMonths(WORKBENCH_DATA); // 自愈：把历史脏月份（如 4626-06）迁回正确月份
     WORKBENCH_DATA.available_months.sort();
-    // 同步全局月份状态
-    selectedMonths = WORKBENCH_DATA.available_months.slice();
-    currentMonth = WORKBENCH_DATA.available_months[WORKBENCH_DATA.available_months.length - 1];
+    // 同步全局月份状态（2026-10-09 用户要求：默认最近月份，不要全选；available_months 已 sort 升序，最后一个即最新）
+    var _am = WORKBENCH_DATA.available_months;
+    selectedMonths = _am.length ? [_am[_am.length - 1]] : [];
+    currentMonth = _am[_am.length - 1];
   } catch (e) {
     console.error('加载已保存数据失败', e);
   }
