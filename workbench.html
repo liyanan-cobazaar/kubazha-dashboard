@@ -2099,6 +2099,7 @@ function applyModuleCloud(modKey, cloudVal) {
   else { try { localStorage.setItem(cfg.lsKey, JSON.stringify(merged)); } catch (e) {} }
   if (typeof currentModule !== 'undefined') {
     if (modKey === 'monthly' && typeof renderMonthBtns === 'function') renderMonthBtns();
+    if (modKey === 'monthly') try { defaultLatestPerfMonth(); } catch (e) {} // 云端合并出更新的月份后，绩效默认月份跟随校正（2026-10-09）
     if (modKey === 'monthly' && typeof currentModule !== 'undefined' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') updatePerformanceContent(); // 月度数据云端合并后（如拼接名自愈）即时刷新绩效页
     if (modKey === 'userpool' && currentModule === 'modUserPool' && typeof renderUpSubTab === 'function') {
       // 云端合并后联动：筛选下拉（可能新增走访人/建档月份）+ 当前页签（用户列表/走访记录/月度动态等）
@@ -2241,6 +2242,15 @@ function monthSortKey(key) {
   var m = (key || "").match(/^(\d{4})-(\d{2})$/);
   if (m) return parseInt(m[1], 10) * 100 + parseInt(m[2], 10);
   return 999999;
+}
+// 绩效月份默认最近月份（2026-10-09 用户要求）：每次登录/刷新都校正 perfMonth 为最新可用月。
+// 模块记忆（wb_active_panel_v1）但月份不记忆——刷新后月份始终回到最近月。
+function defaultLatestPerfMonth() {
+  try {
+    var am = (WORKBENCH_DATA.available_months || []).slice();
+    am.sort(function (a, b) { return monthSortKey(a) - monthSortKey(b); });
+    if (am.length) perfMonth = am[am.length - 1];
+  } catch (e) {}
 }
 // 当前选中月份（用于单月视图）：selectedMonths 最新一个，回退 currentMonth
 function currentSelectedMonth() {
@@ -3053,6 +3063,8 @@ function enterApp() {
   applyNavByRole();
   // 恢复上次浏览的页签（2026-09-07）：需要套用角色裁剪之后做，避免 staff 越权恢复
   restoreLastPanel();
+  // 绩效月份默认最近月份（2026-10-09）：模块记忆，月份不记忆
+  try { defaultLatestPerfMonth(); } catch (e) {}
   // 绩效规则六部分：管理员登录后显示修改按钮（其他角色只读），并套用已保存的规则版本
   initPerfRuleEditing();
   // 导入按钮与下载模板按钮仅管理员可见，且只在总体概况/绩效评估模块显示
@@ -3311,8 +3323,8 @@ function renderMonthPicker() {
   var container = $("monthFilter");
   if (!container) return;
   var avail = (WORKBENCH_DATA.available_months || []).slice().sort(function(a,b){ return monthSortKey(a) - monthSortKey(b); });
-  // 初始化默认全选
-  if (selectedMonths.length === 0) selectedMonths = avail.slice();
+  // 初始化默认选中最近月份（2026-10-09 用户要求：不要默认全选，默认停留在最近月份；avail 已按升序排，最后一个即最新）
+  if (selectedMonths.length === 0) selectedMonths = avail.length ? [avail[avail.length - 1]] : [];
   // 同步 currentMonth 到最新选中
   currentMonth = currentSelectedMonth();
 
