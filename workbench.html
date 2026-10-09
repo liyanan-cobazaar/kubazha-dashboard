@@ -1079,6 +1079,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
           <input type="file" id="upFileInput" accept=".xlsx,.xls" style="display:none" onchange="handleModuleImportFile('userpool', this)">
         </div>
         <table class="sticky-head" id="upUserTableEl"><colgroup id="upUserCols"></colgroup><thead id="upUserHead"></thead><tbody id="upUserTable"></tbody></table>
+        <div id="upPager" style="display:flex;align-items:center;gap:6px;justify-content:flex-end;padding:10px 4px 4px;font-size:12px;color:#555;flex-wrap:wrap;border-top:1px solid #f0f0f0;margin-top:8px"></div>
       </div>
 
       <!-- Tab2: 等级分布分析 -->
@@ -5682,6 +5683,47 @@ function renderUserPoolMonthStats() {
 }
 
 // --- Tab1: 学校用户列表 ---
+// ==================== 用户列表分页（2026-10-09 用户要求：替代无限下滑） ====================
+// 每页 10/20/50 行可选 + 翻页；筛选条件变化时自动回到第 1 页
+var upPage = 1;
+var upPageSize = 20;
+function upGoPage(p) { upPage = p; renderUpSchoolList(); }
+function upSetPageSize(s) { upPageSize = s; upPage = 1; renderUpSchoolList(); }
+function renderUpPager(total, totalPages) {
+  var el = $("upPager");
+  if (!el) return;
+  if (!total) { el.innerHTML = ''; return; }
+  // 页码序列：≤7 页全显示；更多时显示 1 … 当前±1 … 末页
+  var pages = [];
+  if (totalPages <= 7) { for (var i = 1; i <= totalPages; i++) pages.push(i); }
+  else {
+    pages.push(1);
+    if (upPage > 3) pages.push('…');
+    for (var j = Math.max(2, upPage - 1); j <= Math.min(totalPages - 1, upPage + 1); j++) pages.push(j);
+    if (upPage < totalPages - 2) pages.push('…');
+    pages.push(totalPages);
+  }
+  function pgBtn(label, page, disabled, active) {
+    if (disabled) return '<span style="padding:3px 10px;border:1px solid #e5e7eb;border-radius:5px;color:#c0c4cc;background:#f9fafb;user-select:none">' + label + '</span>';
+    if (active) return '<span style="padding:3px 10px;border:1px solid #1a73e8;border-radius:5px;color:#fff;background:#1a73e8;font-weight:600;user-select:none">' + label + '</span>';
+    return '<span onclick="upGoPage(' + page + ')" style="padding:3px 10px;border:1px solid #d1d5db;border-radius:5px;color:#374151;background:#fff;cursor:pointer;user-select:none">' + label + '</span>';
+  }
+  var html = '<span style="margin-right:auto;color:#9ca3af">共 ' + total + ' 条 · 第 ' + upPage + '/' + totalPages + ' 页</span>'
+    + '<span style="color:#9ca3af">每页</span>'
+    + '<select onchange="upSetPageSize(Number(this.value))" style="padding:3px 4px;border:1px solid #d1d5db;border-radius:5px;font-size:12px;color:#374151;background:#fff">'
+    + [10, 20, 50].map(function (s) { return '<option value="' + s + '"' + (s === upPageSize ? ' selected' : '') + '>' + s + '</option>'; }).join('')
+    + '</select><span style="color:#9ca3af">条</span>'
+    + '<span style="width:4px"></span>'
+    + pgBtn('«', 1, upPage === 1, false)
+    + pgBtn('‹', upPage - 1, upPage === 1, false);
+  pages.forEach(function (p) {
+    html += (p === '…') ? '<span style="color:#c0c4cc;padding:3px 2px;user-select:none">…</span>' : pgBtn(p, p, false, p === upPage);
+  });
+  html += pgBtn('›', upPage + 1, upPage === totalPages, false)
+    + pgBtn('»', totalPages, upPage === totalPages, false);
+  el.innerHTML = html;
+}
+
 function renderUpSchoolList() {
   renderUserPoolMonthStats();
   var schoolFilter = $("upSchoolSelect").value;
@@ -5714,19 +5756,16 @@ function renderUpSchoolList() {
   var levelOrder = {"S":0,"A":1,"B":2,"C":3};
   filtered.sort(function(a,b){ return (levelOrder[a.level]||9)-(levelOrder[b.level]||9); });
 
-  // 2026-09-11 修复：去掉原硬截断前100条。无筛选时数据量大给个 500 上限 + 提示，避免浏览器卡顿；
-  // 一旦用了任一筛选条件就不截断，让用户能看到完整的匹配结果。
-  var anyFilter = schoolFilter!=='all' || levelFilter!=='all' || nameQuery || leaderFilter!=='all' || monthFilter!=='all';
-  var MAX_RENDER = 500;
-  var renderArr = anyFilter ? filtered : filtered.slice(0, MAX_RENDER);
+  // 2026-10-09 用户要求：分页显示（每页 10/20/50 + 翻页），替代原来的前500条截断与无限下滑
+  var totalPages = Math.max(1, Math.ceil(filtered.length / upPageSize));
+  if (upPage > totalPages) upPage = totalPages; // 筛选/删除后页码越界自动收回
+  var startIdx = (upPage - 1) * upPageSize;
+  var renderArr = filtered.slice(startIdx, startIdx + upPageSize);
   var hint = $("upFilterHint");
   if(hint){
     var hintHtml = '';
-    if(!anyFilter && filtered.length > MAX_RENDER){
-      hintHtml = '<span style="color:#b45309">（数据较多，默认显示前 '+MAX_RENDER+' 条，请用上方筛选缩窄范围）</span>';
-    }
     // 新增/删除后的即时回执：明确告诉用户“保存成功/列表里在哪”，避免“保存了却看不到”
-    if (upSavedNotice) hintHtml += (hintHtml ? ' ' : '') + '<span style="color:#15803d;font-weight:600">' + upSavedNotice + '</span>';
+    if (upSavedNotice) hintHtml += '<span style="color:#15803d;font-weight:600">' + upSavedNotice + '</span>';
     hint.innerHTML = hintHtml;
   }
 
@@ -5756,15 +5795,16 @@ function renderUpSchoolList() {
   });
   if(!renderArr.length){
     tbody = "<tr><td colspan='"+COLS+"' style='text-align:center;color:#999;padding:20px'>暂无数据</td></tr>";
-  } else if(!anyFilter && filtered.length > MAX_RENDER){
-    tbody += "<tr><td colspan='"+COLS+"' style='text-align:center;color:#b45309;font-size:11px;padding:8px;background:#fff7ed'>共 "+filtered.length+" 条记录，当前仅显示前 "+MAX_RENDER+" 条。请用上方任一筛选缩窄范围。</td></tr>";
   }
   $("upUserTable").innerHTML = tbody;
+  // 渲染分页控件（2026-10-09）
+  try { renderUpPager(filtered.length, totalPages); } catch (e) {}
 
-  $("upSchoolSelect").onchange = renderUpSchoolList;
-  $("upLevelFilter").onchange = renderUpSchoolList;
-  $("upLeaderFilter").onchange = renderUpSchoolList;
-  $("upAddMonthFilter").onchange = renderUpSchoolList;
+  // 筛选条件变化时回到第 1 页再渲染
+  $("upSchoolSelect").onchange = function(){ upPage = 1; renderUpSchoolList(); };
+  $("upLevelFilter").onchange = function(){ upPage = 1; renderUpSchoolList(); };
+  $("upLeaderFilter").onchange = function(){ upPage = 1; renderUpSchoolList(); };
+  $("upAddMonthFilter").onchange = function(){ upPage = 1; renderUpSchoolList(); };
   // 输入框用 input 事件实时筛选 + 200ms 防抖，避免每打一个字都重渲
   var nameInput = $("upNameSearch");
   if(nameInput._debounced) clearTimeout(nameInput._debounced);
