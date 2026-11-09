@@ -1385,7 +1385,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
     </div>
     <div id="dmTableWrap" style="border:1px solid #e2e8f0;border-radius:8px;overflow:auto;max-height:52vh;background:#fff"></div>
     <div style="margin-top:12px;font-size:12px;color:#666;line-height:1.7;background:#f8fafc;border:1px solid #eee;border-radius:8px;padding:8px 12px">
-      💡 修改任何一行后系统会<b>自动重算</b>区域汇总/总分并同步到总体概况·绩效·增量分析。灰色行 = 系统占位的主管汇总行（自动维护，勿删）。金额单位：<b>元</b>（表内以「万」显示）；结算率支持 0.57 / 57% / 未对接财务。
+      💡 修改任何一行后系统会<b>自动重算</b>区域汇总/总分并同步到总体概况·绩效·增量分析。各区域主管的身份记录由系统自动维护（本表不显示，考核不受影响）。金额单位：<b>元</b>（表内以「万」显示）；结算率支持 0.57 / 57% / 未对接财务。
     </div>
     <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
       <span style="font-size:13px;font-weight:600;cursor:pointer" onclick="toggleDmAudit(this)">📜 操作留痕（点击展开）<span id="dmAuditCount" style="color:#1a73e8"></span></span>
@@ -9486,6 +9486,7 @@ function renderMaintainTable() {
   var seen = {};
   var rowsHtml = '';
   people.forEach(function(p, i) {
+    if (p._synthetic) return; // 系统占位行（主管身份锚点，数据保留）不在维护表显示：考核/打分/汇总均走后台数据，零影响（2026-11-10 用户拍板）
     if (kw && (String(p.name || '').indexOf(kw) < 0) && (String(p.school || '').indexOf(kw) < 0)) return;
     stats.n++; if (p.school && !seen[p.school]) { seen[p.school] = 1; stats.schools++; }
     stats.order += (p.actual_order || 0); stats.pool += (p.user_pool || 0);
