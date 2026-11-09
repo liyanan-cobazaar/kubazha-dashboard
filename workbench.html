@@ -972,9 +972,9 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
             <div class="rule-note">
               <strong>状态查看：</strong>申诉处理进度全程可查——员工绩效卡与「我的历史确认记录」中实时显示「待主观评分 / 待本人确认 / 申诉中 · 待××初审 / 待管理员复核 / 结果已更新（或结果维持不变）」；区域负责人、管理员在「确认与申诉」页集中查看待办与全部历史档案。<br>
               <strong>调整前后对比：</strong>管理员裁决为「结果已更新」时，系统自动记录调整前分值；<b>申诉人本人、该员工的区域负责人、管理员</b>均可在绩效卡申诉详情区、确认台账（关键节点列与展开时间线）、本人历史记录中查看调整前后各项分值对比（同区域其他专员/营销负责人不可见）。<br>
-              <strong>确认与申诉效力：</strong>逾期未确认且未提出申诉的，视为对当月考核结果无异议。申诉期间当月考核结果暂按原结果执行；裁决后如需调整，差额随最近一次工资发放补足或核减。确认记录（姓名、时间、当月考核版本）由系统自动留存。<br>
+              <strong>确认与申诉效力：</strong>逾期未确认且未提出申诉的，视为对当月考核结果无异议。申诉期间当月考核结果暂按原结果执行；裁决后如需调整，差额随最近一次工资发放补足或核减。确认记录（姓名、时间、当月考核版本）由系统自动留存。<b>自 2026 年 11 月起：评分送达时间由系统自动记录，确认期为送达后 3 个工作日（跳过周末与法定节假日）；超期未确认的，系统将自动确认并留痕（由于本人超期未确认，按照之前的约定系统已自动确认），自动确认后不能再发起申诉；管理员调整分数的，送达时间与截止日重新计算。2026 年 10 月及以前不适用本条。</b><br>
               <strong>评分顺序与确认门槛：</strong>先由管理员完成区域主管的主观评分，再由区域主管完成本区域运营专员/营销负责人的主观评分；两级评分均完成后，被评分本人方可确认结果或提出申诉，3 个工作日确认期自本人评分送达后起算。<br>
-              <strong>跨区域人员双评（仅郭旺）：</strong>郭旺项目横跨东北西北、天津两个区域，其主观分由两位区域负责人（高欢庆、刘金玲）各自填写，<b>二人均提交后按平均值计分</b>；任一人未填写视为评分未完成，郭旺暂不能确认或申诉（自2026年8月起执行，此前月份按原单人评分口径）。
+              <strong>跨区域人员双评（仅郭旺）：</strong>郭旺项目横跨东北西北、天津两个区域，其主观分由两位区域负责人（高欢庆、刘金玲）各自填写，<b>二人均提交后按平均值计分</b>；任一人未填写视为评分未完成，郭旺暂不能确认或申诉（自2026年8月起执行，此前月份按原单人评分口径；<b>自2026年11月起双评机制停止，按单人评分口径执行，2026年8~10月仍按双评口径</b>）。
             </div>
           </div>
           <div class="rule-section">
@@ -1462,6 +1462,9 @@ var subjectiveScores = {};
 // ===== 绩效确认与申诉闭环记录（云端共享，仿主观分模式：本地优先合并+409重试） =====
 var PERF_CONFIRM = []; // 每条：{month,name,role,region,leader,status(pending/confirmed/appealing/ruled),confirmTime,appeal:{items,reason,submitTime,firstReview},finalRuling,updatedAt}
 var PERF_CONFIRM_KEY = 'wb_perf_confirm_v1'; // 本地永久副本
+// 主观分送达时间（2026-11-09 新增，仅 2026-11 及以后的月份有记录；10 月及以前绝不写入）
+var SUBJ_TS = [];
+try { var _stRaw = JSON.parse(localStorage.getItem('wb_subj_ts_v1') || '[]'); if (Array.isArray(_stRaw)) _stRaw.forEach(function (r) { if (r && r.month && r.name && r.deliveredAt) SUBJ_TS.push(r); }); } catch (e) {}
 try {
   var _pcRaw = JSON.parse(localStorage.getItem(PERF_CONFIRM_KEY) || '[]');
   if (Array.isArray(_pcRaw)) _pcRaw.forEach(function (r) { if (r && r.month && r.name) PERF_CONFIRM.push(r); });
@@ -1948,6 +1951,16 @@ var MODULE_SYNC = {
     mergeFn: mergeConfirmStore, // updatedAt 新者胜（2026-09-09）：云端新初审/裁决能覆盖各端旧缓存
     get: function () { return PERF_CONFIRM; },
     set: function (v) { PERF_CONFIRM.length = 0; (v || []).forEach(function (x) { if (x && x.month && x.name) PERF_CONFIRM.push(x); }); },
+    keyOf: function (r) { return (r.month || '') + '|' + (r.name || ''); }
+  },
+  subjts: {
+    // 主观分送达时间（2026-11-09 上线）：单独云端文件，绝不触碰 subjective_scores.json 历史评分
+    // 每条：{month,name,role,deliveredAt(ISO),updatedAt}；仅 2026-11 及以后的月份有记录
+    file: 'subjective_ts.json',
+    lsKey: 'wb_subj_ts_v1',
+    mergeFn: mergeTsStore, // updatedAt 新者胜
+    get: function () { return SUBJ_TS; },
+    set: function (v) { SUBJ_TS.length = 0; (v || []).forEach(function (x) { if (x && x.month && x.name && x.deliveredAt) SUBJ_TS.push(x); }); },
     keyOf: function (r) { return (r.month || '') + '|' + (r.name || ''); }
   },
   passwords: {
@@ -3995,6 +4008,7 @@ function updateScore(person, fieldKey, value, prole, pleader, evaluator) {
   subjectiveScores[subjFieldKey(person, fieldKey, evaluator)] = value;
   // 立即固化到本地，作为云端推送失败时的兜底，避免刷新即丢
   try { localStorage.setItem(SUBJECTIVE_STORAGE_KEY, JSON.stringify(subjectiveScores)); } catch (e) {}
+  try { recordSubjDelivery(person, prole); } catch (e) {} // 2026-11 起：全部字段填完=评分送达，记录时间；调分则重新起算
   updatePerformanceContent();
   schedulePush();
 }
@@ -4004,6 +4018,162 @@ function updateScore(person, fieldKey, value, prole, pleader, evaluator) {
 // 时限（用户拍板）：申诉期 3 个工作日、区域负责人初审 2 天、管理员（运营总监）复核 3 天；申诉不停止执行，裁决后多退少补。
 var CONFIRM_LABEL = { pending: '待本人确认', confirmed: '已确认', appealing: '申诉中', ruled: '已裁决' };
 var CONFIRM_BADGE = { pending: '🟠', confirmed: '🟢', appealing: '🔴', ruled: '🟣', scoring: '⚪' };
+
+// ===== 评分送达时间与超期自动确认（2026-11-09 用户拍板上线） =====
+// 规则：
+//   ① 送达时间 = 评分人把某人某月全部主观分字段填完的那一刻（updateScore 时记录）。
+//      仅 2026-11 及以后生效；10 月及以前不记录、不显示、不自动确认，历史评分一个字节不动。
+//   ② 截止日 = 送达次日数 3 个工作日（跳周六日 + 法定节假日，含调休上班日），截止到当天 23:59。
+//   ③ 超期后第一次有人打开该员工绩效页/台账时，系统自动确认并留痕：
+//      「由于本人超期未确认，按照之前的约定系统已自动确认。」自动确认后不能再申诉（用户拍板）。
+//      管理员保留「重置确认流程」超级权限（重置后送达时间刷新，截止日重新起算）。
+//   ④ 管理员在截止前调整分数 → 送达时间与截止日自动重新计算（用户拍板）。
+//   ⑤ 郭旺双评机制于 2026-10 后停止（用户拍板），2026-11 起按单人评分口径。
+var SUBJ_TS_FROM = '2026-11';
+// 法定节假日表（仅放假日；调休上班日单列）。2026/2027 为国务院办公厅正式发布；
+// 2028/2029 官方尚未发布，按惯例预估（标注「估」），需在官方公布后更新（每年 12 月提醒）。
+var CN_HOLIDAYS = {
+  2026: ['2026-01-01','2026-01-02','2026-01-03',
+         '2026-02-15','2026-02-16','2026-02-17','2026-02-18','2026-02-19','2026-02-20','2026-02-21','2026-02-22','2026-02-23',
+         '2026-04-04','2026-04-05','2026-04-06',
+         '2026-05-01','2026-05-02','2026-05-03','2026-05-04','2026-05-05',
+         '2026-06-19','2026-06-20','2026-06-21',
+         '2026-09-25','2026-09-26','2026-09-27',
+         '2026-10-01','2026-10-02','2026-10-03','2026-10-04','2026-10-05','2026-10-06','2026-10-07'],
+  2027: ['2027-01-01','2027-01-02','2027-01-03',
+         '2027-02-05','2027-02-06','2027-02-07','2027-02-08','2027-02-09','2027-02-10','2027-02-11','2027-02-12','2027-02-13',
+         '2027-04-03','2027-04-04','2027-04-05',
+         '2027-05-01','2027-05-02','2027-05-03','2027-05-04','2027-05-05',
+         '2027-06-09',
+         '2027-09-15',
+         '2027-10-01','2027-10-02','2027-10-03','2027-10-04','2027-10-05','2027-10-06','2027-10-07'],
+  2028: ['2028-01-01','2028-01-02','2028-01-03',
+         '2028-01-25','2028-01-26','2028-01-27','2028-01-28','2028-01-29','2028-01-30','2028-01-31','2028-02-01','2028-02-02', // 春节 估
+         '2028-04-04','2028-04-05','2028-04-06', // 清明 估
+         '2028-05-01','2028-05-02','2028-05-03','2028-05-04','2028-05-05', // 劳动 估
+         '2028-05-27','2028-05-28','2028-05-29', // 端午 估
+         '2028-10-01','2028-10-02','2028-10-03','2028-10-04','2028-10-05','2028-10-06','2028-10-07'], // 国庆+中秋 估
+  2029: ['2029-01-01','2029-01-02', // 元旦 估
+         '2029-02-12','2029-02-13','2029-02-14','2029-02-15','2029-02-16','2029-02-17','2029-02-18', // 春节 估
+         '2029-04-04','2029-04-05','2029-04-06', // 清明 估
+         '2029-05-01','2029-05-02','2029-05-03','2029-05-04','2029-05-05', // 劳动 估
+         '2029-06-16','2029-06-17','2029-06-18', // 端午 估
+         '2029-09-22','2029-09-23','2029-09-24', // 中秋 估
+         '2029-10-01','2029-10-02','2029-10-03','2029-10-04','2029-10-05','2029-10-06','2029-10-07'] // 国庆 估
+};
+// 调休上班日（周末但官方安排上班，算工作日）。2026/2027 为官方发布；2028/2029 预估版暂无，官方公布后补充。
+var CN_EXTRA_WORKDAYS = {
+  2026: ['2026-01-04','2026-02-14','2026-02-28','2026-05-09','2026-09-20','2026-10-10'],
+  2027: ['2027-01-31','2027-02-14','2027-05-08','2027-09-26','2027-10-09']
+};
+function cnDateStr(d) {
+  var p = function (n) { return (n < 10 ? '0' : '') + n; };
+  return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+}
+function isCnWorkday(d) {
+  var y = d.getFullYear();
+  var ds = cnDateStr(d);
+  if ((CN_HOLIDAYS[y] || []).indexOf(ds) >= 0) return false;
+  if ((CN_EXTRA_WORKDAYS[y] || []).indexOf(ds) >= 0) return true;
+  var w = d.getDay();
+  return w !== 0 && w !== 6;
+}
+// 从送达时刻起算：次日起数 n 个工作日，返回截止时刻（截止日 23:59:59）
+function subjDeadlineOf(deliveredISO, n) {
+  var d = new Date(deliveredISO);
+  if (isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  var cnt = 0;
+  while (cnt < n) { d.setDate(d.getDate() + 1); if (isCnWorkday(d)) cnt++; }
+  d.setHours(23, 59, 59, 0);
+  return d;
+}
+function fmtCnDate(v) {
+  var d = (v instanceof Date) ? v : new Date(v);
+  if (isNaN(d.getTime())) return String(v || '');
+  return d.getFullYear() + ' 年 ' + (d.getMonth() + 1) + ' 月 ' + d.getDate() + ' 日';
+}
+function subjTsOf(month, name) {
+  for (var i = 0; i < SUBJ_TS.length; i++) {
+    if (SUBJ_TS[i].month === month && SUBJ_TS[i].name === name) return SUBJ_TS[i];
+  }
+  return null;
+}
+// mergeTsStore：云端合并，updatedAt 新者胜（同 mergeConfirmStore 思路）
+function mergeTsStore(local, cloud) {
+  var byKey = {};
+  (cloud || []).forEach(function (r) { var k = (r.month || '') + '|' + (r.name || ''); if (k !== '|') byKey[k] = r; });
+  (local || []).forEach(function (r) {
+    var k = (r.month || '') + '|' + (r.name || ''); if (k === '|') return;
+    var c = byKey[k];
+    if (!c) { byKey[k] = r; return; }
+    var lu = Date.parse(r.updatedAt || '') || 0, cu = Date.parse(c.updatedAt || '') || 0;
+    byKey[k] = (lu > cu) ? r : c;
+  });
+  return Object.keys(byKey).map(function (k) { return byKey[k]; });
+}
+// 评分写入后调用：某员工当月主观分全部填完 → 记录/刷新送达时间（仅 2026-11 起）
+function recordSubjDelivery(name, role) {
+  if (String(perfMonth) < SUBJ_TS_FROM) return; // 2026-10 及以前不记录
+  if (!subjScoreComplete(name, role)) return;
+  var now = new Date().toISOString();
+  var rec = subjTsOf(perfMonth, name);
+  if (!rec) { rec = { month: perfMonth, name: name, role: role, deliveredAt: now, updatedAt: now }; SUBJ_TS.push(rec); }
+  else { rec.role = role; rec.deliveredAt = now; rec.updatedAt = now; } // 调分=重新送达，截止日重算
+  try { localStorage.setItem('wb_subj_ts_v1', JSON.stringify(SUBJ_TS)); } catch (e) {}
+  scheduleModulePush('subjts');
+}
+// 管理员重置确认流程后调用：送达时间刷新为当下，截止日重新起算（历史月份不动）
+function renewSubjTs(month, name, role) {
+  if (String(month) < SUBJ_TS_FROM) return;
+  var now = new Date().toISOString();
+  var rec = subjTsOf(month, name);
+  if (!rec) { rec = { month: month, name: name, role: role || '', deliveredAt: now, updatedAt: now }; SUBJ_TS.push(rec); }
+  else { rec.deliveredAt = now; rec.updatedAt = now; }
+  try { localStorage.setItem('wb_subj_ts_v1', JSON.stringify(SUBJ_TS)); } catch (e) {}
+  scheduleModulePush('subjts');
+}
+var _autoConfirmScheduled = false;
+// 超期自动确认：pending + 评分完成 + 已过截止日 → 系统自动确认并留痕。
+// 触发点：绩效卡渲染（renderConfirmArea）与确认台账渲染（renderConfirmArchive）——即任意有权查看的人打开页面即生效。
+function maybeAutoConfirm(month, p) {
+  if (String(month) < SUBJ_TS_FROM) return getConfirmRec(month, p.name);
+  var ts = subjTsOf(month, p.name);
+  if (!ts) return getConfirmRec(month, p.name);
+  var rec = getConfirmRec(month, p.name);
+  if (rec && rec.status !== 'pending') return rec;
+  if (!subjScoreComplete(p.name, p.role)) return rec;
+  var deadline = subjDeadlineOf(ts.deliveredAt, 3);
+  if (!deadline || Date.now() <= deadline.getTime()) return rec;
+  // 超期 → 系统自动确认（不经过员工操作）
+  var withMonth = withPerfMonth(month, function () { return ensureConfirmRec(p); });
+  rec = withMonth;
+  rec.status = 'confirmed';
+  rec.confirmTime = nowConfirmStr();
+  rec.autoConfirmed = {
+    time: nowConfirmStr(),
+    deliveredAt: fmtCnDate(ts.deliveredAt),
+    deadline: fmtCnDate(deadline),
+    note: '由于本人超期未确认，按照之前的约定系统已自动确认。'
+  };
+  rec.updatedAt = new Date().toISOString();
+  if (!rec.history) rec.history = [];
+  rec.history.push({ type: 'auto_confirmed', time: rec.autoConfirmed.time, by: '系统',
+    note: '评分 ' + rec.autoConfirmed.deliveredAt + ' 送达，截止 ' + rec.autoConfirmed.deadline + '（3 个工作日）。本人超期未确认，系统自动确认。' });
+  // 静默保存（不触发整页重渲染，渲染结束后再刷新一次）
+  var found = false;
+  for (var i = 0; i < PERF_CONFIRM.length; i++) {
+    if (PERF_CONFIRM[i].month === rec.month && PERF_CONFIRM[i].name === rec.name) { PERF_CONFIRM[i] = rec; found = true; break; }
+  }
+  if (!found) PERF_CONFIRM.push(rec);
+  try { localStorage.setItem(PERF_CONFIRM_KEY, JSON.stringify(PERF_CONFIRM)); } catch (e) {}
+  scheduleModulePush('perfconfirm');
+  if (!_autoConfirmScheduled) {
+    _autoConfirmScheduled = true;
+    setTimeout(function () { _autoConfirmScheduled = false; if (typeof updatePerformanceContent === 'function') try { updatePerformanceContent(); } catch (e) {} }, 50);
+  }
+  return rec;
+}
 
 // 细化状态文案（2026-09-05 用户要求：运营人员状态拆分为「待主观评分 / 待本人确认 / 申诉中…」）
 function confirmStatusText(rec, p) {
@@ -4028,6 +4198,7 @@ function confirmStatusText(rec, p) {
     // 2026-09-10 用户要求：裁决后的状态文案改为结果描述（结果已更新 / 结果维持不变），原表述有歧义
     return rec.finalRuling.adjust ? '结果已更新' : '结果维持不变';
   }
+  if (rec.status === 'confirmed' && rec.autoConfirmed) return '已确认 · 超期系统自动确认';
   return CONFIRM_LABEL[rec.status];
 }
 
@@ -4300,6 +4471,8 @@ function toggleAppealForm(btn) {
 }
 // 被考评人：提交申诉（勾选异议指标 + 必填理由）
 function submitPerfAppeal(name, btn) {
+  var _ar = getConfirmRec(perfMonth, name);
+  if (_ar && _ar.autoConfirmed) { alert('该月考核结果已因超期由系统自动确认（按约定逾期未提出异议视为无异议），不能再发起申诉。如确有特殊情况，请联系管理员处理。'); return; }
   var form = btn.parentNode;
   var boxes = form.querySelectorAll('input[name="appealItem"]:checked');
   var items = [];
@@ -4412,7 +4585,7 @@ function resetPerfFlow(month, name) {
   if (!rec) { alert('未找到该人员的确认记录'); return; }
   if (rec.status === 'pending' && !rec.appeal && !rec.confirmTime) { alert('该记录已是「待确认」初始状态，无需重置'); return; }
   var what = [];
-  if (rec.confirmTime) what.push('本人确认');
+  if (rec.confirmTime) what.push(rec.autoConfirmed ? '系统自动确认' : '本人确认');
   if (rec.appeal && rec.appeal.submitTime) what.push('申诉');
   if (rec.finalRuling) what.push('裁决');
   if (!confirm('⚠ 重置确认流程（超级权限）\n\n将把 ' + formatMonthLabel(month) + ' ' + name + ' 的「' + (what.join('、') || '流程状态') + '」全部作废，回到「待确认」状态，由员工重新确认或重新申诉。\n所有历史（确认、申诉、初审、裁决、撤销）将完整留痕，员工可见流程曾被重置。\n\n确认执行？')) return;
@@ -4423,9 +4596,11 @@ function resetPerfFlow(month, name) {
   rec.confirmTime = null;
   rec.appeal = null;
   rec.finalRuling = null;
+  rec.autoConfirmed = null;
   rec.status = 'pending';
   rec.updatedAt = new Date().toISOString();
   saveConfirmRec(rec);
+  try { renewSubjTs(month, name, rec.role); } catch (e) {} // 重置=重新送达：送达时间刷新，截止日重新起算（2026-11 起）
   alert('已重置确认流程，回到「待确认」状态。（重置前的全部记录已留痕）');
 }
 
@@ -4458,7 +4633,7 @@ function renderConfirmSummaryBar(list) {
 
 // 卡片底部确认/申诉区
 function renderConfirmArea(p) {
-  var rec = getConfirmRec(perfMonth, p.name);
+  var rec = maybeAutoConfirm(perfMonth, p) || getConfirmRec(perfMonth, p.name); // 打开即检查：超期未确认 → 系统自动确认（2026-11 起）
   var st = rec ? rec.status : 'pending';
   var isSelf = !!(CURRENT_USER && CURRENT_USER.name === p.name && !isAdmin());
   var isMyMember = !!(isLeader() && !isSelf &&
@@ -4470,7 +4645,22 @@ function renderConfirmArea(p) {
   var scoringNow = st === 'pending' && (rec ? !subjScoreComplete(rec.name, rec.role) : (p && !subjScoreComplete(p.name, p.role)));
   var stBadge = scoringNow ? 'scoring' : st;
   html += '<div class="confirm-status cs-' + stBadge + '">' + CONFIRM_BADGE[stBadge] + ' 绩效确认状态：' + confirmStatusText(rec, p) +
-    (st === 'confirmed' && rec.confirmTime ? '（' + escConfirmHtml(rec.confirmTime) + '）' : '') + '</div>';
+    (st === 'confirmed' && rec.confirmTime && !rec.autoConfirmed ? '（' + escConfirmHtml(rec.confirmTime) + '）' : '') + '</div>';
+
+  // 送达时间与截止日提示（2026-11 起；10 月及以前无送达记录，不显示）
+  var _ts = subjTsOf(perfMonth, p.name);
+  if (_ts && subjScoreComplete(p.name, p.role)) {
+    var _dl = subjDeadlineOf(_ts.deliveredAt, 3);
+    if (st === 'pending' && isSelf) {
+      html += '<div class="confirm-meta" style="border-color:#bfdbfe;background:#eff6ff">📢 您的 ' + formatMonthLabel(perfMonth) + ' 绩效评分已于 <b>' + fmtCnDate(_ts.deliveredAt) + '</b> 送达，请在 <b>' + fmtCnDate(_dl) + '（含当日）</b>前确认结果或提出申诉，逾期未提出的，视为对本考核结果无异议，系统将自动确认。</div>';
+    } else if (st === 'pending' && (isAdmin() || isMyMember)) {
+      html += '<div class="confirm-meta" style="color:#64748b">评分送达：' + fmtCnDate(_ts.deliveredAt) + ' · 确认/申诉截止：' + fmtCnDate(_dl) + '（3 个工作日，超期系统自动确认）</div>';
+    } else if (st === 'confirmed' && rec.autoConfirmed) {
+      html += '<div class="confirm-meta" style="border-color:#fde68a;background:#fffbeb"><b>由于本人超期未确认，按照之前的约定系统已自动确认。</b><br>评分送达：' + escConfirmHtml(rec.autoConfirmed.deliveredAt || fmtCnDate(_ts.deliveredAt)) + ' · 截止日：' + escConfirmHtml(rec.autoConfirmed.deadline || fmtCnDate(_dl)) + ' · 系统自动确认时间：' + escConfirmHtml(rec.autoConfirmed.time) + '<br><span style="color:#b45309">按约定逾期未提出异议视为无异议，自动确认后不能再发起申诉；如确有特殊情况，请联系管理员处理。</span></div>';
+    } else if (st === 'confirmed') {
+      html += '<div class="confirm-meta" style="color:#64748b">评分送达：' + fmtCnDate(_ts.deliveredAt) + ' · 本人确认：' + escConfirmHtml(rec.confirmTime || '') + '</div>';
+    }
+  }
 
   // 本人未确认：勾选声明 + 确认/申诉按钮 + 隐藏申诉表单
   if (st === 'pending' && isSelf) {
@@ -4479,7 +4669,7 @@ function renderConfirmArea(p) {
       html += '<div class="confirm-meta">⏳ ' + formatMonthLabel(perfMonth) + ' 主观评分尚未完成，完成前不能确认结果或提出申诉。全部主观分填写完毕后将自动转为「待本人确认」状态。</div>';
     } else {
     html += '<label class="confirm-declare"><input type="checkbox" id="perfConfirmAgree">' +
-      '<span>本人已完整阅读并知悉本人 <b>' + formatMonthLabel(perfMonth) + '</b> 绩效考核结果及各项评分依据（含计算过程）。如对考核结果有异议，可在收到结果之日起 <b>3个工作日内</b> 按申诉流程提出；逾期未提出的，视为对本考核结果无异议。申诉期间考核结果暂按原结果执行，裁决后如有调整，差额随最近一次工资发放补足或核减。</span></label>';
+      '<span>本人已完整阅读并知悉本人 <b>' + formatMonthLabel(perfMonth) + '</b> 绩效考核结果及各项评分依据（含计算过程）。如对考核结果有异议，可在收到结果之日起 <b>3个工作日内</b> 按申诉流程提出；逾期未提出的，视为对本考核结果无异议，系统将自动确认。申诉期间考核结果暂按原结果执行，裁决后如有调整，差额随最近一次工资发放补足或核减。</span></label>';
     html += '<div class="confirm-actions">' +
       '<button class="btn-confirm" onclick="confirmPerfResult(\'' + nm + '\',this)">✓ 确认结果</button>' +
       '<button class="btn-appeal" onclick="toggleAppealForm(this)">⚠ 对结果有异议</button></div>';
@@ -4609,6 +4799,12 @@ function renderConfirmArchive() {
   var sM = $("archiveMonthSel"); if (sM) ARCHIVE_MONTH = sM.value;
   var sS = $("archiveStatusSel"); if (sS) ARCHIVE_STATUS = sS.value;
   var kw = ''; var sI = $("archiveKw"); if (sI) kw = sI.value.trim();
+  // 打开台账即检查：超期未确认 → 系统自动确认（2026-11 起；负责人/管理员打开也能触发，员工不必自己点开）
+  PERF_CONFIRM.forEach(function (r) {
+    if (r && r.status === 'pending' && (isAdmin() || !CURRENT_USER || r.leader === CURRENT_USER.name || r.name === CURRENT_USER.name)) {
+      try { maybeAutoConfirm(r.month, { name: r.name, role: r.role, region: r.region, leader: r.leader }); } catch (e) {}
+    }
+  });
   var recs = archiveVisibleRecs().filter(function (r) { return !kw || r.name.indexOf(kw) >= 0; });
   var monthSet = {};
   PERF_CONFIRM.forEach(function (r) { if (r && r.month && (isAdmin() || r.leader === CURRENT_USER.name)) monthSet[r.month] = 1; });
@@ -4668,7 +4864,10 @@ function renderConfirmArchive() {
 
 // 列表行：关键节点摘要
 function archiveKeyNode(r) {
-  if (r.status === 'confirmed') return '✓ 确认提交 ' + escConfirmHtml(r.confirmTime || '');
+  if (r.status === 'confirmed') {
+    if (r.autoConfirmed) return '<span style="color:#b45309;font-weight:600">超期系统自动确认</span>（' + escConfirmHtml(r.autoConfirmed.time || '') + '）';
+    return '✓ 确认提交 ' + escConfirmHtml(r.confirmTime || '');
+  }
   if (r.status === 'appealing' && r.appeal) {
     var reviewed = !!(r.appeal.firstReview);
     var s = (reviewed ? '申诉中 · 待管理员复核' : '申诉中 · 待' + escConfirmHtml(r.leader || '区域主管') + '初审') +
@@ -4693,8 +4892,16 @@ function archiveKeyNode(r) {
 function archiveDetailHtml(r) {
   var h = '<div style="font-weight:600;color:#1e293b;margin-bottom:4px">' + formatMonthLabel(r.month) + ' · ' + escConfirmHtml(r.name) + '（' + escConfirmHtml(r.role || '') + (r.region ? ' · ' + escConfirmHtml(r.region) : '') + '）</div>';
   h += '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">唯一键 ' + r.month + '|' + escConfirmHtml(r.name) + ' · 最近更新 ' + escConfirmHtml((r.updatedAt || '').replace('T', ' ').slice(0, 16)) + '（云端多端同步）</div>';
-  h += '<div class="arch-tl"><span class="arch-dot" style="background:#94a3b8"></span><div><b>评分结果送达本人</b><div style="color:#64748b">当月绩效评分锁定后推送给被考评人查看，进入 3 个工作日确认/申诉期；逾期未操作视为无异议</div></div></div>';
-  if (r.confirmTime) h += '<div class="arch-tl"><span class="arch-dot" style="background:#1a8a3a"></span><div><b>本人确认结果</b><div style="color:#64748b">' + escConfirmHtml(r.confirmTime) + ' 提交（已勾选知悉声明）</div></div></div>';
+  var _tsA = subjTsOf(r.month, r.name);
+  var _dlA = _tsA ? subjDeadlineOf(_tsA.deliveredAt, 3) : null;
+  if (_tsA) {
+    h += '<div class="arch-tl"><span class="arch-dot" style="background:#1a73e8"></span><div><b>评分结果送达本人</b><div style="color:#64748b">' + fmtCnDate(_tsA.deliveredAt) + ' 送达 · 确认/申诉截止 ' + fmtCnDate(_dlA) + '（3 个工作日，跳周末与法定节假日）；逾期未操作视为无异议，系统自动确认</div></div></div>';
+  } else {
+    h += '<div class="arch-tl"><span class="arch-dot" style="background:#94a3b8"></span><div><b>评分结果送达本人</b><div style="color:#64748b">当月绩效评分锁定后推送给被考评人查看，进入 3 个工作日确认/申诉期；逾期未操作视为无异议</div></div></div>';
+  }
+  if (r.status === 'confirmed' && r.autoConfirmed) {
+    h += '<div class="arch-tl"><span class="arch-dot" style="background:#f59e0b"></span><div><b style="color:#b45309">超期系统自动确认</b><div style="color:#64748b">' + escConfirmHtml(r.autoConfirmed.time || '') + '（执行人：系统）</div><div style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:6px 8px;margin-top:4px">' + escConfirmHtml(r.autoConfirmed.note || '由于本人超期未确认，按照之前的约定系统已自动确认。') + '</div></div></div>';
+  } else if (r.confirmTime) h += '<div class="arch-tl"><span class="arch-dot" style="background:#1a8a3a"></span><div><b>本人确认结果</b><div style="color:#64748b">' + escConfirmHtml(r.confirmTime) + ' 提交（已勾选知悉声明）</div></div></div>';
   if (r.appeal && r.appeal.submitTime) {
     h += '<div class="arch-tl"><span class="arch-dot" style="background:#d93025"></span><div><b>本人发起申诉</b><div style="color:#64748b">' + escConfirmHtml(r.appeal.submitTime) + ' · 异议指标：' + escConfirmHtml(r.appeal.items || '') + '</div><div style="background:#fef2f2;border:1px solid #fecaca;border-radius:6px;padding:6px 8px;margin-top:4px">申诉理由原文：' + escConfirmHtml(r.appeal.reason || '') + '</div></div></div>';
   }
@@ -4704,8 +4911,9 @@ function archiveDetailHtml(r) {
   if (r.finalRuling) {
     h += '<div class="arch-tl"><span class="arch-dot" style="background:#6b4fd8"></span><div style="flex:1;min-width:0"><b>管理员裁决：' + (r.finalRuling.adjust ? '结果已更新' : '结果维持不变') + '</b><div style="color:#64748b">' + escConfirmHtml(r.finalRuling.time || '') + ' · 申诉期间暂按原结果执行，裁决后差额随最近一次工资补足或核减</div><div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:6px;padding:6px 8px;margin-top:4px">裁决意见原文：' + escConfirmHtml(r.finalRuling.comment || '') + '</div>' + rulingCompareBlockHtml(r, 'archive') + '</div></div>';
   }
-  // 历史留痕：撤销申诉 / 撤销裁决 / 重置确认流程 全程可见
+  // 历史留痕：撤销申诉 / 撤销裁决 / 重置确认流程 全程可见（超期自动确认已在上方单独展示，此处跳过）
   (r.history || []).forEach(function (his) {
+    if (his.type === 'auto_confirmed') return;
     var bgc = '#fffbeb', bc = '#fde68a', t = '';
     if (his.type === 'appeal_withdrawn') { t = '申诉人撤销申诉'; bgc = '#fef2f2'; bc = '#fecaca'; }
     if (his.type === 'ruling_revoked') { t = '管理员撤销裁决（退回复核）'; }
@@ -4773,7 +4981,8 @@ function renderMyConfirmHistory() {
     h += '<div style="width:72px;flex:none;font-weight:600;color:#1e293b;padding-top:2px">' + r.month + '</div>';
     h += '<div style="flex:1;min-width:0">';
     h += '<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:' + stColor + ';margin-right:6px"></span><b>' + confirmStatusText(r) + '</b>' +
-      (r.status === 'confirmed' && r.confirmTime ? ' <span style="color:#94a3b8;font-size:11px">' + escConfirmHtml(r.confirmTime) + ' 确认</span>' : '') +
+      (r.status === 'confirmed' && r.confirmTime && !r.autoConfirmed ? ' <span style="color:#94a3b8;font-size:11px">' + escConfirmHtml(r.confirmTime) + ' 确认</span>' : '') +
+      (r.status === 'confirmed' && r.autoConfirmed ? ' <span style="color:#b45309;font-size:11px">' + escConfirmHtml(r.autoConfirmed.time || '') + ' 系统自动确认</span>' : '') +
       (r.status === 'ruled' && r.finalRuling ? ' <span style="color:#94a3b8;font-size:11px">' + (r.finalRuling.adjust ? '结果已更新' : '结果维持不变') + '（' + escConfirmHtml(r.finalRuling.time || '') + '）</span>' : '') +
       '</div>';
     if (r.appeal && r.appeal.submitTime) {
@@ -4787,6 +4996,10 @@ function renderMyConfirmHistory() {
       h += rulingCompareBlockHtml(r, 'my'); // 本人可见调整前后对比
     }
     (r.history || []).forEach(function (his) {
+      if (his.type === 'auto_confirmed') { // 超期自动确认已在上方状态行显示，不重复
+        h += '<div style="color:#b45309;font-size:11px;margin-top:3px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:4px 8px">超期系统自动确认（' + escConfirmHtml(his.time || '') + '）：' + escConfirmHtml(his.note || '') + '</div>';
+        return;
+      }
       var t2 = his.type === 'appeal_withdrawn' ? '申诉已撤销' : (his.type === 'ruling_revoked' ? '裁决已被撤销，待重新裁决' : '流程被管理员重置，回到待确认');
       h += '<div style="color:#b45309;font-size:11px;margin-top:3px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:4px 8px">' + t2 + '（' + escConfirmHtml(his.time || '') + '）：' + escConfirmHtml(his.note || '') + '</div>';
     });
@@ -5093,9 +5306,11 @@ function subjScoreComplete(name, role) {
 // 存储：普通员工键 "姓名_字段_月份"；双评员工每人一槽 "姓名_字段_月份@评价人"。
 var DUAL_EVAL_STAFF = { "郭旺": true };
 var DUAL_EVAL_FROM = "2026-08";
+var DUAL_EVAL_TO = "2026-10"; // 2026-11-09 用户拍板：双评机制于 2026-10 后停止，11 月起按单人评分；历史月份不受影响
 function dualEvalLeaders(name) {
   if (!DUAL_EVAL_STAFF.hasOwnProperty(name)) return null;
   if (String(perfMonth) < DUAL_EVAL_FROM) return null; // 历史月份不启用
+  if (String(perfMonth) > DUAL_EVAL_TO) return null; // 2026-11 起停止双评
   var md = WORKBENCH_DATA.monthly_data[perfMonth];
   if (!md) return null;
   var evs = [];
@@ -8518,6 +8733,7 @@ document.addEventListener("DOMContentLoaded", function() {
   pullModule('marketing');
   pullModule('campus');
   pullModule('perfconfirm'); // 绩效确认/申诉记录：打开即拉最新，多人多设备同步
+  pullModule('subjts'); // 主观分送达时间（2026-11 起）：超期自动确认与截止日提示的数据源
   pullModule('passwords'); // 账号密码（加盐哈希）：打开即拉最新，管理员重置后所有设备生效
   loadPerfRules(); // 绩效规则（管理员在线编辑版本）：先套本地，再拉云端最新
   initPerfRuleEditing();
