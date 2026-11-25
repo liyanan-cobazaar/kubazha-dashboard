@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>库巴扎 · 项目健康度画像（演示原型）</title>
+<style>
+:root{
+  --bg:#08131c; --panel:#0d1e29; --panel2:#102735; --line:#1d3846; --line2:#2a4a58;
+  --txt:#e4f0f2; --sub:#8fa9b4; --dim:#64808c;
+  --teal:#43d6c4; --teal2:#2bb8a8; --tealbg:rgba(67,214,196,.10);
+  --red:#f2777a; --orange:#f5a25d; --yellow:#f2c66d; --green:#4ad39a; --purple:#a99bf0;
+  --radius:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg); color:var(--txt);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Helvetica Neue",sans-serif;
+  font-size:13px; line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;cursor:pointer}
+::-webkit-scrollbar{width:7px;height:7px}
+::-webkit-scrollbar-thumb{background:#294654;border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ---------- 顶栏 ---------- */
+.topbar{border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0c1c27,#091720)}
+.tb-main{display:flex;align-items:center;gap:18px;padding:12px 22px}
+.brand{display:flex;align-items:center;gap:10px;min-width:250px}
+.brand .mark{width:26px;height:26px;border:1.5px solid var(--teal);border-radius:6px;display:grid;place-items:center;color:var(--teal);font-size:14px;transform:rotate(0deg)}
+.brand b{font-size:15px;letter-spacing:.5px;font-weight:600}
+.brand small{display:block;font-size:9px;letter-spacing:1.5px;color:var(--dim);font-weight:400}
+.levels{display:flex;gap:2px;background:#0a1a24;border:1px solid var(--line);border-radius:var(--radius);padding:3px}
+.levels button{background:transparent;border:0;color:var(--sub);padding:7px 18px;border-radius:5px;font-size:12.5px;transition:.18s}
+.levels button:hover{color:var(--txt)}
+.levels button.on{background:var(--tealbg);color:var(--teal);box-shadow:inset 0 0 0 1px rgba(67,214,196,.35)}
+.tb-right{margin-left:auto;display:flex;align-items:center;gap:10px}
+.ghost{background:transparent;border:1px solid var(--line2);color:var(--sub);padding:7px 13px;border-radius:6px;font-size:12px}
+.ghost:hover{border-color:var(--teal);color:var(--teal)}
+.primary{background:var(--teal);border:0;color:#04222a;font-weight:600;padding:8px 15px;border-radius:6px;font-size:12px}
+.primary:hover{background:#5ce6d5}
+.tb-note{display:flex;align-items:center;justify-content:space-between;padding:7px 22px;border-top:1px solid rgba(29,56,70,.6);color:var(--sub);font-size:11.5px}
+.tb-note b{color:var(--teal);font-weight:600}
+.badge-demo{border:1px solid var(--line2);border-radius:4px;padding:2px 8px;color:var(--dim);font-size:10.5px}
+
+/* ---------- 布局 ---------- */
+.layout{display:grid;grid-template-columns:224px minmax(560px,1fr) 310px;min-height:calc(100vh - 96px)}
+.side{border-right:1px solid var(--line);background:#0a1a24;padding:14px 12px;overflow-y:auto;max-height:calc(100vh - 96px)}
+.main{padding:18px 22px 28px;overflow-y:auto;max-height:calc(100vh - 96px)}
+.right{border-left:1px solid var(--line);background:#0a1a24;padding:16px 14px;overflow-y:auto;max-height:calc(100vh - 96px)}
+.sec-label{font-size:10.5px;letter-spacing:1.6px;color:var(--dim);text-transform:uppercase;margin:4px 0 10px;display:flex;align-items:center;gap:7px}
+.sec-label::before{content:"";width:3px;height:11px;background:var(--teal);border-radius:2px;display:inline-block}
+
+/* ---------- 左栏项目列表 ---------- */
+.proj{display:block;width:100%;text-align:left;background:transparent;border:1px solid transparent;border-radius:7px;padding:10px 11px;margin-bottom:5px;color:var(--txt);transition:.15s}
+.proj:hover{background:#102632;border-color:var(--line)}
+.proj.on{background:var(--panel2);border-color:var(--line2);box-shadow:inset 3px 0 0 var(--teal)}
+.proj .p1{display:flex;justify-content:space-between;align-items:center;gap:6px}
+.proj .pn{font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj .pi{font-size:15px;font-weight:700;font-variant-numeric:tabular-nums}
+.proj .p2{display:flex;justify-content:space-between;margin-top:5px;font-size:10.5px;color:var(--dim)}
+.lamp{display:inline-flex;align-items:center;gap:5px;font-size:10.5px}
+.dot{width:7px;height:7px;border-radius:50%;display:inline-block}
+.d-red{background:var(--red);box-shadow:0 0 7px rgba(242,119,122,.6)}
+.d-yellow{background:var(--yellow);box-shadow:0 0 7px rgba(242,198,109,.5)}
+.d-green{background:var(--green);box-shadow:0 0 7px rgba(74,211,154,.5)}
+.d-purple{background:var(--purple);box-shadow:0 0 7px rgba(169,155,240,.5)}
+.tier-tag{display:inline-block;border:1px solid var(--line2);border-radius:3px;padding:0 5px;font-size:10px;color:var(--sub)}
+
+/* ---------- 主区 ---------- */
+.phead{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}
+.phead h1{font-size:20px;font-weight:600;letter-spacing:.5px}
+.phead .meta{color:var(--sub);font-size:11.5px;margin-top:5px}
+.phead .meta span{margin-right:14px}
+.scorebox{border:1px solid var(--line2);background:var(--panel);border-radius:var(--radius);padding:10px 18px;text-align:right;min-width:132px}
+.scorebox .lbl{font-size:10.5px;color:var(--dim)}
+.scorebox .num{font-size:30px;font-weight:700;line-height:1.15;font-variant-numeric:tabular-nums}
+.scorebox .delta{font-size:11px;color:var(--orange)}
+
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px}
+.card h3{font-size:12.5px;font-weight:600;margin-bottom:9px;display:flex;align-items:center;gap:8px}
+.card h3 .idx{color:var(--dim);font-size:10.5px;font-weight:400;letter-spacing:1px}
+.summary{border-left:2px solid var(--teal);background:linear-gradient(90deg,rgba(67,214,196,.07),transparent);padding:11px 14px;border-radius:0 6px 6px 0;color:#cfe4e8;font-size:12.5px;line-height:1.85}
+.summary .tag{color:var(--teal);font-weight:600;margin-right:6px}
+
+.grid2{display:grid;grid-template-columns:1.15fr .85fr;gap:14px}
+.radar-wrap{display:flex;align-items:center;gap:6px}
+.radar-legend{flex:1;display:flex;flex-direction:column;gap:7px;min-width:0}
+.dimrow{display:flex;align-items:center;gap:7px;font-size:11px}
+.dimrow .dn{color:var(--sub);width:76px;flex:none;font-size:10.5px}
+.bar{flex:1;height:5px;background:#17303c;border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px}
+.dimrow .dv{width:26px;text-align:right;font-variant-numeric:tabular-nums;color:var(--txt)}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:10px 12px}
+.kpi .k{font-size:10.5px;color:var(--dim)}
+.kpi .v{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;margin-top:2px}
+.kpi .s{font-size:10px;color:var(--sub)}
+
+.sig-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.sigcol h4{font-size:11px;letter-spacing:1px;color:var(--sub);margin-bottom:9px;display:flex;align-items:center;gap:7px}
+.sigcol h4 .n{border:1px solid var(--line2);border-radius:10px;padding:0 6px;font-size:10px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line2);border-radius:5px;padding:7px 10px;font-size:11.5px;color:var(--txt);cursor:pointer;transition:.15s;text-align:left}
+.chip:hover{border-color:var(--teal);transform:translateY(-1px)}
+.chip.risk .cdot{background:var(--red)}
+.chip.opp .cdot{background:var(--teal)}
+.chip .cdot{width:6px;height:6px;border-radius:50%;flex:none}
+.chip .cid{color:var(--dim);font-size:10px;font-variant-numeric:tabular-nums}
+.chip .arrow{color:var(--dim);font-size:11px}
+.hint{font-size:10.5px;color:var(--dim);margin-top:9px}
+
+.trend-legend{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);margin-top:6px}
+.trend-tip{margin-top:8px;font-size:11px;color:var(--sub);min-height:18px}
+.trend-tip b{color:var(--teal)}
+
+/* ---------- 右栏任务 ---------- */
+.tasktop{background:var(--tealbg);border:1px solid rgba(67,214,196,.28);border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:11.5px;color:#bfe9e3}
+.tasktop b{display:block;color:var(--teal);font-size:12.5px;margin-bottom:2px}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);margin-bottom:12px}
+.tabs button{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--dim);padding:7px 9px;font-size:11px}
+.tabs button.on{color:var(--teal);border-bottom-color:var(--teal)}
+.tabs button:hover{color:var(--txt)}
+.tcard{border:1px solid var(--line);background:var(--panel);border-radius:7px;padding:12px;margin-bottom:10px}
+.tcard .th{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ttype{font-size:10px;color:var(--dim);letter-spacing:.5px}
+.prio{font-size:10px;padding:1px 7px;border-radius:3px;font-weight:600;white-space:nowrap}
+.p1{background:rgba(242,119,122,.14);color:var(--red);border:1px solid rgba(242,119,122,.4)}
+.p2{background:rgba(242,198,109,.12);color:var(--yellow);border:1px solid rgba(242,198,109,.35)}
+.p3{background:rgba(74,211,154,.10);color:var(--green);border:1px solid rgba(74,211,154,.3)}
+.tcard h5{font-size:12.5px;font-weight:600;margin:7px 0 6px;line-height:1.5}
+.tcard p{font-size:11px;color:var(--sub);line-height:1.65}
+.tcard .why{font-size:10.5px;color:var(--dim);margin-top:6px}
+.tcard .why b{color:var(--sub)}
+.tcard .acts{display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
+.link{background:transparent;border:0;color:var(--teal);font-size:11px;padding:0}
+.link:hover{text-decoration:underline}
+.btn-sm{border:1px solid var(--line2);background:transparent;color:var(--txt);border-radius:5px;padding:6px 10px;font-size:11px}
+.btn-sm:hover{border-color:var(--teal);color:var(--teal)}
+
+/* ---------- 弹窗 ---------- */
+.overlay{position:fixed;inset:0;background:rgba(3,10,15,.78);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+.overlay.show{display:flex}
+.modal{width:min(680px,96vw);max-height:88vh;overflow-y:auto;background:var(--panel);border:1px solid var(--line2);border-radius:10px;box-shadow:0 24px 70px rgba(0,0,0,.6);padding:22px 26px}
+.mhead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:5px}
+.crumb{font-size:11px;color:var(--dim);margin-bottom:8px}
+.crumb b{color:var(--teal);font-weight:500}
+.mhead h2{font-size:19px;font-weight:600;letter-spacing:.3px}
+.close{background:transparent;border:1px solid var(--line2);color:var(--sub);width:26px;height:26px;border-radius:5px;font-size:15px;line-height:1}
+.close:hover{color:var(--txt);border-color:var(--teal)}
+.attr3{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--line);border-radius:6px;margin:14px 0 18px}
+.attr3>div{padding:11px 13px;border-right:1px solid var(--line)}
+.attr3>div:last-child{border-right:0}
+.attr3 .a1{font-size:10.5px;color:var(--dim)}
+.attr3 .a2{font-size:15px;font-weight:700;margin:3px 0}
+.attr3 .a3{font-size:10.5px;color:var(--sub)}
+.msec{margin:16px 0}
+.msec .lab{font-size:12px;font-weight:600;color:var(--txt);margin-bottom:6px}
+.msec .body{font-size:12px;color:var(--sub);line-height:1.8}
+.msec .body.emph{color:#cfe4e8}
+.quad{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:6px;overflow:hidden;margin:14px 0}
+.quad>div{padding:13px 15px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}
+.quad>div:nth-child(2n){border-right:0}
+.quad>div:nth-last-child(-n+2){border-bottom:0}
+.quad .q1{font-size:11px;color:var(--teal);font-weight:600;margin-bottom:6px}
+.quad .q2{font-size:11.5px;color:var(--sub);line-height:1.8}
+.mfoot{display:flex;align-items:center;gap:10px;margin-top:18px;flex-wrap:wrap}
+.disclaim{font-size:10.5px;color:var(--dim);margin-top:14px;padding-top:12px;border-top:1px solid var(--line);line-height:1.7}
+.disclaim .ic{color:var(--yellow);margin-right:5px}
+.evtable{width:100%;border-collapse:collapse;margin:12px 0;font-size:11.5px}
+.evtable th,.evtable td{border:1px solid var(--line);padding:9px 11px;text-align:left;vertical-align:top}
+.evtable th{width:110px;color:var(--dim);background:var(--panel2);font-weight:500}
+.evtable td{color:var(--txt)}
+.status{font-size:10px;padding:2px 7px;border-radius:3px}
+.st-ok{background:rgba(74,211,154,.12);color:var(--green)}
+.st-warn{background:rgba(242,198,109,.12);color:var(--yellow)}
+.st-todo{background:rgba(242,119,122,.12);color:var(--red)}
+.form2{display:grid;grid-template-columns:1fr 1fr;gap:12px;border:1px solid var(--line);border-radius:6px;padding:13px;margin:14px 0}
+.form2 label{display:block;font-size:10.5px;color:var(--dim);margin-bottom:5px}
+.form2 select{width:100%;background:var(--panel2);border:1px solid var(--line2);color:var(--txt);border-radius:5px;padding:7px 9px;font-size:11.5px;font-family:inherit}
+.form2 .fnote{grid-column:1/-1;font-size:10.5px;color:var(--dim);line-height:1.6}
+.btn-lg{width:100%;background:var(--teal);border:0;color:#04222a;font-weight:700;padding:12px;border-radius:6px;font-size:13px;margin-top:4px}
+.btn-lg:hover{background:#5ce6d5}
+
+/* ---------- 层级视图 ---------- */
+.view{display:none}
+.view.on{display:block}
+.heatrow{display:grid;grid-template-columns:150px 1fr 90px;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.heatrow:last-child{border-bottom:0}
+.heatbar{display:flex;gap:4px;flex-wrap:wrap}
+.hcell{width:15px;height:15px;border-radius:3px;cursor:default}
+.h-red{background:var(--red)}.h-yellow{background:var(--yellow)}.h-green{background:var(--green)}.h-idle{background:#1b3542}
+.pool{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.poolitem{border:1px solid var(--line);border-radius:6px;padding:11px 13px;background:var(--panel2)}
+.poolitem .pt{font-size:12px;font-weight:600;margin-bottom:4px}
+.poolitem .pd{font-size:10.5px;color:var(--sub)}
+.bline{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:11.5px}
+.bline:last-child{border-bottom:0}
+.bline span:last-child{color:var(--sub);text-align:right}
+
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);background:#12303c;border:1px solid var(--teal);color:var(--txt);padding:11px 20px;border-radius:7px;font-size:12px;opacity:0;pointer-events:none;transition:.25s;z-index:80;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media(max-width:1180px){
+  .layout{grid-template-columns:190px 1fr}
+  .right{grid-column:1/-1;border-left:0;border-top:1px solid var(--line);max-height:none}
+  .main{max-height:none}
+  .side{max-height:none}
+}
+@media(max-width:760px){
+  .layout{display:block}.side,.main,.right{max-height:none;border:0;border-bottom:1px solid var(--line)}
+  .tb-main{flex-wrap:wrap}.brand{min-width:0}.grid2,.sig-grid,.pool,.attr3,.form2{grid-template-columns:1fr}
+  .attr3>div{border-right:0;border-bottom:1px solid var(--line)}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="tb-main">
+    <div class="brand">
+      <div class="mark">&#9670;</div>
+      <div><b>库巴扎 · 项目健康度画像</b><small>PROJECT HEALTH PROFILING</small></div>
+    </div>
+    <div class="levels" id="levels">
+      <button class="on" data-lv="project">项目画像</button>
+      <button data-lv="business">业务线画像</button>
+      <button data-lv="company">公司大盘</button>
+    </div>
+    <div class="tb-right">
+      <button class="ghost" onclick="openInfo()">层级说明</button>
+      <button class="primary" onclick="exportSummary()">导出画像摘要</button>
+    </div>
+  </div>
+  <div class="tb-note">
+    <div><b>AI 辅助研判</b> · AI 建议优先级与牵头层级，<b>管理者保留最终裁定权</b> · 各维度独立呈现，不需从单一总分看具体健康度</div>
+    <div class="badge-demo">演示态 · 全部为脱敏示例数据</div>
+  </div>
+</div>
+
+<div class="layout">
+  <!-- 左：对象列表 -->
+  <div class="side">
+    <div class="sec-label">项目监测</div>
+    <div id="projList"></div>
+    <div class="disclaim" style="margin-top:16px">左侧为演示用示例项目，档位沿用公司五档口径；同一档内才可比，跨档只比灯不比分。</div>
+  </div>
+
+  <!-- 中：主区 -->
+  <div class="main">
+    <!-- 层级一：项目画像 -->
+    <div class="view on" id="v-project">
+      <div class="phead">
+        <div>
+          <h1 id="pName">—</h1>
+          <div class="meta" id="pMeta">—</div>
+        </div>
+        <div class="scorebox">
+          <div class="lbl">健康度读数（参考）</div>
+          <div class="num" id="pScore">—</div>
+          <div class="delta" id="pDelta">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><span class="idx">00</span> AI 研判摘要 <span style="font-weight:400;color:var(--dim);font-size:10.5px">更新于 2026-11-25 · 数据完整度 92%</span></h3>
+        <div class="summary" id="pSummary">—</div>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <h3><span class="idx">01</span> 七维画像 <span style="font-weight:400;color:var(--dim);font-size:10.5px">0—100，各维独立呈现</span></h3>
+          <div class="radar-wrap">
+            <div id="radar"></div>
+            <div class="radar-legend" id="dimLegend"></div>
+          </div>
+        </div>
+        <div class="card">
+          <h3><span class="idx">—</span> 关键计数</h3>
+          <div class="kpis" id="pKpis"></div>
+          <div class="disclaim" id="pTierNote" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><span class="idx">02</span> 重点信号 <span style="font-weight:400;color:var(--dim);font-size:10.5px">只显示当前需关注的，点击标签查看触发情况、关联任务和消除条件</span></h3>
+        <div class="sig-grid">
+          <div class="sigcol">
+            <h4 style="color:var(--red)">风险信号 <span class="n" id="rn">0</span></h4>
+            <div class="chips" id="riskChips"></div>
+          </div>
+          <div class="sigcol">
+            <h4 style="color:var(--teal)">机遇信号 <span class="n" id="on">0</span></h4>
+            <div class="chips" id="oppChips"></div>
+          </div>
+        </div>
+        <div class="hint">标签为当前信号，不是对项目的永久评价；满足消除条件即摘牌。</div>
+      </div>
+
+      <div class="card">
+        <h3><span class="idx">03</span> 健康度变化趋势 <span style="font-weight:400;color:var(--dim);font-size:10.5px">点击数据点查看变化归因</span></h3>
+        <div id="trend"></div>
+        <div class="trend-legend"><span>6月</span><span>7月</span><span>8月</span><span>9月</span><span>10月</span><span>11月</span></div>
+        <div class="trend-tip" id="trendTip">点击上方数据点查看该月变化归因。</div>
+      </div>
+    </div>
+
+    <!-- 层级二：业务线画像 -->
+    <div class="view" id="v-business">
+      <div class="phead"><div><h1>业务线画像</h1><div class="meta">按牵头业务线聚合任务建议与跨项目共性信号 · 不呈现项目间分数比较</div></div></div>
+      <div class="card">
+        <h3><span class="idx">01</span> 共性信号（同一信号在多个项目出现）</h3>
+        <div id="bizCommon"></div>
+      </div>
+      <div class="card">
+        <h3><span class="idx">02</span> 各线待办池与资源负荷</h3>
+        <div id="bizLoad"></div>
+      </div>
+      <div class="card">
+        <h3><span class="idx">03</span> 本阶段取舍建议</h3>
+        <div class="summary">按公司节奏，<span class="tag">本阶段建议全公司重点完成 1 项</span>：结算链路与工单积压专项核查（P1，产研+财务）。其余进入计划改进池，不要求同时开展。</div>
+      </div>
+    </div>
+
+    <!-- 层级三：公司大盘 -->
+    <div class="view" id="v-company">
+      <div class="phead"><div><h1>公司大盘</h1><div class="meta">按档 / 按区域的信号热力 · 与项目画像共用同一批信号实例，不另算一套分</div></div></div>
+      <div class="card">
+        <h3><span class="idx">01</span> 按档信号热力</h3>
+        <div id="coHeat"></div>
+        <div class="hint" style="margin-top:10px">每格为一个在管信号：<span style="color:var(--red)">红</span>＝红线/高风险，<span style="color:var(--yellow)">黄</span>＝需关注，<span style="color:var(--green)">绿</span>＝已达标。</div>
+      </div>
+      <div class="grid2">
+        <div class="card">
+          <h3><span class="idx">02</span> 机遇机会池</h3>
+          <div class="pool" id="coPool"></div>
+        </div>
+        <div class="card">
+          <h3><span class="idx">03</span> 红线清单与本期变化</h3>
+          <div id="coBlock"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右：任务建议 -->
+  <div class="right">
+    <div class="sec-label">04 &nbsp;任务建议</div>
+    <div style="color:var(--dim);font-size:10.5px;margin:-4px 0 12px">AI 建议 · 管理者审定后生成</div>
+    <div class="tasktop"><b>本阶段建议重点完成 1 项</b>其余进入计划改进池，不要求同时开展。</div>
+    <div class="tabs" id="taskTabs">
+      <button class="on" data-cat="all">全部</button>
+      <button data-cat="check">核查整改</button>
+      <button data-cat="grow">增长动作</button>
+      <button data-cat="guard">保障合规</button>
+    </div>
+    <div id="taskList"></div>
+  </div>
+</div>
+
+<!-- 信号专题弹窗（二层） -->
+<div class="overlay" id="ovSignal">
+  <div class="modal">
+    <div class="crumb">第一层 总览 &nbsp;&gt;&nbsp; <b>第二层 信号专题</b> &nbsp;&gt;&nbsp; 第三层 原始证据</div>
+    <div class="mhead"><h2 id="sgTitle">—</h2><button class="close" onclick="closeAll()">&times;</button></div>
+    <div id="sgChip"></div>
+    <div class="quad">
+      <div><div class="q1">这是什么意思</div><div class="q2" id="sgMean">—</div></div>
+      <div><div class="q1">本次怎样触发</div><div class="q2" id="sgTrig">—</div></div>
+      <div><div class="q1">对画像的影响</div><div class="q2" id="sgImp">—</div></div>
+      <div><div class="q1">什么时候可以消除</div><div class="q2" id="sgClear">—</div></div>
+    </div>
+    <div class="msec"><div class="lab">建议处置</div><div class="body" id="sgRoute">—</div></div>
+    <div class="mfoot">
+      <button class="ghost" onclick="openEvidence()">查看原始证据 &rarr;</button>
+      <button class="primary" id="sgTaskBtn" onclick="openLinkedTask()">查看关联任务 &rarr;</button>
+    </div>
+    <div class="disclaim"><span class="ic">&#9432;</span><span id="sgNote">标签为当前风险信号，不是对项目的永久评价。</span> 演示态仅展示模拟数据，不写入真实系统、不派发真实任务。</div>
+  </div>
+</div>
+
+<!-- 原始证据弹窗（三层） -->
+<div class="overlay" id="ovEvidence">
+  <div class="modal" style="width:min(600px,96vw)">
+    <div class="crumb">第一层 总览 &nbsp;&gt;&nbsp; 第二层 信号专题 &nbsp;&gt;&nbsp; <b>第三层 数据来源及数据情况</b></div>
+    <div class="mhead"><h2>原始证据卡</h2><button class="close" onclick="closeAll()">&times;</button></div>
+    <div style="color:var(--sub);font-size:11.5px;margin-bottom:6px" id="evSub">—</div>
+    <table class="evtable" id="evTable"></table>
+    <div class="mfoot"><button class="ghost" onclick="backToSignal()">&larr; 返回信号专题</button></div>
+    <div class="disclaim"><span class="ic">&#9432;</span>没有统计时点与取数口径的数值不允许触发信号。标注「需建台账」的证据目前尚无稳定数据源，需在正式态补齐后方可自动取数。</div>
+  </div>
+</div>
+
+<!-- 任务审定弹窗 -->
+<div class="overlay" id="ovTask">
+  <div class="modal">
+    <div class="crumb">第一层 任务总览 &nbsp;&gt;&nbsp; <b>第二层 任务审定</b></div>
+    <div class="mhead"><h2 id="tkTitle">—</h2><button class="close" onclick="closeAll()">&times;</button></div>
+    <div class="attr3">
+      <div><div class="a1">风险 / 机遇重要性</div><div class="a2" id="tkImp">—</div><div class="a3">不处理可能衍生的影响</div></div>
+      <div><div class="a1">AI 建议优先级</div><div class="a2" style="color:var(--orange)" id="tkPrio">—</div><div class="a3" id="tkDue">—</div></div>
+      <div><div class="a1">AI 建议牵头</div><div class="a2" id="tkOwner">—</div><div class="a3">按问题归属与出现范围</div></div>
+    </div>
+    <div class="msec"><div class="lab">为什么现在做</div><div class="body emph" id="tkWhy">—</div></div>
+    <div class="msec"><div class="lab">为什么建议由该线牵头</div><div class="body" id="tkWho">—</div></div>
+    <div class="msec"><div class="lab">建议任务内容</div><div class="body" id="tkWhat">—</div></div>
+    <div class="msec"><button class="link" onclick="openTaskEvidence()">查看全部触发证据 &rarr;</button></div>
+    <div class="form2">
+      <div><label>执行优先级（管理者可改）</label><select id="tkSelPrio"><option>P1 · 优先处理</option><option>P2 · 计划改进</option><option>P3 · 持续完善</option></select></div>
+      <div><label>牵头层级（管理者可改）</label><select id="tkSelOwner"></select></div>
+      <div class="fnote">审定后将记录审定结果；演示态不保存草稿、也不向真实系统派发任务。</div>
+    </div>
+    <button class="btn-lg" onclick="confirmTask()">确认审定并生成任务 &rarr;</button>
+    <div class="disclaim"><span class="ic">&#9432;</span>AI 建议优先级与牵头层级仅供参考，<b style="color:var(--sub)">管理者保留最终裁定权</b>。结果回流后按「消除条件」更新信号标签。</div>
+  </div>
+</div>
+
+<!-- 层级说明 -->
+<div class="overlay" id="ovInfo">
+  <div class="modal" style="width:min(600px,96vw)">
+    <div class="mhead"><h2>层级说明</h2><button class="close" onclick="closeAll()">&times;</button></div>
+    <div class="msec"><div class="lab">三个层级的画像</div><div class="body">项目画像 / 业务线画像 / 公司大盘，共用同一批信号实例，只是聚合方式不同，不另算一套分。</div></div>
+    <div class="msec"><div class="lab">三层下钻</div><div class="body">一层是现在的图，二层是信号标签或任务建议的理由和逻辑，三层就是具体的数据来源及数据情况。</div></div>
+    <div class="msec"><div class="lab">AI 边界</div><div class="body">AI 只做信号识别、归因摘要、任务建议与优先级初排；不做定稿口径、判定红线、直接派发任务、贴永久标签。</div></div>
+    <div class="msec"><div class="lab">口径状态</div><div class="body">公司定稿＝可直接用作依据；建议·待确认＝拟定阈值，定稿前须与业务负责人确认；需建台账＝目前无稳定数据源。</div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+var DIMS = ["D1 业务规模","D2 客户结构","D3 营销触达","D4 供应链","D5 系统运维","D6 需求产研","D7 合规组织"];
+var MONTHS = ["6月","7月","8月","9月","10月","11月"];
+
+var SIGNALS = {
+ "R-01":{name:"总流量大但线上率长期低迷",kind:"risk",dim:"D1 / D2",prio:"P1",owner:"运营（攻坚专项格）+ 营销",due:"2 日内出方案",
+  mean:"项目体量不小但采购仍主要在线下，平台渗透没做起来，属于「有量无转化」的结构性问题，不是短期波动。",
+  trig:"近 3 月月均流量处于同档前 30%，且线上率 <30%，且连续 2 月未改善。（示例值：近 3 月流量居前，线上率 24%，连续 2 月未改善）",
+  imp:"拉低 D1、D2 两维，是本期读数下行主因（归因权重最高）。",
+  clear:"线上率连续 2 月回升并达到该档目标值，且留存对应系统订单与商家映射证据。",
+  route:"建议 P1 由运营牵头、营销支撑，走专项攻坚；关联任务 T-02、T-10。",
+  ev:{val:"线上率 24%（示例）",time:"2026-10-31",source:"运营部门-数据收集.xlsx 月度汇总｜系统订单明细",rule:"分子=线上订单流量，分母=全量流量；基期取数链：去年同期→缺失回落上月",owner:"运营",upd:"每月",st:"公司定稿"},task:"T-02"},
+ "R-04":{name:"同类隐患复发",kind:"risk",dim:"D5 / D6",prio:"P1",owner:"产研（运营复核）",due:"2 日内",
+  mean:"同一类问题整改后再次出现，说明上次只处理了现象没处理机制。",
+  trig:"90 天内同类工单 ≥2 次，且前一次状态曾标为「已闭环」。（示例值：同类工单 3 次，前次 9 月标已闭环）",
+  imp:"直接置 D5 红，并在研判摘要中列为本期下行主因。",
+  clear:"根因项完成变更并连续 60 天无复现，需留变更单与复验记录。",
+  route:"建议 P1 由产研落实、运营复核；「查看依据与任务路由」可下钻到工单原件。",
+  ev:{val:"同类工单 3 次（示例）",time:"2026-11-20",source:"系统工单台账（需建）｜客服工单",rule:"同类＝同一根因分组；复现次数按工单闭环后重新开启计",owner:"产研",upd:"事件触发",st:"需建台账"},task:"T-01"},
+ "R-07":{name:"结算链路未对接财务",kind:"risk",dim:"D5 / D1",prio:"P1",owner:"财务 + 产研（管理层验收）",due:"2 日内出整改单",
+  mean:"结算靠人工兜底，绩效侧按保底计入，账面完成率不代表链路正常；这是红线级链路缺陷。",
+  trig:"结算状态 = 未对接财务，或结算率连续 2 月恒为保底值。（示例值：状态＝未对接财务，已持续 2 月）",
+  imp:"命中红线，项目最终灯直接置红；不允许被综合读数或其他维度绿灯掩盖。",
+  clear:"完成财务对接并通过一次全量对账，绩效与健康度两侧口径同时恢复，管理层验收后摘牌。",
+  route:"建议 P1 由财务+产研联合整改，管理层验收；关联任务 T-01、T-03。",
+  ev:{val:"结算状态＝未对接财务（示例）",time:"2026-10-31",source:"结算状态台账（需建）｜财务对账单",rule:"绩效侧按既定保底口径计入；健康度侧另标 D5 红灯，不得互相抵消",owner:"财务 / 产研",upd:"每月",st:"公司定稿 + 需建台账"},task:"T-01"},
+ "R-09":{name:"单一供应商占比过高且无备份",kind:"risk",dim:"D4",prio:"P1",owner:"供应商",due:"本月内",
+  mean:"平台不存货、履约在供应商，单点意味着一旦断供该项目直接停摆。",
+  trig:"最大单家占比 >30%（建议阈值）或 CR3 >70%（建议阈值），且无备份方案。（示例值：单家 46%，无备份）",
+  imp:"D4 置红；命中红线时项目直接置红。",
+  clear:"引入备份供应商并完成至少 1 次履约验证，占比回落到阈值内。",
+  route:"建议 P1 由供应商补招第二供应商，更新集中度与退出预案台账；关联任务 T-04。",
+  ev:{val:"单家占比 46%（示例）",time:"2026-10-31",source:"供应商履约与集中度台账（需建）｜订单数据",rule:"CR3＝前 3 家交易额 / 总交易额；阈值为建议·待确认",owner:"供应商",upd:"每月",st:"需建台账"},task:"T-04"},
+ "R-11":{name:"整改逾期",kind:"risk",dim:"D7",prio:"P1",owner:"原责任线 + 运营督办",due:"3 日内",
+  mean:"已开出的动作单超过截止日仍未回填结果，闭环断在最后一公里；这类信号越多说明机制空转。",
+  trig:"任务状态 ≠ 已验收 且 当前日期 > 截止日。（示例值：2 张动作单超期未回填）",
+  imp:"D7 转黄；同时计入业务线画像的「共性信号」统计。",
+  clear:"结果回填并通过验收；或管理者在审定中明确降级/撤销并写明理由。",
+  route:"建议 P2 由运营督办、原责任线执行；关联任务 T-09。",
+  ev:{val:"逾期动作单 2 张（示例）",time:"2026-11-25",source:"任务与审定台账（需建）｜月度项目规划表",rule:"逾期＝当前日期 > 截止日 且 状态 ≠ 已验收",owner:"运营",upd:"事件触发",st:"需建台账"},task:"T-09"},
+ "R-14":{name:"校园行触达量大但转化率持续偏低",kind:"risk",dim:"D3",prio:"P1",owner:"营销 + 校园行",due:"本月内改打法",
+  mean:"数量≠质量，触达量堆得高但没转化，属于营销无效投入。",
+  trig:"有效触达量同档前列，但触达转化率 <20% 连续 2 期。（示例值：触达量居前，转化率 14%）",
+  imp:"D3 置红；按公司定稿，该区域网格项目立项冻结。",
+  clear:"转化率回到 ≥30% 且连续 2 期稳定，并留存新打法的活动复盘。",
+  route:"建议先改打法再谈加投，P1 由营销+校园行执行；关联任务 T-06。",
+  ev:{val:"触达转化率 14%（示例）",time:"2026-10-31",source:"营销活动策划、执行进度跟进表｜用户池走访表",rule:"触达＝可追溯渠道留痕；达标 ≥30%、<20% 冻结为公司定稿口径",owner:"营销",upd:"每场/每月",st:"公司定稿"},task:"T-06"},
+ "R-17":{name:"加急需求超 10% / 同类需求未合并",kind:"risk",dim:"D6",prio:"P2",owner:"产研（评审会）",due:"本月排期会",
+  mean:"产研是成本中心，加急挤兑会拖垮标准化迭代，同类需求不合并等于重复开发。",
+  trig:"当月加急需求占资源总量 >10%，或同类需求存在 ≥2 个未合并工单。（示例值：加急占比 16%）",
+  imp:"D6 置红；业务线画像显示产研负荷。",
+  clear:"加急占比回落到 ≤10%，同类需求完成合并并同步提报人。",
+  route:"建议 P2 由产研评审会行使排期否决权；关联任务 T-07。",
+  ev:{val:"加急占比 16%（示例）",time:"2026-10-31",source:"业务需求池台账（需建）｜月度项目规划表",rule:"每月加急不超过资源总量 10%，为公司定稿口径",owner:"产研",upd:"每月",st:"公司定稿 + 需建台账"},task:"T-07"},
+ "O-01":{name:"高流量低线上的攻坚窗口",kind:"opp",dim:"D1 / D2 / D5",prio:"P1",owner:"管理层拍板 / 运营执行",due:"30 天内认领",
+  mean:"体量大、渗透低、系统已就绪、供应商齐备，四条同时成立时具备一次性拉线上率的条件。",
+  trig:"流量同档前列 + 线上率 <30% + 系统就绪 + 关键品类有可用商家，四条同时成立。（示例值：四条均成立）",
+  imp:"不折算成分数；挂「机遇栏」并计入公司大盘的增量机会池。",
+  clear:"挂专项格并配格长与资源池后转任务；或 30 天无人认领由管理层指派并上浮分成（封顶 10%）；逾期未动标失效并写明原因。",
+  route:"建议 P1 由管理层拍板配资源，运营执行；关联任务 T-10。",
+  ev:{val:"四项条件均成立（示例）",time:"2026-11-25",source:"数据收集.xlsx｜系统部署清单｜供应商品类台账｜网格化项目地图",rule:"线上率 <30% 攻坚口径、计提 10%/封顶均为公司定稿",owner:"运营",upd:"每月",st:"公司定稿"},task:"T-10"},
+ "O-03":{name:"C 类运维池冒出新政策或新关键人",kind:"opp",dim:"D2 / D7",prio:"P2",owner:"发现人 / 管理层指派",due:"30 天内评估",
+  mean:"运维池本不考核流量，一旦出现新采购政策、新采购处关键人或集采覆盖，就是低成本增量机会。",
+  trig:"运维池项目出现上述任一事件，且有人留痕上报。（示例值：出现新采购处关键人并已留痕）",
+  imp:"挂机遇栏；公司大盘计入新收入线索。",
+  clear:"转 O 机遇网格立项并按公司规则给发现人计提；或评估不成立后注明理由归档。",
+  route:"建议 P2 挂牌评估；关联任务 T-11。",
+  ev:{val:"新采购处关键人 1 名（示例）",time:"2026-11-18",source:"网格化项目地图｜用户池走访表｜政策留痕",rule:"发现人计提 10% 为公司定稿；该档只考核 SLA 与保底满意度",owner:"运营",upd:"按需",st:"公司定稿"},task:"T-11"},
+ "O-05":{name:"线下高频自购品类已有线上替代商家",kind:"opp",dim:"D2 / D4",prio:"P2",owner:"营销 + 供应商",due:"本月排期",
+  mean:"用户池已记录线下高频自购商品，且平台已有可替代商家，属确定性最高的品类渗透机会。",
+  trig:"用户池高频自购品类 ∩ 商品库可替代商家 ≠ 空，且该品类线上渗透率低。（示例值：命中 3 个品类）",
+  imp:"不改变读数；派生营销任务建议。",
+  clear:"完成替代专场并保价，观测到该品类线上订单；或商家不满足保价条件标失效。",
+  route:"建议 P2 由营销做替代专场、供应商保价；关联任务 T-02。",
+  ev:{val:"命中品类 3 个（示例）",time:"2026-11-10",source:"用户池走访表｜商品库｜系统订单明细",rule:"用户池新增＝当月首次建档且必填完整的采购人数，为公司定稿",owner:"运营 / 营销",upd:"每月",st:"公司定稿"},task:"T-02"},
+ "O-08":{name:"合同 / 收费模式到期前 90 天",kind:"opp",dim:"D7",prio:"P2",owner:"商务 + 供应商",due:"到期前 60 天",
+  mean:"到期前是唯一能顺势谈收费模式升级的窗口，过期就只剩续签。",
+  trig:"到期日 - 当前 ≤90 天 且 > 0。（示例值：距到期 72 天）",
+  imp:"不改变读数；与风险信号 R-12 成对出现（同一件事的两个面）。",
+  clear:"完成升级或续签；到期未完成则转风险信号。",
+  route:"建议 P2 由商务+合规在到期前 60 天完成；关联任务 T-08。",
+  ev:{val:"距到期 72 天（示例）",time:"2026-11-25",source:"合同 / 授权 / 资质 / 费率到期台账（需建）｜收费模式清单",rule:"服务费率、年费口径为公司定稿；到期日取台账字段",owner:"合规",upd:"每月",st:"公司定稿 + 需建台账"},task:"T-08"},
+ "O-10":{name:"同类需求被多校重复提报 → 产品化",kind:"opp",dim:"D6",prio:"P2",owner:"产研",due:"本月排期会",
+  mean:"多个项目提同一需求，说明应转标准化产品一次开发多校复用，而不是逐校定制。",
+  trig:"同一需求描述在 ≥3 个项目出现，且当前均为定制化排期。（示例值：命中 4 个项目）",
+  imp:"不改变读数；产研画像生成标准化候选。",
+  clear:"转标准化迭代并同步提报人；或评审判定不适合标准化并注明理由。",
+  route:"建议 P2 由产研合并同类需求；关联任务 T-07。",
+  ev:{val:"重复项目 4 个（示例）",time:"2026-11-20",source:"业务需求池台账（需建）｜月度项目规划表",rule:"同类需求必须合并为公司定稿；优先级三维度标注",owner:"产研",upd:"每月",st:"需建台账"},task:"T-07"},
+ "O-12":{name:"校园行上座率超标但场次未排满",kind:"opp",dim:"D3",prio:"P2",owner:"校园行 + 供应商",due:"下期排期",
+  mean:"单场效果已验证，产能还有余量，加场是最直接的复制机会。",
+  trig:"上座率 >65% 且该校本季度排期未达上限 且招商到场率达标。（示例值：上座率 71%，尚余 1 场）",
+  imp:"不改变读数；校园行画像生成加场建议。",
+  clear:"完成加场并复盘；或排期/招商条件不再满足标失效。",
+  route:"建议 P2 由校园行加场、供应商共投；关联任务 T-05。",
+  ev:{val:"上座率 71%（示例）",time:"2026-11-12",source:"校园行计划&实施表｜校园行具体排期表",rule:"上座率 52%→65%、招商到场率为公司定稿口径",owner:"校园行",upd:"每月",st:"公司定稿"},task:"T-05"}
+};
+
+var TASKS = {
+ "T-01":{type:"核查整改",cat:"check",name:"开展结算链路与工单积压专项核查",sig:"R-04 + R-07",imp:"高",prio:"P1 · 优先处理",owner:"产研（运营复核）",due:"建议 2 日内",
+  why:"同类隐患复发与结算未对接同时出现，属于链路根因，优先现场核验，避免继续靠保底口径出数。",
+  who:"问题与财务对接、产研接口直接相关，且仅在该项目出现，适合由产研落实、运营复核。",
+  what:"核查结算状态与近 90 天工单，完成对接变更单；结果回流后更新风险标签。",route:"工单原件 + 结算状态台账 → 财务 / 产研",sigIds:["R-04","R-07"]},
+ "T-02":{type:"增长动作",cat:"grow",name:"低线上率项目定向触达与商家映射专项",sig:"R-01 + O-05",imp:"高",prio:"P1 · 优先处理",owner:"营销（供应商配合）",due:"建议本月内",
+  why:"体量大但线上率长期 <30%，且已有可替代商家，属于确定性渗透窗口。",
+  who:"触达名单、品类与活动执行都在营销侧，供应商负责保价与商家到位。",
+  what:"按 S/A 级与沉睡课题组名单做一轮定向触达，开品类替代专场并保价。",route:"用户池走访表 + 商品库 + 系统订单明细 → 营销",sigIds:["R-01","O-05"]},
+ "T-03":{type:"核查整改",cat:"check",name:"结算对接财务变更与口径复验",sig:"R-05 + R-07",imp:"高",prio:"P1 · 优先处理",owner:"财务 + 产研（管理层验收）",due:"建议 2 日内出整改单",
+  why:"账面完成率靠保底撑起，健康度与绩效两侧口径不一致，需一次变更同时修两侧。",
+  who:"涉及财务系统与产研接口，运营无变更权限。",
+  what:"完成财务对接、全量对账、绩效与健康度两侧口径复验并留签字记录。",route:"绩效计算口径 + 对账单 → 财务 / 产研",sigIds:["R-07"]},
+ "T-04":{type:"保障合规",cat:"guard",name:"关键品类第二供应商引入与履约验证",sig:"R-09 + R-10",imp:"高",prio:"P1 · 优先处理",owner:"供应商",due:"建议本月内",
+  why:"单点依赖叠加已点名的退出风险，等断供再找替代就来不及。",
+  who:"招商、遴选、履约验证均归口供应商部门，运营只提供品类缺口清单。",
+  what:"补招第二供应商，完成至少 1 次履约验证，更新集中度与退出预案台账。",route:"供应商集中度台账 + 订单数据 → 供应商",sigIds:["R-09"]},
+ "T-05":{type:"增长动作",cat:"grow",name:"上座率达标校加场与供应商共投",sig:"O-12 + O-06",imp:"中",prio:"P2 · 计划改进",owner:"校园行（供应商配合）",due:"下期排期前",
+  why:"单场效果已验证且产能有余量，供应商已有共投意向，加场边际成本最低。",
+  who:"排期、场次级别、招商落地都在校园行，供应商负责冠名/联办/分润。",
+  what:"加排 1 场并落一类供应商合作模式，复盘上座率与利润率。",route:"校园行实施表 + 排期表 + 供应商协作表 → 校园行",sigIds:["O-12"]},
+ "T-06":{type:"增长动作",cat:"grow",name:"低转化区域打法整改（先改打法再谈加投）",sig:"R-14 + O-14",imp:"高",prio:"P1 · 优先处理",owner:"营销 + 校园行",due:"建议本月内",
+  why:"触达量高但转化率持续 <20%，继续加投只会放大无效投入，公司口径要求先冻结新立项。",
+  who:"打法复盘、名单质量、活动设计归营销，校园行负责现场执行。",
+  what:"复盘标杆区域打法，重做名单与话术，落地 ≥1 个低位区域并观测转化率。",route:"营销效率台账 + 活动策划执行进度表 → 营销",sigIds:["R-14"]},
+ "T-07":{type:"核查整改",cat:"check",name:"重复提报需求转标准化迭代",sig:"O-10 + R-17",imp:"中",prio:"P2 · 计划改进",owner:"产研",due:"本月排期会",
+  why:"多校重复提同一需求且加急占比偏高，一次性标准化可同时缓解产能挤兑。",
+  who:"标准化与定制化的边界判定、排期否决权在产研评审会。",
+  what:"合并同类需求，按优先级三维度标注，转标准化迭代并同步全部提报人。",route:"业务需求池台账 + 月度项目规划表 → 产研",sigIds:["R-17","O-10"]},
+ "T-08":{type:"保障合规",cat:"guard",name:"到期前收费模式升级与续签",sig:"O-08 + R-12",imp:"中",prio:"P2 · 计划改进",owner:"商务 + 合规",due:"到期前 60 天",
+  why:"到期前 90 天是唯一升级窗口，过期只剩续签，且逾期会命中红线。",
+  who:"费率、授权、合同文本归商务与合规，运营提供项目经营数据支撑谈判。",
+  what:"完成升级或续签谈判，归档扫描件，更新到期台账状态。",route:"合同资质到期台账 + 收费模式清单 → 商务",sigIds:["O-08"]},
+ "T-09":{type:"核查整改",cat:"check",name:"逾期动作单集中清理与机制复盘",sig:"R-11",imp:"中",prio:"P2 · 计划改进",owner:"运营督办（原责任线执行）",due:"建议 3 日内",
+  why:"多张动作单超期未回填，说明闭环断在最后一公里，先清存量再谈新增。",
+  who:"督办与验收归口运营，具体整改仍由原责任线执行。",
+  what:"逐单回填结果或由管理者审定降级/撤销，并复盘逾期原因。",route:"任务台账 + 月度项目规划表 → 运营",sigIds:["R-11"]},
+ "T-10":{type:"增长动作",cat:"grow",name:"高流量低线上项目攻坚专项格挂牌",sig:"O-01 + R-01",imp:"高",prio:"P1 · 优先处理",owner:"管理层拍板 / 运营执行",due:"30 天内认领",
+  why:"四条成立条件同时满足，具备一次性拉线上率的窗口，需管理层拍板配资源。",
+  who:"跨档资源与格长授权只有管理层能定，运营负责执行。",
+  what:"挂专项格，配独立格长、方案与资源池，注明验收标准与分润上限。",route:"数据收集.xlsx + 系统部署清单 + 品类台账 → 管理层",sigIds:["O-01","R-01"]},
+ "T-11":{type:"增长动作",cat:"grow",name:"运维池新关键人走访与机遇评估",sig:"O-03",imp:"中",prio:"P2 · 计划改进",owner:"营销 + 运营",due:"30 天内评估",
+  why:"运维池冒出新采购处关键人并已留痕，是低成本增量线索。",
+  who:"名单来自用户池，走访与评估由营销、运营共同完成。",
+  what:"完成走访留痕、评估是否转机遇网格立项，并按规则处理计提。",route:"用户池走访表 + 政策留痕 → 管理层",sigIds:["O-03"]}
+};
+
+var PROJECTS = [
+ {id:"P-A01",name:"示例 · 攻坚项目 A-01",tier:"A-攻坚",score:61,delta:-7,lamp:"yellow",dims:[52,48,61,70,38,66,74],
+  sigs:["R-01","R-07","R-11","R-04","O-01","O-05"],tasks:["T-01","T-02","T-10","T-09"],
+  trend:[68,66,64,67,65,61],
+  reason:["示范基线月，D1/D2 双维偏低","活动场次减少，D3 回落","结算链路问题首次出现","一次专项触达后短暂回升","同类工单复发，D5 再降","结算未对接 + 整改逾期共同拉低"],
+  summary:"<span class='tag'>【变化】</span>近 30 天健康度读数由 68 → 61（-7），主要落在 D1 业务规模与 D5 系统运维。<br><span class='tag'>【归因】</span>D1 受线上率连续 2 月未改善驱动；D5 因结算链路仍未对接财务，同类工单 3 次复现且 2 张动作单整改逾期，构成本期下行主因。<br><span class='tag'>【建议】</span>优先完成 1 项：由产研+财务联合核查结算链路（P1，2 日内）；其余 3 项进入本月计划池，不要求同时开展。",
+  note:"该档管理重点为渗透拉升；同一档内才可比，跨档只比灯不比分。"},
+ {id:"P-A02",name:"示例 · 防守项目 A-02",tier:"A-防守",score:78,delta:2,lamp:"green",dims:[82,79,74,71,76,80,84],
+  sigs:["R-09","O-08"],tasks:["T-04","T-08"],
+  trend:[72,73,74,76,76,78],reason:["基线","交付稳定","合同续签推进","营销触达回升","供应商集中度预警出现","续签窗口打开，读数回升"],
+  summary:"<span class='tag'>【变化】</span>近 30 天健康度读数 76 → 78（+2），整体稳定，D7 合规组织改善最明显。<br><span class='tag'>【归因】</span>合同续签窗口打开并完成前期谈判，但 D4 出现单一供应商占比偏高且无备份，是当前唯一需关注项。<br><span class='tag'>【建议】</span>本阶段重点 1 项：引入第二供应商并完成履约验证（P1，本月内）；其余进入计划池。",
+  note:"防守盘最怕供应链 / 系统 / 合同出事，不追求流量增量；综合读数仅作参考。"},
+ {id:"P-B07",name:"示例 · 区域项目 B-07",tier:"B-区域",score:66,delta:-3,lamp:"yellow",dims:[64,60,42,63,70,52,68],
+  sigs:["R-14","R-17","O-10"],tasks:["T-06","T-07"],
+  trend:[70,69,68,67,69,66],reason:["基线","触达量上升","转化率未同步","立项冻结生效","加急需求增加","低转化 + 产研负荷共同拉低"],
+  summary:"<span class='tag'>【变化】</span>近 30 天读数 69 → 66（-3），D3 营销触达与 D6 需求产研两维走弱。<br><span class='tag'>【归因】</span>触达量居前但转化率持续偏低，按公司口径该区域新立项已冻结；同时加急需求占比偏高、同类需求未合并。<br><span class='tag'>【建议】</span>先改打法再谈加投（P1，营销+校园行）；重复提报需求转标准化迭代（P2）进入计划池。",
+  note:"B 类打包网格关注收费模式 / 品类扩围能否落地，兼看产研负荷。"},
+ {id:"P-C12",name:"示例 · 运维池项目 C-12",tier:"C-运维池",score:71,delta:1,lamp:"green",dims:[0,58,0,62,86,74,82],
+  sigs:["O-03"],tasks:["T-11"],
+  trend:[68,69,70,70,70,71],reason:["基线","SLA 达标","响应时效改善","巡检完成","稳定","新关键人线索出现"],
+  summary:"<span class='tag'>【变化】</span>近 30 天读数 70 → 71（+1），运维保障稳定。<br><span class='tag'>【归因】</span>该档只考核 SLA 与保底满意度、不考核流量，因此 D1/D3 不纳入判定；本期出现新采购处关键人并已留痕，构成机遇线索。<br><span class='tag'>【建议】</span>走访评估是否转机遇网格立项（P2，30 天内），按公司规则处理发现人计提。",
+  note:"C 档按公司定稿：只考核 SLA 与保底满意度，不考核流量、不设格长、不计提；雷达中灰显维度不纳入判定。"},
+ {id:"P-O03",name:"示例 · 机遇网格 O-03",tier:"O-机遇",score:62,delta:8,lamp:"purple",dims:null,
+  sigs:["O-12"],tasks:["T-05"],
+  trend:[38,44,49,53,58,62],reason:["挂牌","方案完成","供应商对接","打样场次","效果验证","成熟度提升"],
+  summary:"<span class='tag'>【变化】</span>机遇成熟度 54 → 62（+8），本月进展主要来自打样场次落地与效果验证。<br><span class='tag'>【归因】</span>机遇网格不套七维健康度，改用「机遇成熟度」看里程碑：方案已完成、供应商已对接、已验证单场效果，尚缺规模化排期。<br><span class='tag'>【建议】</span>挂牌时须注明验收标准与分润上限；30 天无人认领按公司规则由管理层指派并上浮分成（封顶 10%）。",
+  note:"O 机遇网格不套七维，改用成熟度与验收标准；上座率余量已触发 O-12 加场机遇。"}
+];
+
+var curProj = "P-A01", curLevel = "project", curCat = "all", curSignal = null, curTask = null;
+
+function $(id){return document.getElementById(id)}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+function proj(id){for(var i=0;i<PROJECTS.length;i++){if(PROJECTS[i].id===id)return PROJECTS[i]}return PROJECTS[0]}
+function lampHtml(l,t){var m={red:["d-red","红"],yellow:["d-yellow","黄"],green:["d-green","绿"],purple:["d-purple","机遇"]};var x=m[l]||m.green;return '<span class="lamp"><i class="dot '+x[0]+'"></i>'+x[1]+'</span>'}
+function colorOf(v){if(v>=75)return "var(--green)";if(v>=55)return "var(--yellow)";if(v>=40)return "var(--orange)";return "var(--red)"}
+
+/* ---------- 左栏 ---------- */
+function renderProjList(){
+  var h="";
+  PROJECTS.forEach(function(p){
+    h+='<button class="proj '+(p.id===curProj?"on":"")+'" onclick="selectProj(\''+p.id+'\')">'
+      +'<div class="p1"><span class="pn">'+esc(p.name)+'</span><span class="pi">'+p.score+'</span></div>'
+      +'<div class="p2"><span class="tier-tag">'+esc(p.tier)+'</span>'+lampHtml(p.lamp,p.tier)
+      +'<span style="color:'+(p.delta>=0?"var(--green)":"var(--orange)")+'">'+(p.delta>=0?"+":"")+p.delta+'</span></div></button>';
+  });
+  $("projList").innerHTML=h;
+}
+function selectProj(id){curProj=id;renderProjList();renderProject();renderTasks();}
+
+/* ---------- 雷达 ---------- */
+function renderRadar(p){
+  var box=$("radar"), lg=$("dimLegend");
+  if(!p.dims){
+    box.innerHTML='<svg width="230" height="210" viewBox="0 0 230 210"><circle cx="115" cy="105" r="76" fill="none" stroke="#1d3846"/><circle cx="115" cy="105" r="52" fill="none" stroke="#1d3846"/><text x="115" y="98" fill="#43d6c4" font-size="30" font-weight="700" text-anchor="middle">62%</text><text x="115" y="120" fill="#8fa9b4" font-size="11" text-anchor="middle">机遇成熟度</text><text x="115" y="140" fill="#64808c" font-size="10" text-anchor="middle">不套七维健康度</text></svg>';
+    lg.innerHTML='<div style="font-size:11px;color:var(--sub);line-height:1.9">方案已完成<br>供应商已对接<br>打样场次落地<br>效果已验证<br><span style="color:var(--dim)">尚缺规模化排期</span></div>';
+    return;
+  }
+  var cx=118,cy=105,R=76,n=7,i,pts=[],grid=[],labs="";
+  function xy(k,r){var a=-Math.PI/2+k*2*Math.PI/n;return [cx+Math.cos(a)*r,cy+Math.sin(a)*r]}
+  for(var ring=1;ring<=2;ring++){
+    var g=[];for(i=0;i<n;i++){var q=xy(i,R*ring/2);g.push(q[0].toFixed(1)+","+q[1].toFixed(1))}
+    grid.push('<polygon points="'+g.join(" ")+'" fill="none" stroke="#22404e" stroke-width="1"/>');
+  }
+  for(i=0;i<n;i++){
+    var e=xy(i,R);grid.push('<line x1="'+cx+'" y1="'+cy+'" x2="'+e[0].toFixed(1)+'" y2="'+e[1].toFixed(1)+'" stroke="#1b3542" stroke-width="1"/>');
+    var lp=xy(i,R+19), al=lp[0]<cx-12?"end":(lp[0]>cx+12?"start":"middle");
+    labs+='<text x="'+lp[0].toFixed(1)+'" y="'+(lp[1]+3).toFixed(1)+'" fill="#8fa9b4" font-size="9" text-anchor="'+al+'">D'+(i+1)+'</text>';
+  }
+  for(i=0;i<n;i++){var v=p.dims[i]/100;var q2=xy(i,R*v);pts.push(q2[0].toFixed(1)+","+q2[1].toFixed(1))}
+  var poly='<polygon points="'+pts.join(" ")+'" fill="rgba(67,214,196,.20)" stroke="#43d6c4" stroke-width="1.8"/>';
+  var dots="";for(i=0;i<n;i++){var d=pts[i].split(",");dots+='<circle cx="'+d[0]+'" cy="'+d[1]+'" r="2.6" fill="#43d6c4"/>'}
+  box.innerHTML='<svg width="238" height="212" viewBox="0 0 238 212">'+grid.join("")+poly+dots+labs+'</svg>';
+  var h="";for(i=0;i<n;i++){
+    var v=p.dims[i],dis=(v===0);
+    h+='<div class="dimrow"><span class="dn" style="'+(dis?"opacity:.4":"")+'">'+DIMS[i]+'</span>'
+      +'<span class="bar"><i style="width:'+(dis?0:v)+'%;background:'+(dis?"#2a4a58":colorOf(v))+'"></i></span>'
+      +'<span class="dv" style="'+(dis?"opacity:.4":"")+'">'+(dis?"—":v)+'</span></div>';
+  }
+  lg.innerHTML=h;
+}
+
+/* ---------- 趋势 ---------- */
+function renderTrend(p){
+  var w=620,h=130,pad=28,i;
+  var vals=p.trend, mn=30,mx=90;
+  function X(k){return pad+k*(w-2*pad)/(vals.length-1)}
+  function Y(v){return h-pad-(v-mn)/(mx-mn)*(h-2*pad)}
+  var s='<svg width="100%" viewBox="0 0 '+w+' '+h+'" style="display:block">';
+  [30,50,70,90].forEach(function(g){s+='<line x1="'+pad+'" y1="'+Y(g)+'" x2="'+(w-pad)+'" y2="'+Y(g)+'" stroke="#1b3542" stroke-dasharray="3 4"/><text x="4" y="'+(Y(g)+3)+'" fill="#64808c" font-size="9">'+g+'</text>'});
+  var line="",area="",dots="";
+  for(i=0;i<vals.length;i++){line+=(i?" L":"M")+X(i).toFixed(1)+" "+Y(vals[i]).toFixed(1)}
+  area=line+" L"+X(vals.length-1).toFixed(1)+" "+(h-pad)+" L"+X(0).toFixed(1)+" "+(h-pad)+" Z";
+  for(i=0;i<vals.length;i++){
+    dots+='<circle class="tp" data-i="'+i+'" cx="'+X(i).toFixed(1)+'" cy="'+Y(vals[i]).toFixed(1)+'" r="4.5" fill="#0d1e29" stroke="#43d6c4" stroke-width="2" style="cursor:pointer"/>';
+  }
+  s+='<path d="'+area+'" fill="rgba(67,214,196,.09)"/><path d="'+line+'" fill="none" stroke="#43d6c4" stroke-width="2"/>'+dots+'</svg>';
+  $("trend").innerHTML=s;
+  var nodes=document.querySelectorAll(".tp");
+  for(i=0;i<nodes.length;i++){(function(node){
+    node.addEventListener("click",function(){
+      var k=parseInt(node.getAttribute("data-i"),10);
+      $("trendTip").innerHTML='<b>'+MONTHS[k]+' · '+vals[k]+'</b> ／ '+p.reason[k];
+    });
+  })(nodes[i])}
+  $("trendTip").innerHTML="点击上方数据点查看该月变化归因。";
+}
+
+/* ---------- 主区（项目） ---------- */
+function renderProject(){
+  var p=proj(curProj);
+  $("pName").textContent=p.name;
+  $("pMeta").innerHTML='<span>'+p.id+'</span><span>'+esc(p.tier)+'</span><span>运营归口 · 示例格长</span><span>更新于 2026-11-25 14:30</span>';
+  $("pScore").textContent=p.score;
+  $("pScore").style.color=colorOf(p.score);
+  $("pDelta").textContent="较上月 "+(p.delta>=0?"+":"")+p.delta;
+  $("pDelta").style.color=p.delta>=0?"var(--green)":"var(--orange)";
+  $("pSummary").innerHTML=p.summary;
+  renderRadar(p);renderTrend(p);
+  var risks=p.sigs.filter(function(s){return SIGNALS[s]&&SIGNALS[s].kind==="risk"});
+  var opps=p.sigs.filter(function(s){return SIGNALS[s]&&SIGNALS[s].kind==="opp"});
+  function chips(arr,kind){
+    return arr.map(function(id){var s=SIGNALS[id];
+      return '<button class="chip '+kind+'" onclick="openSignal(\''+id+'\')"><i class="cdot"></i><span class="cid">'+id+'</span>'+esc(s.name)+'<span class="arrow">&rsaquo;</span></button>';
+    }).join("");
+  }
+  $("riskChips").innerHTML=chips(risks,"risk")||'<span style="color:var(--dim);font-size:11px">当前无需关注的风险信号</span>';
+  $("oppChips").innerHTML=chips(opps,"opp")||'<span style="color:var(--dim);font-size:11px">当前无机遇信号</span>';
+  $("rn").textContent=risks.length;$("on").textContent=opps.length;
+  var kp=[
+    {k:"在管信号",v:p.sigs.length,s:"风险 "+risks.length+" / 机遇 "+opps.length},
+    {k:"待审定任务",v:p.tasks.length,s:"本阶段重点 1 项"},
+    {k:"已逾期项",v:(p.sigs.indexOf("R-11")>=0?2:0),s:"需回填结果"}
+  ];
+  $("pKpis").innerHTML=kp.map(function(x){return '<div class="kpi"><div class="k">'+x.k+'</div><div class="v">'+x.v+'</div><div class="s">'+x.s+'</div></div>'}).join("");
+  $("pTierNote").innerHTML='<span class="ic">&#9432;</span> '+p.note+' 综合读数仅作参考，决策看维度、信号与红线。';
+}
+
+/* ---------- 右栏任务 ---------- */
+function renderTasks(){
+  var p=proj(curProj);
+  var arr=p.tasks.filter(function(id){var t=TASKS[id];return t&&(curCat==="all"||t.cat===curCat)});
+  $("taskList").innerHTML=arr.map(function(id){
+    var t=TASKS[id],pc=t.prio.indexOf("P1")===0?"p1":(t.prio.indexOf("P2")===0?"p2":"p3");
+    return '<div class="tcard"><div class="th"><span class="ttype">'+esc(t.type)+' · '+id+'</span><span class="prio '+pc+'">'+esc(t.prio)+'</span></div>'
+      +'<h5>'+esc(t.name)+'</h5><p>'+esc(t.why)+'</p>'
+      +'<div class="why"><b>AI 建议：</b>'+esc(t.owner)+' · '+esc(t.due)+'　｜　关联信号 '+esc(t.sig)+'</div>'
+      +'<div class="acts"><button class="link" onclick="openTaskEvidenceFrom(\''+id+'\')">查看依据与任务路由 &rarr;</button>'
+      +'<button class="btn-sm" onclick="openTask(\''+id+'\')">审定任务建议 &rarr;</button></div></div>';
+  }).join("")||'<div style="color:var(--dim);font-size:11px;padding:10px 0">该分类下暂无任务建议。</div>';
+}
+
+/* ---------- 层级视图内容 ---------- */
+function renderBusiness(){
+  var rows=[
+    ["同类隐患复发 / 整改逾期","4 个项目","说明闭环机制需要统一整改，而非逐项目各修一次"],
+    ["触达量大但转化率偏低","3 个项目","打法问题，应统一复盘标杆区域而不是分别加投"],
+    ["加急需求与重复提报","3 个项目","产研侧合并同类需求，可一次标准化多校复用"],
+    ["单一供应商占比偏高","2 个项目","供应商侧集中补招备份 + 集采议价"]
+  ];
+  $("bizCommon").innerHTML=rows.map(function(r){return '<div class="bline"><span style="color:var(--txt)">'+r[0]+'</span><span>'+r[1]+' ／ '+r[2]+'</span></div>'}).join("");
+  var load=[
+    ["营销",6,2,"增长动作"],["校园行",3,1,"活动排期"],["供应商",4,1,"补招备份"],
+    ["产研 / 系统",5,2,"排期与整改"],["运营 / 合规",4,1,"核查与续签"]
+  ];
+  $("bizLoad").innerHTML=load.map(function(l){
+    return '<div class="heatrow"><span>'+l[0]+'</span><span class="bar" style="max-width:280px"><i style="width:'+(l[1]*13)+'%;background:'+colorOf(90-l[1]*5)+'"></i></span><span style="color:var(--sub);font-size:11px">'+l[1]+' 项 / P1 '+l[2]+'</span></div>';
+  }).join("");
+}
+function renderCompany(){
+  var tiers=[["A-攻坚",["h-red","h-yellow","h-yellow","h-green","h-red","h-yellow","h-idle","h-idle"]],
+             ["A-防守",["h-green","h-green","h-yellow","h-green","h-green","h-yellow","h-idle","h-idle"]],
+             ["B-区域",["h-yellow","h-red","h-yellow","h-green","h-yellow","h-idle","h-idle","h-idle"]],
+             ["C-运维池",["h-green","h-green","h-green","h-green","h-idle","h-idle","h-idle","h-idle"]],
+             ["O-机遇",["h-green","h-yellow","h-green","h-idle","h-idle","h-idle","h-idle","h-idle"]]];
+  $("coHeat").innerHTML=tiers.map(function(t){
+    return '<div class="heatrow"><span style="color:var(--txt)">'+t[0]+'</span><span class="heatbar">'
+      +t[1].map(function(c){return '<i class="hcell '+c+'" title="示例信号"></i>'}).join("")
+      +'</span><span style="color:var(--dim);font-size:11px">'+t[1].filter(function(c){return c!=="h-idle"}).length+' 个在管</span></div>';
+  }).join("");
+  var pool=[["O-01 高流量低线上攻坚窗口","4 个项目命中 · 需管理层拍板配资源"],
+            ["O-05 线下高频品类已有替代商家","3 个项目命中 · 营销做替代专场"],
+            ["O-10 重复需求转标准化","3 个项目命中 · 产研一次开发多校复用"],
+            ["O-08 合同到期前 90 天","2 个项目命中 · 收费升级窗口"]];
+  $("coPool").innerHTML=pool.map(function(x){return '<div class="poolitem"><div class="pt">'+x[0]+'</div><div class="pd">'+x[1]+'</div></div>'}).join("");
+  var bl=[["红线：结算未对接财务","2 个项目 · 已置红"],["红线：单一供应商无备份","2 个项目 · 已置红"],
+          ["本期新增信号","6 项"],["本期已消除信号","4 项"],["待拍板决策截止线","2 项"]];
+  $("coBlock").innerHTML=bl.map(function(x){return '<div class="bline"><span style="color:var(--txt)">'+x[0]+'</span><span>'+x[1]+'</span></div>'}).join("");
+}
+function switchLevel(lv){
+  curLevel=lv;
+  var bs=document.querySelectorAll("#levels button");
+  for(var i=0;i<bs.length;i++){bs[i].className=(bs[i].getAttribute("data-lv")===lv?"on":"")}
+  ["project","business","company"].forEach(function(k){$("v-"+k).className="view"+(k===lv?" on":"")});
+  if(lv==="business")renderBusiness();
+  if(lv==="company")renderCompany();
+}
+
+/* ---------- 弹窗 ---------- */
+function closeAll(){
+  ["ovSignal","ovEvidence","ovTask","ovInfo"].forEach(function(id){$(id).className="overlay"});
+}
+function show(id){closeAll();$(id).className="overlay show"}
+function toast(msg){var t=$("toast");t.textContent=msg;t.className="toast show";setTimeout(function(){t.className="toast"},2600)}
+
+function openSignal(id){
+  curSignal=id;var s=SIGNALS[id];
+  $("sgTitle").textContent=s.name;
+  $("sgChip").innerHTML='<span class="chip '+(s.kind==="risk"?"risk":"opp")+'" style="cursor:default"><i class="cdot"></i><span class="cid">'+id+'</span>'+esc(s.dim)+' · '+esc(s.prio)+'</span>';
+  $("sgMean").textContent=s.mean;$("sgTrig").textContent=s.trig;$("sgImp").textContent=s.imp;$("sgClear").textContent=s.clear;
+  $("sgRoute").textContent=s.route;
+  $("sgNote").textContent=(s.kind==="risk"?"标签为当前风险信号，不是对项目的永久评价。":"机遇信号有窗口期，逾期未动应标失效并写明原因。");
+  $("sgTaskBtn").style.display=s.task?"inline-block":"none";
+  show("ovSignal");
+}
+function openEvidence(){
+  var s=SIGNALS[curSignal],e=s.ev;
+  $("evSub").textContent=curSignal+" · "+s.name;
+  var stCls=e.st.indexOf("需建台账")>=0?"st-todo":(e.st.indexOf("建议")>=0?"st-warn":"st-ok");
+  var rows=[["证据数值",e.val],["统计时点",e.time],["来源文件 / 系统",e.source],
+            ["取数口径（分子 / 分母 / 规则）",e.rule],["录入责任人 / 归口",e.owner],["更新频率",e.upd],
+            ["口径状态",'<span class="status '+stCls+'">'+e.st+'</span>']];
+  $("evTable").innerHTML=rows.map(function(r){return '<tr><th>'+r[0]+'</th><td>'+r[1]+'</td></tr>'}).join("");
+  show("ovEvidence");
+}
+function backToSignal(){if(curSignal)openSignal(curSignal)}
+function openLinkedTask(){var t=SIGNALS[curSignal].task;if(t)openTask(t)}
+
+function openTask(id){
+  curTask=id;var t=TASKS[id];
+  $("tkTitle").textContent=t.name;
+  $("tkImp").textContent=t.imp==="高"?"高":"中";
+  $("tkImp").style.color=t.imp==="高"?"var(--red)":"var(--yellow)";
+  $("tkPrio").textContent=t.prio;$("tkDue").textContent=t.due;$("tkOwner").textContent=t.owner;
+  $("tkWhy").textContent=t.why;$("tkWho").textContent=t.who;$("tkWhat").textContent=t.what;
+  var sel=$("tkSelPrio");sel.value=t.prio;
+  var ow=$("tkSelOwner");var opts=[t.owner,"运营","营销","校园行","供应商","产研","财务","商务 + 合规","管理层"];
+  var seen={},h="";opts.forEach(function(o){if(!seen[o]){seen[o]=1;h+='<option>'+o+'</option>'}});ow.innerHTML=h;
+  show("ovTask");
+}
+function openTaskEvidenceFrom(id){var t=TASKS[id];if(t&&t.sigIds&&t.sigIds.length){curSignal=t.sigIds[0];openEvidence()}else{toast("演示态：该任务的依据路由暂未接入证据卡")}}
+function openTaskEvidence(){var t=TASKS[curTask];if(t&&t.sigIds&&t.sigIds.length){curSignal=t.sigIds[0];openEvidence()}}
+function confirmTask(){
+  var p=$("tkSelPrio").value,o=$("tkSelOwner").value;
+  toast("已记录审定结果："+p+" ／ "+o+"（演示态，未写入真实系统、未派发任务）");
+  closeAll();
+}
+function openInfo(){show("ovInfo")}
+function exportSummary(){
+  var p=proj(curProj),txt=[
+    "库巴扎 · 项目健康度画像摘要（演示态 · 脱敏示例数据）",
+    "生成时间：2026-11-25","项目："+p.name+"（"+p.id+" / "+p.tier+"）",
+    "健康度读数（参考）："+p.score+"（较上月 "+(p.delta>=0?"+":"")+p.delta+"）",
+    "","【AI 研判摘要】",p.summary.replace(/<br>/g,"\n").replace(/<[^>]+>/g,""),
+    "","【在管信号】",p.sigs.map(function(s){return s+" "+SIGNALS[s].name}).join("\n"),
+    "","【任务建议】",p.tasks.map(function(t){return t+" "+TASKS[t].name+"（"+TASKS[t].prio+"）"}).join("\n"),
+    "","说明：AI 建议仅供参考，管理者保留最终裁定权；本摘要为演示态示例数据，不代表真实经营情况。"
+  ].join("\n");
+  var blob=new Blob([txt],{type:"text/plain;charset=utf-8"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);
+  a.download="项目健康度画像摘要_"+p.id+".txt";document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);document.body.removeChild(a)},500);
+  toast("摘要已导出（演示态示例数据）");
+}
+
+/* ---------- 事件绑定 ---------- */
+(function(){
+  var bs=document.querySelectorAll("#levels button");
+  for(var i=0;i<bs.length;i++){(function(b){b.addEventListener("click",function(){switchLevel(b.getAttribute("data-lv"))})})(bs[i])}
+  var ts=document.querySelectorAll("#taskTabs button");
+  for(var j=0;j<ts.length;j++){(function(b){b.addEventListener("click",function(){
+    curCat=b.getAttribute("data-cat");
+    var all=document.querySelectorAll("#taskTabs button");
+    for(var k=0;k<all.length;k++){all[k].className=(all[k]===b?"on":"")}
+    renderTasks();
+  })})(ts[j])}
+  document.addEventListener("keydown",function(e){if(e.key==="Escape")closeAll()});
+  ["ovSignal","ovEvidence","ovTask","ovInfo"].forEach(function(id){
+    $(id).addEventListener("click",function(e){if(e.target===this)closeAll()});
+  });
+})();
+
+/* ---------- 初始渲染 ---------- */
+renderProjList();renderProject();renderTasks();renderBusiness();renderCompany();
+</script>
+</body>
+</html>
