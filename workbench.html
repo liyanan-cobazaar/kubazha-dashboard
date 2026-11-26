@@ -761,7 +761,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
 
         <!-- 各区域流量 + 排名 -->
         <div class="chart-row" style="grid-template-columns:1.4fr 0.6fr">
-          <div class="chart-container" style="height:380px"><canvas id="overviewRegionChart"></canvas></div>
+          <div class="chart-container" data-chart-host="overviewRegionChart" style="height:380px"><canvas id="overviewRegionChart"></canvas></div>
           <div class="chart-container" style="height:380px;overflow:auto;padding:10px">
             <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#333">各区域流量排名（万）</div>
             <div id="overviewRegionRank"></div>
@@ -776,7 +776,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
 
         <!-- 各区域流量增量贡献占比 + 增量排名 -->
         <div class="chart-row" style="grid-template-columns:1.4fr 0.6fr">
-          <div class="chart-container" style="height:420px"><canvas id="overviewIncrementPieChart"></canvas></div>
+          <div class="chart-container" data-chart-host="overviewIncrementPieChart" style="height:420px"><canvas id="overviewIncrementPieChart"></canvas></div>
           <div class="chart-container" style="height:420px;overflow:auto;padding:10px">
             <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:#333">各区域流量增量排名（万）</div>
             <div id="overviewIncrementRank"></div>
@@ -785,7 +785,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
 
         <!-- 运营动作 vs 流量增量 -->
         <div class="chart-row" style="grid-template-columns:1fr">
-          <div class="chart-container" style="height:360px"><canvas id="overviewIncrementChart"></canvas></div>
+          <div class="chart-container" data-chart-host="overviewIncrementChart" style="height:360px"><canvas id="overviewIncrementChart"></canvas></div>
         </div>
 
         <!-- 区域下钻分析 -->
@@ -3307,6 +3307,12 @@ function inSchoolScope(school) {
 function noPermHtml(msg) {
   return '<div class="no-perm">🔒 ' + (msg || '当前角色无权访问该模块') + '</div>';
 }
+// 空数据提示会替换图表容器内容；数据恢复后必须先重建画布，否则排名有数据、图表仍停在空提示
+function ensureChartCanvas(canvasId) {
+  if ($(canvasId)) return;
+  var host = document.querySelector('[data-chart-host="' + canvasId + '"]');
+  if (host) host.innerHTML = '<canvas id="' + canvasId + '"></canvas>';
+}
 function scopeNoteHtml() {
   if (!CURRENT_USER || isAdmin()) return '';
   return '<span class="scope-note">当前可见范围：' + ROLE_LABEL[CURRENT_USER.role] + ' · ' + CURRENT_USER.name + '</span>';
@@ -3641,6 +3647,7 @@ function renderOvDashboard() {
     if (rc && rc.parentNode) rc.parentNode.innerHTML = noPermHtml('当前角色无区域汇总数据');
     $("overviewRegionRank").innerHTML = '<div style="font-size:11px;color:#999;padding:8px">当前角色无区域排名数据</div>';
   } else {
+    ensureChartCanvas("overviewRegionChart");
     renderPieChart("overviewRegionChart", "各区域" + rangePrefix + "流量(万)",
       regionArr.map(function(r){ return r.name; }),
       regionArr.map(function(r){ return r.flow; })
@@ -3701,6 +3708,7 @@ function renderOvIncrement() {
     if (pc && pc.parentNode) pc.parentNode.innerHTML = noPermHtml('当前角色无区域汇总数据');
     $("overviewIncrementRank").innerHTML = '<div style="font-size:11px;color:#999;padding:8px">当前角色无区域排名数据</div>';
   } else {
+    ensureChartCanvas("overviewIncrementPieChart");
     var pieLabels = regionIncrements.map(function(r){ return r.name; });
     var pieData = regionIncrements.map(function(r){ return Math.max(r.increment, 0); });
     renderPieChart("overviewIncrementPieChart", monthPrefix + " 各区域流量增量贡献占比", pieLabels, pieData, true);
@@ -3721,6 +3729,7 @@ function renderOvIncrement() {
     var ic = $("overviewIncrementChart");
     if (ic && ic.parentNode) ic.parentNode.innerHTML = noPermHtml('当前角色无区域对比数据');
   } else {
+    ensureChartCanvas("overviewIncrementChart");
     renderWorkIncrementChart("overviewIncrementChart", monthPrefix + " 运营动作 vs 流量增量(万)", regionEntries);
   }
 
