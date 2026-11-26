@@ -2914,9 +2914,12 @@ function ensureAccounts() {
     });
   });
   // 营销活动 leader 可能带"驻场运营"等前缀，不作为独立账号（避免冗余），由名称模糊匹配覆盖
+  // 已离职等不再登录的运营人员：仅从登录入口隐藏，历史数据、绩效记录全部保留照常展示
+  var HIDDEN_LOGIN_STAFF = { '胡晓霖': true };
   ACCOUNTS.leader = Object.keys(lset).sort();
   ACCOUNTS.staff = Object.keys(sset).filter(function(n) {
     if (isDirtyName(n)) return false; // 剔除「未填写」「王春光/亚娟」等
+    if (HIDDEN_LOGIN_STAFF[n]) return false; // 已离职：只隐藏登录入口，数据不删
     if (lset[n]) return false;        // 已是区域主管的人不再出现在运营人员账号里
     return true;
   }).sort();
@@ -3248,7 +3251,7 @@ function aggregateRegions(months) {
       var r = regs[k];
       if (!agg[k]) {
         agg[k] = {
-          region: r.region,
+          region: regionDisplayName(k, r.region),
           projects: 0,
           members: r.members.slice ? r.members.slice() : [],
           user_pool: 0,
@@ -3259,6 +3262,7 @@ function aggregateRegions(months) {
           actual_order: 0
         };
       }
+      agg[k].region = regionDisplayName(k, agg[k].region || r.region);
       agg[k].projects += (r.projects || 0);
       agg[k].user_pool += (r.user_pool || 0);
       agg[k].touch += (r.touch || 0);
@@ -3565,7 +3569,7 @@ function renderOvDashboard() {
 
   var regions = aggregateRegions(months);
   var regionEntries = Object.keys(regions).map(function(k){
-    return { key:k, name:regions[k].region, data:regions[k] };
+    return { key:k, name:regionDisplayName(k, regions[k].region), data:regions[k] };
   });
   var singleMonth = months.length === 1;
   var totalIncrement, incTrend;
@@ -8959,8 +8963,9 @@ function recordKey(month, p) {
 var _leaderRegionCache = null;
 function deriveRegion(leader) {
   if (!leader) return '';
-  if (!_leaderRegionCache) {
-    _leaderRegionCache = {};
+  // 缓存可能在云端数据尚未拉全时建立；若当前负责人仍无结果，按人补扫一次，避免一直空白
+  if (!_leaderRegionCache || !_leaderRegionCache[leader]) {
+    if (!_leaderRegionCache) _leaderRegionCache = {};
     Object.keys(WORKBENCH_DATA.monthly_data || {}).forEach(function(m) {
       (WORKBENCH_DATA.monthly_data[m].people || []).forEach(function(p) {
         if (p.leader === leader && p.region) _leaderRegionCache[leader] = p.region;
@@ -8968,6 +8973,11 @@ function deriveRegion(leader) {
     });
   }
   return _leaderRegionCache[leader] || '';
+}
+// 区域名称展示兜底：当月表格漏填区域列时，从其他月份同负责人记录补回；不改任何数值
+function regionDisplayName(leader, region) {
+  var name = String(region || '').trim();
+  return name || deriveRegion(leader) || String(leader || '');
 }
 
 function parsePlan(v) {
