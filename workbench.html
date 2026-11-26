@@ -2915,7 +2915,7 @@ function ensureAccounts() {
   });
   // 营销活动 leader 可能带"驻场运营"等前缀，不作为独立账号（避免冗余），由名称模糊匹配覆盖
   // 已离职等不再登录的运营人员：仅从登录入口隐藏，历史数据、绩效记录全部保留照常展示
-  var HIDDEN_LOGIN_STAFF = { '胡晓霖': true };
+  var HIDDEN_LOGIN_STAFF = { '胡晓霖': true, '代斯航': true };
   ACCOUNTS.leader = Object.keys(lset).sort();
   ACCOUNTS.staff = Object.keys(sset).filter(function(n) {
     if (isDirtyName(n)) return false; // 剔除「未填写」「王春光/亚娟」等
