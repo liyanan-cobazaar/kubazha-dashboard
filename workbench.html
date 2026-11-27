@@ -2113,7 +2113,8 @@ function applyModuleCloud(modKey, cloudVal) {
   else { try { localStorage.setItem(cfg.lsKey, JSON.stringify(merged)); } catch (e) {} }
   if (typeof currentModule !== 'undefined') {
     if (modKey === 'monthly' && typeof renderMonthBtns === 'function') renderMonthBtns();
-    if (modKey === 'monthly') try { defaultLatestPerfMonth(); } catch (e) {} // 云端合并出更新的月份后，绩效默认月份跟随校正（2026-10-09）
+    if (modKey === 'monthly') { try { if ((WORKBENCH_DATA.available_months || []).indexOf(perfMonth) < 0) defaultLatestPerfMonth(); } catch (e) {} // 云端合并后仅当所选月份失效才回退最近月（2026-11-27 起月份记忆优先）
+    }
     if (modKey === 'monthly' && typeof currentModule !== 'undefined' && currentModule === 'modPerformance' && typeof updatePerformanceContent === 'function') updatePerformanceContent(); // 月度数据云端合并后（如拼接名自愈）即时刷新绩效页
     if (modKey === 'userpool' && currentModule === 'modUserPool' && typeof renderUpSubTab === 'function') {
       // 云端合并后联动：筛选下拉（可能新增走访人/建档月份）+ 当前页签（用户列表/走访记录/月度动态等）
@@ -2265,6 +2266,36 @@ function defaultLatestPerfMonth() {
     am.sort(function (a, b) { return monthSortKey(a) - monthSortKey(b); });
     if (am.length) perfMonth = am[am.length - 1];
   } catch (e) {}
+}
+
+// 月份记忆（2026-11-27 用户要求）：刷新后保持所选月份——总体概况多选月份、绩效月份、用户池建档月份。
+// 存 localStorage wb_month_pref_v1；所选月份在数据中已不存在时才回退默认最近月。
+var _MP_RESTORED = false;
+function readMonthPrefs() {
+  try { return JSON.parse(localStorage.getItem('wb_month_pref_v1') || '{}') || {}; } catch (e) { return {}; }
+}
+function saveMonthPrefs() {
+  try {
+    var uamf = $("upAddMonthFilter");
+    localStorage.setItem('wb_month_pref_v1', JSON.stringify({
+      selectedMonths: selectedMonths,
+      perfMonth: perfMonth,
+      upAddMonth: uamf ? uamf.value : 'all'
+    }));
+  } catch (e) {}
+}
+function restoreMonthPrefs() {
+  if (_MP_RESTORED) return;
+  _MP_RESTORED = true;
+  var p = readMonthPrefs();
+  var avail = (WORKBENCH_DATA.available_months || []).slice().sort(function(a,b){ return monthSortKey(a) - monthSortKey(b); });
+  // 总体概况：所选月份仍存在则恢复（支持多月），否则维持默认最近月
+  if (Array.isArray(p.selectedMonths) && p.selectedMonths.length) {
+    var ok = p.selectedMonths.filter(function(m){ return avail.indexOf(m) >= 0; });
+    if (ok.length) { selectedMonths = ok; currentMonth = currentSelectedMonth(); }
+  }
+  // 绩效：所选月份仍存在则恢复，否则回退最近月
+  if (p.perfMonth && avail.indexOf(p.perfMonth) >= 0) perfMonth = p.perfMonth;
 }
 // 当前选中月份（用于单月视图）：selectedMonths 最新一个，回退 currentMonth
 function currentSelectedMonth() {
@@ -3080,8 +3111,9 @@ function enterApp() {
   applyNavByRole();
   // 恢复上次浏览的页签（2026-09-07）：需要套用角色裁剪之后做，避免 staff 越权恢复
   restoreLastPanel();
-  // 绩效月份默认最近月份（2026-10-09）：模块记忆，月份不记忆
-  try { defaultLatestPerfMonth(); } catch (e) {}
+  // 恢复上次所选月份（2026-11-27 用户要求：刷新后总体概况/绩效保持所选月份），无记录或失效才用最近月
+  try { restoreMonthPrefs(); } catch (e) {}
+  if ((WORKBENCH_DATA.available_months || []).indexOf(perfMonth) < 0) { try { defaultLatestPerfMonth(); } catch (e) {} }
   // 绩效规则六部分：管理员登录后显示修改按钮（其他角色只读），并套用已保存的规则版本
   initPerfRuleEditing();
   // 导入按钮与下载模板按钮仅管理员可见，且只在总体概况/绩效评估模块显示
@@ -3347,6 +3379,7 @@ function renderMonthPicker() {
   var container = $("monthFilter");
   if (!container) return;
   var avail = (WORKBENCH_DATA.available_months || []).slice().sort(function(a,b){ return monthSortKey(a) - monthSortKey(b); });
+  restoreMonthPrefs(); // 首次渲染时恢复上次所选月份（2026-11-27 用户要求：刷新保持所选月份）
   // 初始化默认选中最近月份（2026-10-09 用户要求：不要默认全选，默认停留在最近月份；avail 已按升序排，最后一个即最新）
   if (selectedMonths.length === 0) selectedMonths = avail.length ? [avail[avail.length - 1]] : [];
   // 同步 currentMonth 到最新选中
@@ -3457,6 +3490,7 @@ function applyMonthSelection() {
   currentMonth = currentSelectedMonth();
   updateMpTriggerText();
   var info = $('mpSelectedInfo'); if (info) info.textContent = getMpSelectedInfo();
+  saveMonthPrefs(); // 记住所选月份，刷新后保持（2026-11-27）
   // 刷新当前模块（趋势图用 selectedMonths，其它用 currentMonth）
   refreshCurrentModule();
 }
@@ -3893,6 +3927,7 @@ function initPerformance() {
 
 function changePerfMonth(m) {
   perfMonth = m;
+  saveMonthPrefs(); // 记住绩效所选月份，刷新后保持（2026-11-27）
   updatePerformanceContent();
 }
 
@@ -5800,6 +5835,11 @@ function fillUserPoolFilterOptions() {
       uamf.innerHTML += "<option value='"+m+"'>"+lbl+"</option>";
     });
     if(prevMonth && prevMonth !== 'all' && monthSet[prevMonth]) uamf.value = prevMonth;
+    // 首次进入（或下拉处于初始态）时恢复上次所选建档月份（2026-11-27 用户要求：刷新保持所选月份）
+    else {
+      var _savedUp = readMonthPrefs().upAddMonth;
+      if (_savedUp && monthSet[_savedUp] && (!prevMonth || prevMonth === 'all') && uamf.value !== _savedUp) uamf.value = _savedUp;
+    }
   }
 }
 
@@ -6051,7 +6091,7 @@ function renderUpSchoolList() {
   $("upSchoolSelect").onchange = function(){ upPage = 1; renderUpSchoolList(); };
   $("upLevelFilter").onchange = function(){ upPage = 1; renderUpSchoolList(); };
   $("upLeaderFilter").onchange = function(){ upPage = 1; renderUpSchoolList(); };
-  $("upAddMonthFilter").onchange = function(){ upPage = 1; renderUpSchoolList(); };
+  $("upAddMonthFilter").onchange = function(){ upPage = 1; saveMonthPrefs(); renderUpSchoolList(); };
   // 输入框用 input 事件实时筛选 + 200ms 防抖，避免每打一个字都重渲
   var nameInput = $("upNameSearch");
   if(nameInput._debounced) clearTimeout(nameInput._debounced);
