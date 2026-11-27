@@ -799,7 +799,7 @@ input[readonly]{background:#f1f5f9;color:#64748b;cursor:not-allowed}
           </div>
           <div style="font-size:11px;color:#888;margin-bottom:10px">💡 点击左侧饼图或右侧排名，可快速定位到对应区域并下钻查看各项目明细</div>
           <table>
-            <thead><tr><th>项目/学校</th><th>负责人</th><th>区域</th><th>用户池</th><th>有效触达</th><th>培训场次</th><th>校园行场次</th><th>流量(万)</th><th>流量增量(万)</th></tr></thead>
+            <thead><tr><th>项目/学校</th><th>负责人</th><th>区域</th><th>用户池</th><th>有效触达</th><th>培训场次</th><th>校园行场次</th><th style="cursor:pointer;user-select:none" onclick="setDrillSort('flow')">流量(万)<span id="drillArrowFlow" style="color:#1a73e8"></span></th><th style="cursor:pointer;user-select:none" onclick="setDrillSort('increment')">流量增量(万)<span id="drillArrowInc" style="color:#1a73e8"></span></th></tr></thead>
             <tbody id="overviewDrillTable"></tbody>
           </table>
         </div>
@@ -3806,7 +3806,8 @@ function renderOverviewDrill(month) {
   if(scope !== "all") {
     people = people.filter(function(p){ return p.leader === scope; });
   }
-  people.sort(function(a,b){ return calcFlowIncrement(b) - calcFlowIncrement(a); });
+  // 排序：默认按流量增量降序；点表头可切换为按流量降序（均为由多到少）
+  people.sort(function(a,b){ return drillSortVal(b) - drillSortVal(a); });
 
   var titleEl = $("overviewDrillTitle");
   var scopeRegionName = "全部区域";
@@ -3843,6 +3844,23 @@ function renderOverviewDrill(month) {
   var totalLabel = scope === 'all' ? '全部区域小计' : '区域小计';
   tbody += "<tr style='background:#f0f7ff;font-weight:600;border-top:2px solid #1a73e8'><td>" + totalLabel + "</td><td>—</td><td>" + scopeRegionName + "</td><td>" + fmt(totalUserPool) + "</td><td>" + fmt(totalTouch) + "</td><td>" + fmt(totalTrain) + "</td><td>" + fmt(totalCampus) + "</td><td>" + fmt(totalActualWan) + "</td><td style='color:" + totalIncColor + "'>" + totalIncStr + "</td></tr>";
   $("overviewDrillTable").innerHTML = tbody;
+  updateDrillArrows();
+}
+
+// 区域下钻排序：'increment'=按流量增量（默认），'flow'=按流量；均为降序
+var DRILL_SORT_KEY = 'increment';
+function drillSortVal(p) {
+  return DRILL_SORT_KEY === 'flow' ? (p.actual_order || 0) : calcFlowIncrement(p);
+}
+function setDrillSort(key) {
+  if (DRILL_SORT_KEY === key) return; // 已按该列排序时再点不变化（保持降序）
+  DRILL_SORT_KEY = key;
+  if (currentMonth && WORKBENCH_DATA.monthly_data[currentMonth]) renderOverviewDrill(currentMonth);
+}
+function updateDrillArrows() {
+  var af = $("drillArrowFlow"), ai = $("drillArrowInc");
+  if (af) af.textContent = DRILL_SORT_KEY === 'flow' ? ' ▼' : '';
+  if (ai) ai.textContent = DRILL_SORT_KEY === 'increment' ? ' ▼' : '';
 }
 
 
