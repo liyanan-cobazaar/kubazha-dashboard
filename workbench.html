@@ -17,7 +17,10 @@ body{font-family:-apple-system,'PingFang SC','Microsoft YaHei',sans-serif;backgr
 .mp-trigger{display:flex;align-items:center;gap:6px;padding:6px 14px;border:1px solid #1a73e8;border-radius:6px;background:#1a73e8;color:#fff;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s;white-space:nowrap}
 .mp-trigger:hover{box-shadow:0 2px 8px rgba(26,115,232,0.3)}
 .mp-trigger .mp-icon{font-size:14px}
-.mp-trigger .mp-count{background:#fff;color:#1a73e8;border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700}
+.mp-trigger .mp-chip{display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,0.2);border-radius:4px;padding:1px 7px;font-size:12px;font-weight:600;line-height:18px}
+.mp-trigger .mp-chip-x{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.28);font-size:11px;line-height:1;cursor:pointer;font-weight:400}
+.mp-trigger .mp-chip-x:hover{background:rgba(255,255,255,0.5)}
+.mp-trigger .mp-more{font-size:11px;font-weight:600}
 .mp-dropdown{display:none;position:absolute;top:100%;right:0;margin-top:6px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.12);z-index:1000;width:340px;max-height:420px;overflow-y:auto}
 .mp-dropdown.open{display:block}
 .mp-toolbar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid #f1f5f9;position:sticky;top:0;background:#fff}
@@ -3315,12 +3318,14 @@ function aggregateRegionIncrement(months, regionKey) {
   });
   return total;
 }
-// 选中月份范围显示文本
+// 选中月份显示文本（2026-11-27 定稿：多月逐月罗列+"合计"，不再用"~"区间文案）
 function selectedMonthsLabel() {
   if (!selectedMonths || selectedMonths.length === 0) return formatMonthLabel(currentSelectedMonth());
   if (selectedMonths.length === 1) return formatMonthLabel(selectedMonths[0]);
   var sorted = selectedMonths.slice().sort(function(a,b){ return monthSortKey(a) - monthSortKey(b); });
-  return formatMonthLabel(sorted[0]) + ' ~ ' + formatMonthLabel(sorted[sorted.length-1]) + '（共' + sorted.length + '个月）';
+  var avail = (WORKBENCH_DATA.available_months || []);
+  if (avail.length && sorted.length >= avail.length) return '全部月份（' + sorted.length + '个月）合计';
+  return mpMonthNames(sorted) + ' 合计';
 }
 // 聚合记录(getPersonLevelPeople 输出)按角色范围过滤
 function scopePersonLevel(list) {
@@ -3399,8 +3404,7 @@ function renderMonthPicker() {
     '<div style="position:relative">' +
       '<button class="mp-trigger" id="mpTrigger" onclick="toggleMonthPicker(event)">' +
         '<span class="mp-icon">📅</span>' +
-        '<span id="mpTriggerText">月份选择</span>' +
-        '<span class="mp-count" id="mpCount">'+selectedMonths.length+'</span>' +
+        '<span id="mpChips" style="display:inline-flex;gap:4px;align-items:center"></span>' +
         '<span class="mp-icon">▾</span>' +
       '</button>' +
       '<div class="mp-dropdown" id="mpDropdown">' +
@@ -3440,14 +3444,38 @@ function getMpSelectedInfo() {
   if (!selectedMonths.length) return '未选择月份';
   var sorted = selectedMonths.slice().sort(function(a,b){ return monthSortKey(a) - monthSortKey(b); });
   if (sorted.length === 1) return '已选：' + formatMonthLabel(sorted[0]);
-  return '已选：' + formatMonthLabel(sorted[0]) + ' ~ ' + formatMonthLabel(sorted[sorted.length-1]) + '（共'+sorted.length+'个月）';
+  return '已选：' + mpMonthNames(sorted) + '（共' + sorted.length + '个月）';
 }
+// 月份短标签："2026-07" => "7月"（跨年场景自动带年份，避免歧义）
+function mpShortLabel(key) {
+  var m = (key || '').match(/^(\d{4})-(\d{2})$/);
+  return m ? parseInt(m[2], 10) + '月' : formatMonthLabel(key);
+}
+// 多月罗列文本：同年用短标签"7月、10月"，跨年带年份"2025年12月、2026年1月"
+function mpMonthNames(sorted) {
+  var mixed = sorted.some(function(k){ return (k||'').slice(0,4) !== (sorted[0]||'').slice(0,4); });
+  return sorted.map(function(k){ return mixed ? formatMonthLabel(k) : mpShortLabel(k); }).join('、');
+}
+// 触发按钮上的月份胶囊（2026-11-27 定稿：胶囊标签替代区间文案，去数字徽标）
 function updateMpTriggerText() {
-  var el = $('mpTriggerText'); if (!el) return;
+  var el = $('mpChips'); if (!el) return;
   var sorted = selectedMonths.slice().sort(function(a,b){ return monthSortKey(a) - monthSortKey(b); });
-  if (!sorted.length) { el.textContent = '选择月份'; return; }
-  el.textContent = formatMonthLabel(sorted[0]) + (sorted.length>1 ? ' ~ ' + formatMonthLabel(sorted[sorted.length-1]) : '');
-  var cnt = $('mpCount'); if (cnt) cnt.textContent = sorted.length;
+  if (!sorted.length) { el.innerHTML = '<span>选择月份</span>'; return; }
+  var MAX = 3;
+  var html = sorted.slice(0, MAX).map(function(k){
+    var label = sorted.length === 1 ? formatMonthLabel(k) : mpShortLabel(k);
+    return '<span class="mp-chip">' + label + '<span class="mp-chip-x" title="取消' + label + '" onclick="mpRemoveChip(event,\'' + k + '\')">×</span></span>';
+  }).join('');
+  if (sorted.length > MAX) html += '<span class="mp-more">+' + (sorted.length - MAX) + '</span>';
+  el.innerHTML = html;
+}
+function mpRemoveChip(e, key) {
+  if (e) e.stopPropagation();
+  if (selectedMonths.length <= 1) return; // 至少保留一个月份
+  var idx = selectedMonths.indexOf(key);
+  if (idx < 0) return;
+  selectedMonths.splice(idx, 1);
+  applyMonthSelection();
 }
 function toggleMonthPicker(e) {
   if (e) e.stopPropagation();
