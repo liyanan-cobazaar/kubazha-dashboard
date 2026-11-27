@@ -3858,9 +3858,10 @@ function setDrillSort(key) {
   if (currentMonth && WORKBENCH_DATA.monthly_data[currentMonth]) renderOverviewDrill(currentMonth);
 }
 function updateDrillArrows() {
+  // 两个三角常显（否则没人知道可点击）：当前排序列=蓝色实心▼，另一列=浅灰空心▽提示可点
   var af = $("drillArrowFlow"), ai = $("drillArrowInc");
-  if (af) af.textContent = DRILL_SORT_KEY === 'flow' ? ' ▼' : '';
-  if (ai) ai.textContent = DRILL_SORT_KEY === 'increment' ? ' ▼' : '';
+  if (af) { af.textContent = DRILL_SORT_KEY === 'flow' ? ' ▼' : ' ▽'; af.style.color = DRILL_SORT_KEY === 'flow' ? '#1a73e8' : '#c0c6cf'; }
+  if (ai) { ai.textContent = DRILL_SORT_KEY === 'increment' ? ' ▼' : ' ▽'; ai.style.color = DRILL_SORT_KEY === 'increment' ? '#1a73e8' : '#c0c6cf'; }
 }
 
 
